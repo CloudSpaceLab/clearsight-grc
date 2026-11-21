@@ -4,6 +4,10 @@
 
 Updated: 2026-11-01. Tracking: [#462](https://github.com/CloudSpaceLab/clearsight-grc/issues/462).
 
+## 2 November — local Integrations layout work
+
+The uncommitted local working tree adapts the Integrations heading and three-view menu around the existing document-import handoff and explicit unavailable source, mapping and history states. [Decision](../../2026-11-02-integrations-layout.md) · [Source/before/after and verification](../../../evidence/2026-11-02-integrations/README.md). No connected-source records, health, filters, selection or sync capability were added. This is **partial V2 layout integration**, not a released screen; whole-screen acceptance remains **0/19** and production cutover remains blocked.
+
 ## 1 November — Automation & governance layout integration
 
 Continue from verified demo main `f9b5bfd9c27641c8acb7928b2e59d8c59b00ec64` after Enterprise Organization #599. Automation now uses the original four-tab composition, compact loaded-revision summaries, persistent query/selection state and a selected-policy context. The existing tenant-wide reader discloses its 200-code bound and latest-revision basis; permission/session changes and late responses cannot retain stale policies. Schedules/Activity remain unavailable and Escalations hands off to its existing owner.

@@ -1,0 +1,16 @@
+.v-home-period { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 4px; }
+.v-home-period label, .v-home-period > div { display: grid; gap: 6px; color: #536c90; font-size: 12px; font-weight: 700; }
+.v-home-period input, .v-home-period button, .v-home-period strong { min-height: 44px; padding: 0 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; font: inherit; }
+.v-home-period strong { display: flex; align-items: center; }
+.v-home-period-note { margin: 8px 0 18px; color: #536c90; font-size: 12px; }
+.v-home-assignments { margin: 16px 0; }
+.v-home-assignments header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.v-home-assignments h2 { margin: 0; }
+.v-home-assignments ul { display: flex; flex-wrap: wrap; gap: 8px 24px; padding: 0; list-style: none; }
+.v-home-assignments p { margin-bottom: 0; }
+.v-home-indicators { margin-top: 16px; }
+.v-home-indicators .v-attention { margin-bottom: 0; }
+.v-home-indicator { padding: 5px 8px; border-radius: 6px; background: #eef3fa; color: #536c90; font-size: 12px; }
+.v-home-indicator--breach { color: #a5242c; background: #fff0ef; }
+.v-home-indicator--watch { color: #855500; background: #fff4d7; }
+.v-home-indicator--normal { color: #186642; background: #e9f7ef; }

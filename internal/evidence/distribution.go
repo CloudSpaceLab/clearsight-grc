@@ -19,6 +19,8 @@ type AccessAssurance string
 const (
 	AssuranceLinkPossession AccessAssurance = "LINK_POSSESSION"
 	AssuranceEmailVerified  AccessAssurance = "EMAIL_VERIFIED"
+	// Internal assurance records a verified bank principal, not possession of an external link.
+	AssuranceInternalAuthenticated AccessAssurance = "INTERNAL_AUTHENTICATED"
 )
 
 type RecipientRole string
@@ -153,24 +155,35 @@ type ResponseWorkspace struct {
 }
 
 type ResponseRevision struct {
-	ID                   string
-	TenantID             string
-	LegalEntityID        string
-	DistributionID       string
-	WorkspaceID          string
-	SubmissionID         string
-	Revision             int64
-	SupersedesRevisionID string
-	AchievedAssurance    AccessAssurance
-	SignoffSummary       map[string]any
-	Score                *ResponseScoreResult
-	ComplianceScore      *float64
-	ScoredWeightCoverage float64
-	State                ResponseRevisionState
-	CriticalFieldResults []map[string]any
-	ScoringPolicyVersion string
-	Current              bool
-	CreatedAt            time.Time
+	ID                            string
+	TenantID                      string
+	LegalEntityID                 string
+	DistributionID                string
+	WorkspaceID                   string
+	SubmissionID                  string
+	SubmittedRecipientID          string
+	SubmittedRecipientPrincipalID string
+	SubmittedRecipientType        RecipientType
+	SubmittedRecipientLabel       string
+	Revision                      int64
+	SupersedesRevisionID          string
+	AchievedAssurance             AccessAssurance
+	SignoffSummary                map[string]any
+	Score                         *ResponseScoreResult
+	ComplianceScore               *float64
+	ScoredWeightCoverage          float64
+	State                         ResponseRevisionState
+	CriticalFieldResults          []map[string]any
+	ScoringPolicyVersion          string
+	Current                       bool
+	CreatedAt                     time.Time
+}
+
+func responseSubmissionRecipient(revision ResponseRevision) *ResponseSubmissionRecipient {
+	if revision.SubmittedRecipientID == "" {
+		return nil
+	}
+	return &ResponseSubmissionRecipient{Type: revision.SubmittedRecipientType, PrincipalID: revision.SubmittedRecipientPrincipalID, Label: revision.SubmittedRecipientLabel}
 }
 
 type ResponseScoreState string

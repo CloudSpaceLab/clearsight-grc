@@ -1,0 +1,5 @@
+/* Small workflow controls. Keep the existing information architecture. */
+.fl-return-bar{display:flex;justify-content:space-between;align-items:center;gap:16px;border:1px solid var(--line);border-radius:11px;background:var(--surface);padding:13px 17px;margin:0 0 20px;box-shadow:0 2px 9px #10284903}.fl-return-bar>div:first-child{min-width:0}.fl-return-bar strong{display:block;font-size:12px;font-weight:650;line-height:1.55}.fl-return-bar small{display:block;color:var(--muted);font-size:11px;line-height:1.6;max-width:760px}.fl-return-bar>div:last-child{justify-content:flex-end;flex:none}.fl-return-bar .btn{font-size:11px}.fl-return-bar+.page-head{margin-top:4px}.fl-return-bar .row{gap:7px}
+@media(max-width:1100px){.fl-return-bar{align-items:flex-start;flex-wrap:wrap}.fl-return-bar>div:last-child{flex-wrap:wrap;max-width:100%}}
+@media(max-width:767px){.fl-return-bar{padding:14px;margin-bottom:16px;gap:12px}.fl-return-bar>div:last-child{justify-content:flex-start;width:100%}.fl-return-bar .btn{white-space:normal;font-size:11px}.fl-return-bar strong{font-size:12px}.fl-return-bar small{font-size:11px}}
+@media print{.fl-return-bar{display:none!important}}

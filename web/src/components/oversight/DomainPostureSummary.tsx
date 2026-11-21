@@ -197,6 +197,7 @@ export function DomainPostureSummary({
           key={metric.id}
           label={metric.label}
           value={noPopulation ? "—" : metric.value}
+          delta={posturePercentage(metric)}
           detail={postureDetails[id]}
           meta={metricMeta(metric)}
           tone={postureTone(metric)}
@@ -303,7 +304,20 @@ function postureTone(metric: HomeMetric): StatusTone {
 
 function metricMeta(metric: HomeMetric) {
   const unknown = metric.unknown === undefined ? "unknown" : String(metric.unknown);
-  return `${metric.population} checked · ${unknown} unknown`;
+  const population = metric.id === "indicator_breaches" ? "linked indicators" : "risks";
+  return metric.population > 0 && metric.value >= 0 && metric.value <= metric.population
+    ? `${metric.value} of ${metric.population} ${population} · ${unknown} unknown`
+    : `${metric.population} checked · ${unknown} unknown`;
+}
+
+function posturePercentage(metric: HomeMetric) {
+  if (metric.freshness !== "CURRENT" || metric.completeness !== "COMPLETE" || metric.excluded !== 0 || metric.unknown !== 0
+      || !Number.isSafeInteger(metric.population) || metric.population <= 0 || !Number.isSafeInteger(metric.value)
+      || metric.value < 0 || metric.value > metric.population) return undefined;
+  const percent = metric.value / metric.population * 100;
+  if (percent > 0 && percent < 0.1) return "<0.1%";
+  if (percent < 100 && percent > 99.9) return ">99.9%";
+  return `${Number(percent.toFixed(1))}%`;
 }
 
 function isAbortError(error: unknown) {

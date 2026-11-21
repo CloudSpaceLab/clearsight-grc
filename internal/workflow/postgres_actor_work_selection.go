@@ -13,6 +13,7 @@ func postgresActorWorkRowsSQL() string {
 		       COALESCE(cr.id::text,''),COALESCE(cr.recipient_principal_id::text,''),
 		       (CASE
 		         WHEN cr.id IS NULL THEN false
+		         WHEN cr.subject_type='PROGRAM' THEN ` + programEvidenceVisibilitySQL("$2") + `
 		         WHEN cr.subject_type<>'MATTER' THEN true
 		         WHEN em.id IS NULL THEN false
 		         WHEN NOT (em.scope ? 'access') THEN true
@@ -59,6 +60,7 @@ func postgresActorWorkRowsSQL() string {
 		  ON cr.subject_type='MATTER'
 		 AND em.tenant_id=cr.tenant_id
 		 AND em.id::text=cr.subject_id
+		LEFT JOIN programs ep ON cr.subject_type='PROGRAM' AND ep.tenant_id=cr.tenant_id AND ep.legal_entity_id=cr.legal_entity_id AND ep.id=CASE WHEN cr.subject_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN cr.subject_id::uuid ELSE NULL END
 		WHERE (t.slug=$1 OR t.id::text=$1)
 		  AND NOT EXISTS (
 		    SELECT 1 FROM demo_record_archives archive
@@ -140,6 +142,7 @@ func postgresActorWorkRowsSQL() string {
 		        AND cr.status IN ('READY','IN_PROGRESS')
 		        AND cr.deadline>now()
 		        AND ((CASE
+		          WHEN cr.subject_type='PROGRAM' THEN ` + programEvidenceVisibilitySQL("$2") + `
 		          WHEN cr.subject_type<>'MATTER' THEN true
 		          WHEN em.id IS NULL THEN false
 		          WHEN NOT (em.scope ? 'access') THEN true

@@ -41,9 +41,9 @@ func readPostgresAssessmentSnapshot(ctx context.Context, q assessmentQueryer, te
 	return v, err
 }
 func (s *PostgresDistributionStore) ReadResponseAssessment(ctx context.Context, tenant, entity, principal, response string, authorize assessmentReadAuthorizer) (assessmentMaterial, error) {
-	return readResponseAssessmentMaterial(ctx, s.repo.pool, tenant, entity, principal, response, authorize)
+	return readResponseAssessmentMaterial(ctx, s.repo.pool, tenant, entity, principal, response, authorize, false)
 }
-func readResponseAssessmentMaterial(ctx context.Context, q assessmentQueryer, tenant, entity, principal, response string, authorize assessmentReadAuthorizer) (assessmentMaterial, error) {
+func readResponseAssessmentMaterial(ctx context.Context, q assessmentQueryer, tenant, entity, principal, response string, authorize assessmentReadAuthorizer, lockRequest bool) (assessmentMaterial, error) {
 	var formID, title, subjectType, subjectID string
 	var formVersion int64
 	var ordinaryRead, distributionCurrent bool
@@ -71,7 +71,11 @@ func readResponseAssessmentMaterial(ctx context.Context, q assessmentQueryer, te
 	if err = json.Unmarshal(provenance, &submission.AnswerProvenance); err != nil {
 		return assessmentMaterial{}, err
 	}
-	request, err := scanRequest(q.QueryRow(ctx, requestSelect+` WHERE er.id=$1::uuid AND er.tenant_id=$2::uuid`, submission.RequestID, summary.TenantID))
+	requestSQL := requestSelect + ` WHERE er.id=$1::uuid AND er.tenant_id=$2::uuid`
+	if lockRequest {
+		requestSQL += ` FOR UPDATE OF er`
+	}
+	request, err := scanRequest(q.QueryRow(ctx, requestSQL, submission.RequestID, summary.TenantID))
 	if err != nil {
 		return assessmentMaterial{}, err
 	}
@@ -79,6 +83,17 @@ func readResponseAssessmentMaterial(ctx context.Context, q assessmentQueryer, te
 		return assessmentMaterial{}, ErrNotFound
 	}
 	m := assessmentMaterial{Summary: summary, Revision: revision, Request: request, Submission: submission}
+	if revision.SubmittedRecipientID != "" {
+		var recipientID string
+		err = q.QueryRow(ctx, `SELECT id::text FROM capture_distribution_recipients WHERE id=$1::uuid AND tenant_id=$2::uuid AND legal_entity_id=$3::uuid AND distribution_id=$4::uuid AND request_id=$5::uuid AND role='TO'`, revision.SubmittedRecipientID, summary.TenantID, summary.LegalEntityID, summary.DistributionID, submission.RequestID).Scan(&recipientID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return assessmentMaterial{}, ErrNotFound
+		}
+		if err != nil {
+			return assessmentMaterial{}, err
+		}
+		m.SubmittedRecipientPrincipalID = revision.SubmittedRecipientPrincipalID
+	}
 	if !ordinaryRead && (authorize == nil || !authorize(ctx, m)) {
 		return assessmentMaterial{}, ErrNotFound
 	}
@@ -103,7 +118,7 @@ func (s *PostgresDistributionStore) WriteResponseAssessment(ctx context.Context,
 	if !current {
 		return assessmentMaterial{}, ErrAssessmentConflict
 	}
-	m, err := readResponseAssessmentMaterial(ctx, tx, tenant, entity, principal, response, authorize)
+	m, err := readResponseAssessmentMaterial(ctx, tx, tenant, entity, principal, response, authorize, true)
 	if err != nil {
 		return assessmentMaterial{}, err
 	}

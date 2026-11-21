@@ -1,0 +1,373 @@
+{
+  "runtime": "Node actual-source; browser DOM stubbed",
+  "scope": "Route functions, registered actions and navigation destinations; record-specific workflow tests are separate",
+  "results": [
+    {
+      "route": "home",
+      "status": "PASS",
+      "bytes": 6134
+    },
+    {
+      "route": "frameworks",
+      "status": "PASS",
+      "bytes": 5143
+    },
+    {
+      "route": "adopt",
+      "status": "PASS",
+      "bytes": 12634
+    },
+    {
+      "route": "programs",
+      "status": "PASS",
+      "bytes": 3794
+    },
+    {
+      "route": "program",
+      "status": "PASS",
+      "bytes": 7702
+    },
+    {
+      "route": "assessment",
+      "status": "PASS",
+      "bytes": 736
+    },
+    {
+      "route": "forms",
+      "status": "PASS",
+      "bytes": 6194
+    },
+    {
+      "route": "form-builder",
+      "status": "PASS",
+      "bytes": 45617
+    },
+    {
+      "route": "form-response",
+      "status": "PASS",
+      "bytes": 19153
+    },
+    {
+      "route": "check-runs",
+      "status": "PASS",
+      "bytes": 1676
+    },
+    {
+      "route": "vendors",
+      "status": "PASS",
+      "bytes": 6009
+    },
+    {
+      "route": "vendor",
+      "status": "PASS",
+      "bytes": 5731
+    },
+    {
+      "route": "risks",
+      "status": "PASS",
+      "bytes": 13407
+    },
+    {
+      "route": "rcsa",
+      "status": "PASS",
+      "bytes": 3989
+    },
+    {
+      "route": "rcsa-review",
+      "status": "PASS",
+      "bytes": 4230
+    },
+    {
+      "route": "indicators",
+      "status": "PASS",
+      "bytes": 5787
+    },
+    {
+      "route": "losses",
+      "status": "PASS",
+      "bytes": 8667
+    },
+    {
+      "route": "controls",
+      "status": "PASS",
+      "bytes": 5025
+    },
+    {
+      "route": "evidence",
+      "status": "PASS",
+      "bytes": 5791
+    },
+    {
+      "route": "privacy",
+      "status": "PASS",
+      "bytes": 5187
+    },
+    {
+      "route": "work",
+      "status": "PASS",
+      "bytes": 9106
+    },
+    {
+      "route": "reports",
+      "status": "PASS",
+      "bytes": 18975
+    },
+    {
+      "route": "integrations",
+      "status": "PASS",
+      "bytes": 3072
+    },
+    {
+      "route": "settings",
+      "status": "PASS",
+      "bytes": 3085
+    },
+    {
+      "route": "activity",
+      "status": "PASS",
+      "bytes": 3600
+    },
+    {
+      "route": "activity-wizard",
+      "status": "PASS",
+      "bytes": 525
+    },
+    {
+      "route": "activity-version",
+      "status": "PASS",
+      "bytes": 470
+    },
+    {
+      "route": "dpia",
+      "status": "PASS",
+      "bytes": 3473
+    },
+    {
+      "route": "dpia-wizard",
+      "status": "PASS",
+      "bytes": 487
+    },
+    {
+      "route": "privacy-case",
+      "status": "PASS",
+      "bytes": 3395
+    },
+    {
+      "route": "case-intake",
+      "status": "PASS",
+      "bytes": 618
+    },
+    {
+      "route": "setup",
+      "status": "PASS",
+      "bytes": 514
+    },
+    {
+      "route": "risk",
+      "status": "PASS",
+      "bytes": 4047
+    },
+    {
+      "route": "loss",
+      "status": "PASS",
+      "bytes": 718
+    },
+    {
+      "route": "control",
+      "status": "PASS",
+      "bytes": 3619
+    },
+    {
+      "route": "evidence-review",
+      "status": "PASS",
+      "bytes": 2499
+    },
+    {
+      "route": "requirement-review",
+      "status": "PASS",
+      "bytes": 736
+    },
+    {
+      "route": "kri-returns",
+      "status": "PASS",
+      "bytes": 6162
+    },
+    {
+      "route": "kri-return",
+      "status": "PASS",
+      "bytes": 16352
+    },
+    {
+      "route": "kri-cycle",
+      "status": "PASS",
+      "bytes": 655
+    },
+    {
+      "route": "insight-detail",
+      "status": "PASS",
+      "bytes": 8531
+    },
+    {
+      "route": "report-builder",
+      "status": "PASS",
+      "bytes": 688
+    },
+    {
+      "route": "report-pack",
+      "status": "PASS",
+      "bytes": 617
+    },
+    {
+      "route": "documents",
+      "status": "PASS",
+      "bytes": 12479
+    },
+    {
+      "route": "document",
+      "status": "PASS",
+      "bytes": 403
+    },
+    {
+      "route": "document-upload",
+      "status": "PASS",
+      "bytes": 655
+    },
+    {
+      "route": "approvals",
+      "status": "PASS",
+      "bytes": 1581
+    },
+    {
+      "route": "approval",
+      "status": "PASS",
+      "bytes": 407
+    },
+    {
+      "route": "approval-request",
+      "status": "PASS",
+      "bytes": 385
+    },
+    {
+      "route": "data-health",
+      "status": "PASS",
+      "bytes": 3007
+    },
+    {
+      "route": "kri-library",
+      "status": "PASS",
+      "bytes": 28189
+    },
+    {
+      "route": "indicator",
+      "status": "PASS",
+      "bytes": 2481
+    },
+    {
+      "route": "roles",
+      "status": "PASS",
+      "bytes": 7367
+    },
+    {
+      "route": "role-detail",
+      "status": "PASS",
+      "bytes": 18770
+    },
+    {
+      "route": "access-review",
+      "status": "PASS",
+      "bytes": 12268
+    },
+    {
+      "route": "escalation-matrix",
+      "status": "PASS",
+      "bytes": 7704
+    },
+    {
+      "route": "escalation-policy",
+      "status": "PASS",
+      "bytes": 8958
+    },
+    {
+      "route": "inbox",
+      "status": "PASS",
+      "bytes": 35405
+    },
+    {
+      "route": "notification",
+      "status": "PASS",
+      "bytes": 3915
+    },
+    {
+      "route": "notification-preferences",
+      "status": "PASS",
+      "bytes": 4902
+    },
+    {
+      "route": "loss-intake",
+      "status": "PASS",
+      "bytes": 711
+    },
+    {
+      "route": "loss-import",
+      "status": "PASS",
+      "bytes": 2058
+    },
+    {
+      "route": "loss-insights",
+      "status": "PASS",
+      "bytes": 27265
+    },
+    {
+      "route": "control-editor",
+      "status": "PASS",
+      "bytes": 383
+    },
+    {
+      "route": "control-test",
+      "status": "PASS",
+      "bytes": 740
+    },
+    {
+      "route": "vendor-review",
+      "status": "PASS",
+      "bytes": 744
+    },
+    {
+      "route": "risk-edit",
+      "status": "PASS",
+      "bytes": 735
+    },
+    {
+      "route": "reports?view=executive",
+      "status": "PASS"
+    },
+    {
+      "route": "reports?view=locations",
+      "status": "PASS"
+    },
+    {
+      "route": "reports?view=drivers",
+      "status": "PASS"
+    },
+    {
+      "route": "reports?view=kri",
+      "status": "PASS"
+    },
+    {
+      "route": "reports?view=assurance",
+      "status": "PASS"
+    },
+    {
+      "route": "reports?view=dependencies",
+      "status": "PASS"
+    },
+    {
+      "route": "reports?view=quality",
+      "status": "PASS"
+    },
+    {
+      "route": "reports?view=library",
+      "status": "PASS"
+    }
+  ]
+}

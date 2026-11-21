@@ -189,6 +189,16 @@ func testPostgresResponseWorkspaceAmendment(t *testing.T, amendmentRecipient int
 	if secondSubmission.Revision.Revision != 2 || secondSubmission.Revision.SupersedesRevisionID != firstSubmission.Revision.ID {
 		t.Fatalf("PostgreSQL amendment did not supersede revision 1: %+v", secondSubmission.Revision)
 	}
+	if firstSubmission.Revision.SubmittedRecipientID == "" || secondSubmission.Revision.SubmittedRecipientID == "" || (firstSubmission.Revision.SubmittedRecipientID == secondSubmission.Revision.SubmittedRecipientID) != (amendmentRecipient == 0) {
+		t.Fatalf("incorrect revision recipient attribution: first=%q second=%q", firstSubmission.Revision.SubmittedRecipientID, secondSubmission.Revision.SubmittedRecipientID)
+	}
+	var persistedFirst, persistedSecond string
+	if err := pool.QueryRow(ctx, `SELECT (SELECT submitted_recipient_id::text FROM capture_response_revisions WHERE id=$1::uuid), (SELECT submitted_recipient_id::text FROM capture_response_revisions WHERE id=$2::uuid)`, firstSubmission.Revision.ID, secondSubmission.Revision.ID).Scan(&persistedFirst, &persistedSecond); err != nil || persistedFirst != firstSubmission.Revision.SubmittedRecipientID || persistedSecond != secondSubmission.Revision.SubmittedRecipientID {
+		t.Fatalf("recipient attribution not persisted: %q %q %v", persistedFirst, persistedSecond, err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE capture_response_revisions SET submitted_recipient_label='Changed' WHERE id=$1::uuid`, firstSubmission.Revision.ID); err == nil {
+		t.Fatal("response recipient provenance was mutable")
+	}
 
 	var editCount, revisionCount, currentCount, submissionCount, legacySessionCount, scoredEventCount, scoredOutboxCount int
 	var workspaceStatus ResponseWorkspaceStatus

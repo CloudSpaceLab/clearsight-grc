@@ -212,7 +212,7 @@ func TestCreateRelationshipCanReuseAnExistingVendorWithoutMergingRelationships(t
 	repo := NewMemoryRepository()
 	service := NewService(repo)
 	service.now = tickingClock()
-	ids := []string{"vendor-1", "relationship-1", "relationship-2"}
+	ids := []string{"vendor-1", "relationship-1", "relationship-2", "relationship-3"}
 	service.newID = func() (string, error) { value := ids[0]; ids = ids[1:]; return value, nil }
 	actor := Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "owner"}
 	first, err := service.CreateRelationship(context.Background(), actor, validCreateInput())
@@ -221,6 +221,8 @@ func TestCreateRelationshipCanReuseAnExistingVendorWithoutMergingRelationships(t
 	}
 	secondInput := validCreateInput()
 	secondInput.ExistingRelationshipID = first.Relationship.ID
+	secondInput.ExpectedExistingRelationshipVersion = first.Relationship.Version
+	secondInput.ExpectedVendorVersion = first.Vendor.Version
 	secondInput.LegalName, secondInput.TradingName, secondInput.RegistrationRef = "", "", ""
 	secondInput.ServiceName = "Settlement support"
 	second, err := service.CreateRelationship(context.Background(), actor, secondInput)
@@ -233,7 +235,7 @@ func TestCreateRelationshipCanReuseAnExistingVendorWithoutMergingRelationships(t
 	if len(repo.vendors) != 1 || len(repo.relationships) != 2 {
 		t.Fatalf("repository counts vendors=%d relationships=%d", len(repo.vendors), len(repo.relationships))
 	}
-	if _, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "other-entity", PrincipalID: "owner"}, CreateRelationshipInput{ExistingRelationshipID: first.Relationship.ID, ServiceName: "Other", Criticality: CriticalityStandard, PrivacyRole: PrivacyNone}); !errors.Is(err, ErrNotFound) {
+	if _, err := service.CreateRelationship(context.Background(), Actor{TenantID: "bank", LegalEntityID: "other-entity", PrincipalID: "owner"}, CreateRelationshipInput{ExistingRelationshipID: first.Relationship.ID, ExpectedExistingRelationshipVersion: first.Relationship.Version, ExpectedVendorVersion: first.Vendor.Version, ServiceName: "Other", Criticality: CriticalityStandard, PrivacyRole: PrivacyNone}); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("cross-entity reuse error = %v, want not found", err)
 	}
 }

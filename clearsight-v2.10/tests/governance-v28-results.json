@@ -1,0 +1,62 @@
+{
+  "suite": "governance-v28-model-and-render-contract",
+  "browserLayoutValidated": false,
+  "results": [
+    {
+      "name": "Scoped grants, missing grants, self-approval and expired assignments remain distinct",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit deny overrides all role grants in its scope, and unknown IDs fail closed",
+      "status": "PASS"
+    },
+    {
+      "name": "Role lifecycle preserves drafts, rejects SoD conflict and records an accepted policy",
+      "status": "PASS"
+    },
+    {
+      "name": "Protected system role and final active bank administrator cannot be changed or removed",
+      "status": "PASS"
+    },
+    {
+      "name": "Future-dated overlapping SoD assignments are rejected, disjoint locations are permitted",
+      "status": "PASS"
+    },
+    {
+      "name": "Assignment form rejects role scope widening and duplicate dated assignments",
+      "status": "PASS"
+    },
+    {
+      "name": "Direct rules require independent authorized reviewer and catch descendant SoD conflicts",
+      "status": "PASS"
+    },
+    {
+      "name": "Calendar hours retain 24/7 time while business hours skip the weekend in WAT",
+      "status": "PASS"
+    },
+    {
+      "name": "Escalation resolves actual role holders and applies the fallback for missing owner",
+      "status": "PASS"
+    },
+    {
+      "name": "Acknowledgement and resolution stop only the configured future levels",
+      "status": "PASS"
+    },
+    {
+      "name": "Policy scope, severity and active state are applied before scheduling",
+      "status": "PASS"
+    },
+    {
+      "name": "Policy matching prefers the specific location and highest matching severity",
+      "status": "PASS"
+    },
+    {
+      "name": "Policy save validates increasing offsets and fallback then creates a revision",
+      "status": "PASS"
+    },
+    {
+      "name": "All governance routes render complete action markup and permission matrix labels",
+      "status": "PASS"
+    }
+  ]
+}

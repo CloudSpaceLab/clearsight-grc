@@ -67,6 +67,7 @@ export async function assertNotificationsLayout(page, scenario) {
       selectedCount: recordNodes.filter((node) => node.getAttribute("aria-pressed") === "true").length,
       selectedRecord: selectedRecord?.querySelector(".cs-selectable-record__title")?.textContent.trim() ?? null,
       detailTitle: get(".notification-detail__header h2")?.textContent.trim() ?? null,
+      inboxCount: rect(get(".notification-inbox__list-heading .cs-status-badge")),
       readFilter: readFilter ? [...readFilter.querySelectorAll("button")].map((node) => ({ label: node.textContent.trim(), selected: node.getAttribute("aria-pressed") === "true" })) : null,
       unreadHeader: document.querySelector(".notification-center__launcher button")?.getAttribute("aria-label") ?? null,
       searchVisible: Boolean(search?.getClientRects().length), filtersToggleVisible: Boolean(get(".notification-inbox__filter-toggle")?.getClientRects().length),
@@ -76,6 +77,7 @@ export async function assertNotificationsLayout(page, scenario) {
         outcome: node.querySelector(".notification-activity__record-heading .cs-status-badge")?.textContent.trim(),
         fields: [...node.querySelectorAll(".notification-activity__facts dt")].map((field) => field.textContent.trim()), text: node.textContent.trim() })) : [],
       activityVersionLimitation: view === "activity" ? get(".notification-activity__hint")?.textContent.trim() : null,
+      activityProof: view === "activity" ? [...active.querySelectorAll(".notification-activity__proof > div")].map((node) => ({ bounds: rect(node), term: rect(node.querySelector("dt")), value: rect(node.querySelector("dd")) })) : [],
       preferences: view === "preferences" ? { daily: get('input[type="checkbox"]')?.checked,
         times: [...active.querySelectorAll('input[type="time"]')].map((node) => node.value), criticalRequired: /Critical required/.test(active.textContent),
         inAppHeading: main?.querySelector("h3")?.textContent.trim(), emailHeading: aside?.querySelector("#notification-email-heading")?.textContent.trim() } : null,
@@ -97,16 +99,25 @@ export async function assertNotificationsLayout(page, scenario) {
   }
   if (scenario.touch && reading.undersizedTargets.length) throw new Error(`${scenario.name}: Notifications controls below44px: ${JSON.stringify(reading.undersizedTargets)}`);
   if (scenario.notificationView === "inbox" && !["notifications-empty", "notifications-unavailable"].includes(scenario.fixture)) {
+    if (scenario.viewport.width === 390 && (!reading.inboxCount || reading.inboxCount.height > 32)) {
+      throw new Error(`${scenario.name}: The loaded notification count must remain on one line: ${JSON.stringify(reading.inboxCount)}`);
+    }
     if (reading.recordCount !== 5 || reading.selectedCount !== 1 || reading.selectedRecord !== firstTitle || reading.detailTitle !== firstTitle
       || reading.unreadHeader !== "Notifications, 7 unread" || reading.readFilter[0]?.label !== "All" || !reading.readFilter[0]?.selected
       || reading.readFilter[1]?.label !== "Unread (7)" || reading.searchVisible !== (scenario.viewport.width > 600)
       || reading.filtersToggleVisible !== (scenario.viewport.width <= 600)) throw new Error(`${scenario.name}: Inbox delivery, default selection or compact filter replacement is incorrect: ${JSON.stringify(reading)}`);
   }
   if (scenario.notificationView === "activity" && scenario.fixture === "notifications-loaded"
-    && (reading.recordCount !== 3 || !reading.activityVersionLimitation?.includes("Record versions are not recorded in this history.")
+    && (reading.recordCount !== 3 || !reading.activityVersionLimitation?.includes("Activity events omit record versions.")
       || reading.activityEvents.some((item) => !item.action?.includes("Sample") || !item.actor?.includes("Sample") || !item.outcome
         || !item.text.includes(item.id) || item.fields.some((field) => ["Scope", "Version"].includes(field))))) {
     throw new Error(`${scenario.name}: Activity must expose returned events and disclose absent versions in its context`);
+  }
+  if (scenario.notificationView === "activity" && scenario.fixture === "notifications-loaded" && scenario.viewport.width === 768) {
+    const facts = reading.activityProof;
+    if (facts.length !== 4 || facts.some((fact) => !fact.bounds || !fact.term || !fact.value || Math.abs(fact.bounds.y - facts[0].bounds.y) > 1 ||
+      fact.term.x < fact.bounds.x - 1 || fact.term.right > fact.bounds.right + 1 || fact.value.x < fact.bounds.x - 1 || fact.value.right > fact.bounds.right + 1) ||
+      !reading.firstRecordVisible) throw new Error(`${scenario.name}: tablet Activity must retain four readable context facts and a visible first event`);
   }
   if (scenario.notificationView === "preferences" && (!reading.preferences?.criticalRequired || reading.preferences.inAppHeading !== "In-app notifications" || !reading.preferences.emailHeading)) {
     throw new Error(`${scenario.name}: Preferences must retain the in-app card and required critical email policy`);

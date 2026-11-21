@@ -1,0 +1,1014 @@
+{
+  "runtime": "Actual JavaScript with substituted DOM/browser shell",
+  "scope": "Registered destinations and actions under scoped readers, role entries and explicit blocked boundaries; record commands have dedicated suites",
+  "results": [
+    {
+      "route": "my-workspace",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 6332,
+      "blocked": false
+    },
+    {
+      "route": "home",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 14000,
+      "blocked": false
+    },
+    {
+      "route": "frameworks",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 5143,
+      "blocked": false
+    },
+    {
+      "route": "adopt",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 12634,
+      "blocked": false
+    },
+    {
+      "route": "programs",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 3794,
+      "blocked": false
+    },
+    {
+      "route": "program?id=PRG-104",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 7954,
+      "blocked": false
+    },
+    {
+      "route": "assessment?id=PRG-104&target=Meridian%20Bank",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 1653,
+      "blocked": false
+    },
+    {
+      "route": "forms",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 6200,
+      "blocked": false
+    },
+    {
+      "route": "form-builder",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 45617,
+      "blocked": false
+    },
+    {
+      "route": "form-response",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 19501,
+      "blocked": false
+    },
+    {
+      "route": "check-runs",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 1734,
+      "blocked": false
+    },
+    {
+      "route": "vendors",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 6360,
+      "blocked": false
+    },
+    {
+      "route": "vendor?id=ENG-01",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 6662,
+      "blocked": false
+    },
+    {
+      "route": "risks",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 13407,
+      "blocked": false
+    },
+    {
+      "route": "rcsa",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 3989,
+      "blocked": false
+    },
+    {
+      "route": "rcsa-review",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 4301,
+      "blocked": false
+    },
+    {
+      "route": "indicators",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 5787,
+      "blocked": false
+    },
+    {
+      "route": "losses",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 8668,
+      "blocked": false
+    },
+    {
+      "route": "controls",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 5025,
+      "blocked": false
+    },
+    {
+      "route": "evidence",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 8140,
+      "blocked": false
+    },
+    {
+      "route": "privacy",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 5244,
+      "blocked": false
+    },
+    {
+      "route": "work",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 6174,
+      "blocked": false
+    },
+    {
+      "route": "reports",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 21270,
+      "blocked": false
+    },
+    {
+      "route": "integrations",
+      "actor": "USR-05",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 3123,
+      "blocked": false
+    },
+    {
+      "route": "settings",
+      "actor": "USR-05",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 3497,
+      "blocked": false
+    },
+    {
+      "route": "activity",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 3600,
+      "blocked": false
+    },
+    {
+      "route": "activity-wizard",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 525,
+      "blocked": false
+    },
+    {
+      "route": "activity-version",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 470,
+      "blocked": true
+    },
+    {
+      "route": "dpia",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 3474,
+      "blocked": false
+    },
+    {
+      "route": "dpia-wizard",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 487,
+      "blocked": false
+    },
+    {
+      "route": "privacy-case?id=PRIV-REQ-01",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 3762,
+      "blocked": false
+    },
+    {
+      "route": "case-intake",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 618,
+      "blocked": false
+    },
+    {
+      "route": "setup",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 514,
+      "blocked": false
+    },
+    {
+      "route": "risk?id=RSK-01",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 4590,
+      "blocked": false
+    },
+    {
+      "route": "loss?id=LOS-201",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 6089,
+      "blocked": false
+    },
+    {
+      "route": "control?id=CTL-01",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 3619,
+      "blocked": false
+    },
+    {
+      "route": "evidence-review?id=EV-01",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 4416,
+      "blocked": false
+    },
+    {
+      "route": "requirement-review?id=PRG-104&target=Meridian%20Bank&requirement=R01",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 1852,
+      "blocked": false
+    },
+    {
+      "route": "kri-returns",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 6162,
+      "blocked": false
+    },
+    {
+      "route": "kri-return?id=KRC-BRANCH-2026-10%3A%3AB-EN",
+      "actor": "USR-04",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 16809,
+      "blocked": false
+    },
+    {
+      "route": "kri-cycle",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 655,
+      "blocked": false
+    },
+    {
+      "route": "insight-detail",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 9433,
+      "blocked": false
+    },
+    {
+      "route": "report-builder",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 862,
+      "blocked": false
+    },
+    {
+      "route": "report-pack",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 668,
+      "blocked": false
+    },
+    {
+      "route": "documents",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 17372,
+      "blocked": false
+    },
+    {
+      "route": "document?id=DOC-SAMPLE-POLICY",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 4462,
+      "blocked": false
+    },
+    {
+      "route": "document-upload",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 655,
+      "blocked": false
+    },
+    {
+      "route": "approvals",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 1581,
+      "blocked": false
+    },
+    {
+      "route": "approval",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 407,
+      "blocked": false
+    },
+    {
+      "route": "approval-request",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 399,
+      "blocked": false
+    },
+    {
+      "route": "data-health",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 3019,
+      "blocked": false
+    },
+    {
+      "route": "kri-library",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 28189,
+      "blocked": false
+    },
+    {
+      "route": "indicator?id=KRI-01",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 2481,
+      "blocked": false
+    },
+    {
+      "route": "roles",
+      "actor": "USR-05",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 7831,
+      "blocked": false
+    },
+    {
+      "route": "role-detail?id=ROLE-CONTRIBUTOR",
+      "actor": "USR-05",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 19214,
+      "blocked": false
+    },
+    {
+      "route": "access-review",
+      "actor": "USR-05",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 10005,
+      "blocked": false
+    },
+    {
+      "route": "escalation-matrix",
+      "actor": "USR-05",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 8492,
+      "blocked": false
+    },
+    {
+      "route": "escalation-policy?id=ESC-KRI",
+      "actor": "USR-05",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 13041,
+      "blocked": false
+    },
+    {
+      "route": "inbox",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 15180,
+      "blocked": false
+    },
+    {
+      "route": "notification?id=NTF-MENTION-01",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 515,
+      "blocked": true
+    },
+    {
+      "route": "notification-preferences",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 4991,
+      "blocked": false
+    },
+    {
+      "route": "loss-intake",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 711,
+      "blocked": true
+    },
+    {
+      "route": "loss-import",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 2058,
+      "blocked": false
+    },
+    {
+      "route": "loss-insights",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 33158,
+      "blocked": false
+    },
+    {
+      "route": "control-editor?id=CTL-01",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 383,
+      "blocked": false
+    },
+    {
+      "route": "control-test",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 740,
+      "blocked": true
+    },
+    {
+      "route": "vendor-review",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 1178,
+      "blocked": true
+    },
+    {
+      "route": "risk-edit?id=RSK-01",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 735,
+      "blocked": true
+    },
+    {
+      "route": "assessment-history",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 4172,
+      "blocked": false
+    },
+    {
+      "route": "assessment-review",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 431,
+      "blocked": false
+    },
+    {
+      "route": "assessment-insights",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 11324,
+      "blocked": false
+    },
+    {
+      "route": "vendor-onboarding",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 754,
+      "blocked": true
+    },
+    {
+      "route": "vendor-intake",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 733,
+      "blocked": true
+    },
+    {
+      "route": "vendor-requests",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 728,
+      "blocked": true
+    },
+    {
+      "route": "work-item",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 796,
+      "blocked": true
+    },
+    {
+      "route": "role-change-review",
+      "actor": "USR-05",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 475,
+      "blocked": false
+    },
+    {
+      "route": "my-access",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 17363,
+      "blocked": false
+    },
+    {
+      "route": "external-assessments",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 2494,
+      "blocked": false
+    },
+    {
+      "route": "external-assessment-request",
+      "actor": "USR-03",
+      "kind": "entry",
+      "status": "PASS",
+      "bytes": 735,
+      "blocked": true
+    },
+    {
+      "route": "reports?view=executive&org=B-IK&period=90",
+      "actor": "USR-02",
+      "kind": "report perspective",
+      "status": "PASS",
+      "bytes": 20182,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=locations&org=B-IK&period=90",
+      "actor": "USR-02",
+      "kind": "report perspective",
+      "status": "PASS",
+      "bytes": 8304,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=drivers&org=B-IK&period=90",
+      "actor": "USR-02",
+      "kind": "report perspective",
+      "status": "PASS",
+      "bytes": 13526,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=kri&org=B-IK&period=90",
+      "actor": "USR-02",
+      "kind": "report perspective",
+      "status": "PASS",
+      "bytes": 38828,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=assurance&org=B-IK&period=90",
+      "actor": "USR-02",
+      "kind": "report perspective",
+      "status": "PASS",
+      "bytes": 12030,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=dependencies&org=B-IK&period=90",
+      "actor": "USR-02",
+      "kind": "report perspective",
+      "status": "PASS",
+      "bytes": 8144,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=quality&org=B-IK&period=90",
+      "actor": "USR-02",
+      "kind": "report perspective",
+      "status": "PASS",
+      "bytes": 10039,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=library&org=B-IK&period=90",
+      "actor": "USR-02",
+      "kind": "report perspective",
+      "status": "PASS",
+      "bytes": 1931,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=loss-operations&org=B-IK&period=90",
+      "actor": "USR-02",
+      "kind": "report perspective",
+      "status": "PASS",
+      "bytes": 29896,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=responses&org=B-IK&period=90",
+      "actor": "USR-02",
+      "kind": "report perspective",
+      "status": "PASS",
+      "bytes": 11420,
+      "blocked": false
+    },
+    {
+      "route": "home?org=D-IK-OPS&period=30",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 7118,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=executive&org=U-IK-PAY&period=365",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 14558,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=loss-operations&org=B-IK&currency=NGN&basis=recognition&from=2026-01-01&to=2026-11-13",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 26479,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=executive&org=invalid-location",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 839,
+      "blocked": true
+    },
+    {
+      "route": "work?owner=me&lane=overdue",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 4200,
+      "blocked": false
+    },
+    {
+      "route": "work?owner=all&lane=corrections",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 3734,
+      "blocked": false
+    },
+    {
+      "route": "inbox?tab=actionable",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 17288,
+      "blocked": false
+    },
+    {
+      "route": "documents?view=pending&queue=mine",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 3120,
+      "blocked": false
+    },
+    {
+      "route": "documents?view=pending&queue=prepared",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 3120,
+      "blocked": false
+    },
+    {
+      "route": "documents?view=refresh",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 4372,
+      "blocked": false
+    },
+    {
+      "route": "documents?view=reviews",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 8132,
+      "blocked": false
+    },
+    {
+      "route": "documents?docOwner=me&docLife=Expired&org=B-IK",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 7233,
+      "blocked": false
+    },
+    {
+      "route": "document?id=DOC-SAMPLE-KRI&tab=details&org=B-IK",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 4195,
+      "blocked": false
+    },
+    {
+      "route": "document?id=DOC-SAMPLE-KRI&tab=compare&org=B-IK",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 2269,
+      "blocked": false
+    },
+    {
+      "route": "forms?tab=assignments",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 2501,
+      "blocked": false
+    },
+    {
+      "route": "program?id=PRG-104&tab=assessments",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 3317,
+      "blocked": false
+    },
+    {
+      "route": "vendors?tab=onboarding",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 4491,
+      "blocked": false
+    },
+    {
+      "route": "privacy?tab=drafts",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 1442,
+      "blocked": false
+    },
+    {
+      "route": "privacy?tab=cases",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 3106,
+      "blocked": false
+    },
+    {
+      "route": "privacy-case?id=PRIV-REQ-01&tab=decision",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 2734,
+      "blocked": false
+    },
+    {
+      "route": "loss-insights?org=B-IK&currency=NGN&basis=recognition",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 26476,
+      "blocked": false
+    },
+    {
+      "route": "assessment-insights?org=B-HO",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 11436,
+      "blocked": false
+    },
+    {
+      "route": "my-access?permission=documents.export&scope=B-IK",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 17363,
+      "blocked": false
+    },
+    {
+      "route": "external-assessments",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 2447,
+      "blocked": false
+    },
+    {
+      "route": "external-assessment-request?id=missing-request",
+      "actor": "USR-02",
+      "kind": "interaction variant",
+      "status": "PASS",
+      "bytes": 735,
+      "blocked": true
+    },
+    {
+      "route": "my-workspace",
+      "actor": "USR-01",
+      "kind": "role entry",
+      "status": "PASS",
+      "bytes": 7648,
+      "blocked": false
+    },
+    {
+      "route": "my-access",
+      "actor": "USR-01",
+      "kind": "role entry",
+      "status": "PASS",
+      "bytes": 17322,
+      "blocked": false
+    },
+    {
+      "route": "my-workspace",
+      "actor": "USR-02",
+      "kind": "role entry",
+      "status": "PASS",
+      "bytes": 5483,
+      "blocked": false
+    },
+    {
+      "route": "my-access",
+      "actor": "USR-02",
+      "kind": "role entry",
+      "status": "PASS",
+      "bytes": 17349,
+      "blocked": false
+    },
+    {
+      "route": "my-workspace",
+      "actor": "USR-03",
+      "kind": "role entry",
+      "status": "PASS",
+      "bytes": 6332,
+      "blocked": false
+    },
+    {
+      "route": "my-access",
+      "actor": "USR-03",
+      "kind": "role entry",
+      "status": "PASS",
+      "bytes": 17363,
+      "blocked": false
+    },
+    {
+      "route": "my-workspace",
+      "actor": "USR-04",
+      "kind": "role entry",
+      "status": "PASS",
+      "bytes": 4142,
+      "blocked": false
+    },
+    {
+      "route": "my-access",
+      "actor": "USR-04",
+      "kind": "role entry",
+      "status": "PASS",
+      "bytes": 17162,
+      "blocked": false
+    },
+    {
+      "route": "my-workspace",
+      "actor": "USR-05",
+      "kind": "role entry",
+      "status": "PASS",
+      "bytes": 7116,
+      "blocked": false
+    },
+    {
+      "route": "my-access",
+      "actor": "USR-05",
+      "kind": "role entry",
+      "status": "PASS",
+      "bytes": 17369,
+      "blocked": false
+    },
+    {
+      "route": "reports?view=executive&org=all",
+      "actor": "USR-01",
+      "kind": "blocked role boundary",
+      "status": "PASS",
+      "bytes": 995,
+      "blocked": true
+    },
+    {
+      "route": "document?id=DOC-SAMPLE-VENDOR",
+      "actor": "USR-01",
+      "kind": "blocked role boundary",
+      "status": "PASS",
+      "bytes": 730,
+      "blocked": true
+    }
+  ]
+}

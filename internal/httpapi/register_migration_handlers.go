@@ -16,6 +16,7 @@ func (a *API) migrationAvailable(w http.ResponseWriter) bool {
 	return true
 }
 func (a *API) getRiskRegisterMigration(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	if !a.migrationAvailable(w) {
 		return
 	}
@@ -23,6 +24,7 @@ func (a *API) getRiskRegisterMigration(w http.ResponseWriter, r *http.Request) {
 	writeMigrationResult(w, v, err)
 }
 func (a *API) saveRiskRegisterMigration(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	if !a.migrationAvailable(w) {
 		return
 	}
@@ -39,6 +41,7 @@ func (a *API) saveRiskRegisterMigration(w http.ResponseWriter, r *http.Request) 
 	writeMigrationResult(w, v, err)
 }
 func (a *API) commitRiskRegisterMigration(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	if !a.migrationAvailable(w) {
 		return
 	}

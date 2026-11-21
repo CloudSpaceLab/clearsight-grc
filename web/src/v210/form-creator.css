@@ -1,0 +1,28 @@
+.v-form-creator form { display: grid; grid-template-columns: minmax(200px, 260px) minmax(0, 860px); align-items: start; column-gap: 20px; }
+.v-form-creator form > :not(.v-question-outline-desktop) { grid-column: 2; }
+.v-question-outline-desktop { grid-column: 1; grid-row: 1 / span 4; align-self: stretch; }
+.v-question-outline-desktop .v-question-outline { position: sticky; top: 94px; max-height: min(70vh, 680px); overflow: auto; }
+.v-question-outline-open { display: none; }
+.v-question-outline h2 { margin: 0 0 12px; font-size: 16px; }
+.v-question-outline ol { margin: 0; padding: 0; list-style: none; }
+.v-question-outline li + li { border-top: 1px solid #e7eef8; }
+.v-question-outline button { display: flex; gap: 10px; align-items: start; width: 100%; min-height: 44px; padding: 11px 4px; border: 0; background: transparent; color: #18335e; text-align: left; overflow-wrap: anywhere; }
+.v-question-outline button span:first-child { color: #536c90; font-weight: 700; }
+.v-create-details, .v-create-questions { display: grid; gap: 16px; margin-bottom: 16px; }
+.v-form-creator label:not(.v-create-required) { display: grid; gap: 7px; color: #536c90; font-size: 12px; font-weight: 700; }
+.v-form-creator input:not([type="checkbox"]), .v-form-creator select, .v-form-creator textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-form-creator input[id^="v-authoring-question-"] { scroll-margin-top: 94px; }
+.v-form-creator textarea { min-height: 90px; resize: vertical; }
+.v-create-questions fieldset { display: grid; gap: 14px; min-width: 0; margin: 0; padding: 16px; border: 1px solid #dce7f5; border-radius: 10px; }
+.v-create-questions legend { padding: 0 5px; font-size: 13px; font-weight: 700; }
+.v-create-required { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.v-create-questions button { justify-self: start; min-height: 44px; padding: 0 14px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-question-order { display: flex; flex-wrap: wrap; gap: 8px; }
+.v-question-order button:disabled { opacity: .5; cursor: not-allowed; }
+.v-create-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+.v-create-actions a { color: #246cf0; font-size: 13px; }
+@media (max-width: 760px) {
+  .v-form-creator form { display: block; }
+  .v-question-outline-desktop { display: none; }
+  .v-question-outline-open { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 16px; padding: 0 14px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+}

@@ -130,14 +130,12 @@ func DefaultCatalogAdapters() map[AdapterKind]Adapter {
 	}
 }
 
-func (s *CatalogService) RegisterSourceScope(ctx context.Context, scope SourceScope) error {
-	registrar, ok := s.repoOrError().(interface {
-		RegisterSourceScope(context.Context, SourceScope) error
-	})
-	if !ok {
-		return nil
+func (s *CatalogService) ConfigureSourceScopeLookup(lookup func(context.Context, string, string) (bool, error)) {
+	if configurator, ok := s.repoOrError().(interface {
+		ConfigureSourceScopeLookup(func(context.Context, string, string) (bool, error))
+	}); ok {
+		configurator.ConfigureSourceScopeLookup(lookup)
 	}
-	return registrar.RegisterSourceScope(ctx, scope)
 }
 
 // EnvironmentSecretResolver keeps credential values out of catalog records.

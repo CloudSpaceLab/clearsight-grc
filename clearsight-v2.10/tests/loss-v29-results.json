@@ -1,0 +1,56 @@
+{
+  "suite": "Loss capture and workbook import V2.9",
+  "browserLayoutValidated": false,
+  "passed": 12,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Source mapping captures all 18 fields without merging accounting dimensions",
+      "status": "PASS"
+    },
+    {
+      "name": "Money precision, calendar dates and source serials are validated",
+      "status": "PASS"
+    },
+    {
+      "name": "Risk mapping is optional; acceptance controls inclusion and integrity checks",
+      "status": "PASS"
+    },
+    {
+      "name": "Period discrepancy, near miss and investigation exceptions require explicit handling",
+      "status": "PASS"
+    },
+    {
+      "name": "Saved drafts retain step values and reject edits by another preparer",
+      "status": "PASS"
+    },
+    {
+      "name": "CSV accepts quoted commas and exact source headers; malformed input stays out",
+      "status": "PASS"
+    },
+    {
+      "name": "Repeated transactions across months are quarantined and inconsistent quarter data is visible",
+      "status": "PASS"
+    },
+    {
+      "name": "Distinct import events require unique references and a retained explanation",
+      "status": "PASS"
+    },
+    {
+      "name": "Unknown branches require explicit authorized mapping; imports do not verify recovery claims",
+      "status": "PASS"
+    },
+    {
+      "name": "Imported provenance survives acceptance while narrative recovery stays unverified",
+      "status": "PASS"
+    },
+    {
+      "name": "Source errors and unsupported currencies never create financial records",
+      "status": "PASS"
+    },
+    {
+      "name": "Loss routes show useful locations and register every rendered action",
+      "status": "PASS"
+    }
+  ]
+}

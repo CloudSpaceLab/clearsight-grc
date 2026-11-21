@@ -83,6 +83,8 @@ type workspaceEditRecord struct {
 	PresentationMode formcontract.PresentationMode
 	SessionID        string
 	RouteID          string
+	Origin           string
+	PrincipalID      string
 	Assurance        AccessAssurance
 	CreatedAt        time.Time
 }

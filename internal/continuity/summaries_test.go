@@ -7,6 +7,37 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
+type commandOnlyProgramRepository struct {
+	Repository
+	listCalled bool
+}
+
+func (r *commandOnlyProgramRepository) ListPrograms(ctx context.Context, tenant string, limit int) ([]ProgramAggregate, error) {
+	r.listCalled = true
+	return r.Repository.ListPrograms(ctx, tenant, limit)
+}
+
+func TestProgramSummariesRequireSummaryRepository(t *testing.T) {
+	repo := &commandOnlyProgramRepository{Repository: NewMemoryRepository()}
+	service := NewService(repo)
+	for name, query := range map[string]SummaryQuery{
+		"unfiltered": {},
+		"state":      {OverallState: "CURRENT"},
+		"search":     {Search: "access"},
+		"cursor":     {Cursor: "cursor"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := service.ListProgramSummaries(context.Background(), "bank", query)
+			if err == nil {
+				t.Fatalf("expected summary unavailable, got %v", err)
+			}
+			if repo.listCalled {
+				t.Fatal("fallback called bounded ListPrograms without summary filtering")
+			}
+		})
+	}
+}
+
 func TestSummaryStructuredFiltersUseVerifiedActor(t *testing.T) {
 	service := NewService(NewMemoryRepository())
 	if err := SeedDemo(context.Background(), service); err != nil {

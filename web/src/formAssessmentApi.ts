@@ -6,6 +6,8 @@ import { requestJSON } from "./http";
 export type FieldAssessmentDecision = { id: string; field_id: string; outcome_id: string; points: number; rationale: string; reviewer_id: string; reviewer_display_name?: string; assessed_at: string; supersedes_id?: string };
 export type ResponseFieldAssessment = { field: FormTemplateField; answer: CaptureAnswerValue; decision?: FieldAssessmentDecision; may_review?: boolean };
 export type ResponseAssessmentDetail = {
+  submitted_by?: string; submitted_by_display_name?: string;
+  submission_recipient?: { type: "INTERNAL_PRINCIPAL" | "EXTERNAL_AUDIENCE"; principal_id?: string; label?: string };
   response_id: string; form_template_id: string; form_template_version: number; version: number; current: boolean;
   state: "NOT_REQUIRED" | "AWAITING_REVIEW" | "IN_REVIEW" | "ASSESSED";
   required_count: number; reviewed_required_count: number; reviewed_count: number;

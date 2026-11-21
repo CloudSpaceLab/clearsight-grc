@@ -240,7 +240,6 @@ components:
         - source_type
         - size_bytes
         - sha256
-        - storage_key
         - artifact_status
         - extraction_status
         - extraction_method
@@ -280,8 +279,6 @@ components:
         sha256:
           type: string
           pattern: '^[0-9a-f]{64}$'
-        storage_key:
-          type: string
         artifact_status:
           type: string
           enum: [STORED_UNSCANNED, AVAILABLE, QUARANTINED, DELETED]

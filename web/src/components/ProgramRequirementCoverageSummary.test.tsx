@@ -68,5 +68,6 @@ describe("approved Program Requirement coverage", () => {
     }} onNavigate={vi.fn()}/>);
     expect(screen.getByText("Out-of-date assessment")).toBeTruthy();
     expect(screen.getByText("2 of 4")).toBeTruthy();
+    expect(screen.queryByText("Current approved calculation and assessment coverage")).toBeNull();
   });
 });

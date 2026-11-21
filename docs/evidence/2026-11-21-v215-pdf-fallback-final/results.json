@@ -1,0 +1,20 @@
+{
+  "synthetic": true,
+  "results": [
+    {
+      "width": 1440,
+      "contentRequests": 0,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "contentRequests": 0,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "contentRequests": 0,
+      "overflow": false
+    }
+  ]
+}

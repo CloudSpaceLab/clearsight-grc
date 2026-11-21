@@ -1,0 +1,48 @@
+{
+  "suite": "Independent V2.9 loss command edge review",
+  "browserLayoutValidated": false,
+  "passed": 10,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Only accepted losses and independently verified receipts enter financial totals",
+      "status": "PASS"
+    },
+    {
+      "name": "Pending corrections retain accepted figures and acceptance preserves prior revision",
+      "status": "PASS"
+    },
+    {
+      "name": "An identical transaction reference cannot be justified as a distinct loss",
+      "status": "PASS"
+    },
+    {
+      "name": "Unavailable loss evidence cannot partially accept a submission",
+      "status": "PASS"
+    },
+    {
+      "name": "Unavailable receipt evidence cannot partially verify or block rejection",
+      "status": "PASS"
+    },
+    {
+      "name": "A correction opened before closure cannot be submitted during closure review",
+      "status": "PASS"
+    },
+    {
+      "name": "Correction approval must still cover the proposed destination scope",
+      "status": "PASS"
+    },
+    {
+      "name": "Reversal preserves original receipt and changes totals only from its approved date",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy loss setup commands cannot insert a malformed unreviewed loss",
+      "status": "PASS"
+    },
+    {
+      "name": "Completed loss actions keep their earlier accountability when a correction changes the action",
+      "status": "PASS"
+    }
+  ]
+}

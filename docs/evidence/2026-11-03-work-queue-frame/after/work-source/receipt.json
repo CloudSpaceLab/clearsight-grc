@@ -1,0 +1,3629 @@
+{
+  "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "baseline": false,
+  "revision": null,
+  "build": {
+    "digest": "62b74e393430dcc1ce8c5ae206dde41e71c79b23d309fd7a97527169a3ce98db",
+    "assets": {
+      "assets/api-1AgCOMiW.js": {
+        "bytes": 5424,
+        "sha256": "5b32ba5c27ab881c737d669b982b5d42bc7d4636cbb261092be08028176142e4"
+      },
+      "assets/api-1AgCOMiW.js.map": {
+        "bytes": 25340,
+        "sha256": "c8ede7fc16156db5381fa4a4944f41062d09e2f2e07dea4ad141208437fb35a3"
+      },
+      "assets/App-C961bGJ8.css": {
+        "bytes": 72064,
+        "sha256": "481ec8153af963a9db7e11ec620f231902583131e39781b00197d33e5280d642"
+      },
+      "assets/App-DDaj2Tof.js": {
+        "bytes": 440219,
+        "sha256": "ffdf4dda637208bf24eeee015e8091b29096b445a43663419fd03dab5371ee7f"
+      },
+      "assets/App-DDaj2Tof.js.map": {
+        "bytes": 1076778,
+        "sha256": "ff32bc5cc5de983a19489ccc74be436666971b5eb0418d4009817b42a1d888c2"
+      },
+      "assets/assessmentFieldResults-CYtGdiIt.css": {
+        "bytes": 7259,
+        "sha256": "17ccf27cecf770d311d438cb0258a61867b014a1bbafded4f1dbd64c2f5e3326"
+      },
+      "assets/assessmentFieldResults-JN5KNzXT.js": {
+        "bytes": 9772,
+        "sha256": "3f27c7ff8105ff0be4ddae479738841bb100af106344489d39d2203d28aa6397"
+      },
+      "assets/assessmentFieldResults-JN5KNzXT.js.map": {
+        "bytes": 30467,
+        "sha256": "8b1f04611dfddddf0ea0e63753d6f44b2d17216374f430249fab757db956e42a"
+      },
+      "assets/BankJourneysWorkspace-B-hOApFc.css": {
+        "bytes": 5226,
+        "sha256": "5a6c4e8191ac65ffb8e8ff6428df793449c4cd6686df65990fe46d23771359bd"
+      },
+      "assets/BankJourneysWorkspace-DBEbtTaq.js": {
+        "bytes": 13326,
+        "sha256": "7ad4018092899f682b5bc8dcc2da27213e1d02c8f15e242847741190d461ffd9"
+      },
+      "assets/BankJourneysWorkspace-DBEbtTaq.js.map": {
+        "bytes": 36735,
+        "sha256": "737b31e6684e381adb9a3298bd3e0920da89e4c372c227cf554163238a791340"
+      },
+      "assets/CommunicationsView-Ck02ARgy.js": {
+        "bytes": 266823,
+        "sha256": "b3066516845d1761f2ad46e9899d9425840d3a1f229212dad30d12bfc116fd99"
+      },
+      "assets/CommunicationsView-Ck02ARgy.js.map": {
+        "bytes": 758578,
+        "sha256": "2cbbbc02da794403706ce5023d877aba9e47a1048300426b19c040f74300a74a"
+      },
+      "assets/ConfigureWorkspace-CvPHy_6c.css": {
+        "bytes": 75177,
+        "sha256": "024f43545c2e9484fb5be5130833f470252420c423f7e7c6740f699548e36669"
+      },
+      "assets/ConfigureWorkspace-CVTKQhlp.js": {
+        "bytes": 233173,
+        "sha256": "1f013b37a2af97e4665144130dcfc4ea9063ba57998c1cf8ec501773be464272"
+      },
+      "assets/ConfigureWorkspace-CVTKQhlp.js.map": {
+        "bytes": 630276,
+        "sha256": "7ada62de5273b39aaccd557aacc4784f0c457b8a8c65cceb23b624280a0cf8c2"
+      },
+      "assets/controlCatalogApi-Ce1062jj.js": {
+        "bytes": 506,
+        "sha256": "8ffa2afaf3a8b5d6a03a13c23413da5e06b59eb51890f0b0dd9b2c096418dc55"
+      },
+      "assets/controlCatalogApi-Ce1062jj.js.map": {
+        "bytes": 2359,
+        "sha256": "a82c97ceb044f8d7cf33c8297b1ef96a442a08c36647cf3d926a4bd726c8eacf"
+      },
+      "assets/DistributionComposer-DAXBJ4qC.js": {
+        "bytes": 17731,
+        "sha256": "4e8d4d32b03046fa77e64cdced086b76ceade52e8e27df94199e04b2d5a8ee2b"
+      },
+      "assets/DistributionComposer-DAXBJ4qC.js.map": {
+        "bytes": 58762,
+        "sha256": "b962f16c8de5f94efc7ede25ffdfe539ef857fd3fb97653ca7f58967e8cb2ab4"
+      },
+      "assets/DistributionComposer-DLeZxbLt.css": {
+        "bytes": 9375,
+        "sha256": "350b092b7f33a1a03f35e3d8610fb2acdaaa71fcb48dcaf6e67293c13c62132d"
+      },
+      "assets/EmployeeProfileWorkspace-DqA30PFx.js": {
+        "bytes": 3946,
+        "sha256": "40901dd50590665c2ae0c2471c24904219e0aaab864397cb0c579187a313f8f9"
+      },
+      "assets/EmployeeProfileWorkspace-DqA30PFx.js.map": {
+        "bytes": 8399,
+        "sha256": "35b04888489f74490052e43994fcf548676e313e8058ce2401f989261f7913cf"
+      },
+      "assets/EmptyState-BhTs_6Db.js": {
+        "bytes": 439,
+        "sha256": "e99e69dbd688eafc222bbd91fc8810ef0be2a495dfd642f5b370da99defdc23c"
+      },
+      "assets/EmptyState-BhTs_6Db.js.map": {
+        "bytes": 1224,
+        "sha256": "6d69ba2e80133d71bff080f8fc360667ff3307c3320825d4b2c4dc4dcfb391ff"
+      },
+      "assets/FocusedSheet-BR3anp65.js": {
+        "bytes": 35,
+        "sha256": "1215e9d48e56ad3d535f5ff0f70ec85ffc150a9f253086ad64eaee288598349a"
+      },
+      "assets/FocusedSheet-DrnLjgsp.js": {
+        "bytes": 100422,
+        "sha256": "7849d4e15b79dc68e0710ffb37ccfc218a5e8978d645cc1db8e6d55fb9ca5ac5"
+      },
+      "assets/FocusedSheet-DrnLjgsp.js.map": {
+        "bytes": 663374,
+        "sha256": "9cb5f4be5d5193779e5847130acabe3b133c418975ca791c1863c5e392b992c4"
+      },
+      "assets/form-policies-BllLGLjM.js": {
+        "bytes": 12815,
+        "sha256": "0ab04c5b6bae7869bed0ecb55f58e2b039883de8c333536ac4ebd8d6fa93f75a"
+      },
+      "assets/form-policies-BllLGLjM.js.map": {
+        "bytes": 28800,
+        "sha256": "a58f80041949d538c806ee41cecc70ad402260873322a2b239cc2ee9bbd47c89"
+      },
+      "assets/form-policies-d4RnLy_e.css": {
+        "bytes": 5595,
+        "sha256": "30fc937bb7cdad9f93b941605f7931a7e36fb1b4583b656f0c245e43fd45acd2"
+      },
+      "assets/FormBuilder-BRLj7AdB.js": {
+        "bytes": 84302,
+        "sha256": "5e01f9306e650ff7cfc8717954aed2bb8e09cba5faaf5a22f1bd802cd7149e1c"
+      },
+      "assets/FormBuilder-BRLj7AdB.js.map": {
+        "bytes": 237931,
+        "sha256": "3442baaafd9e88b7393221de1db57c81179a336ea9635c25396aaee326972670"
+      },
+      "assets/FormBuilder-CmShzpkf.js": {
+        "bytes": 71,
+        "sha256": "5e91c5b1f325d00614e4e6042a89bcb6c0326529de1f1b0d5e7a319c17d28c24"
+      },
+      "assets/FormBuilder-DkNz5EQ_.css": {
+        "bytes": 24472,
+        "sha256": "2e40c6420c62dcfccc8df334f5444799c067d6230bc645e8607e1efacc60b3a1"
+      },
+      "assets/formPoliciesApi-CW2ZHZyP.js": {
+        "bytes": 1541,
+        "sha256": "892a5303cf6cee2f07499ff56b0ce543a4ca85006029f545a46477fcf9093cce"
+      },
+      "assets/formPoliciesApi-CW2ZHZyP.js.map": {
+        "bytes": 9079,
+        "sha256": "f90aad27a83b1464ff951a8009ecd1b307ba66b6c505259d94ffdae66cc322fc"
+      },
+      "assets/FormPoliciesView-Bc7m4np-.js": {
+        "bytes": 15763,
+        "sha256": "c9d317b21cfcf59d5221d45b8a551c89ff02245b6b34bb82f894ee88bcc7de03"
+      },
+      "assets/FormPoliciesView-Bc7m4np-.js.map": {
+        "bytes": 37505,
+        "sha256": "88a7a093d21db14b6f2fb339f65c52982445ea48e272642d53cc65ce1c753925"
+      },
+      "assets/FormPreview-CvbhFbBW.js": {
+        "bytes": 29583,
+        "sha256": "7b522d3db878192d64eacd0e8b83ab0bd0b6055fc93c153e02b3f0888067a98b"
+      },
+      "assets/FormPreview-CvbhFbBW.js.map": {
+        "bytes": 78861,
+        "sha256": "7d9fe72b54e0585aae371bdb83204595c12f236f4b6b29402e21f9413f61a635"
+      },
+      "assets/FormProposalReview-PsqWWZhY.js": {
+        "bytes": 15937,
+        "sha256": "816f39be33d843cc7d16651dee11447d73608eb402b62df8d88861172dd1ff7c"
+      },
+      "assets/FormProposalReview-PsqWWZhY.js.map": {
+        "bytes": 41356,
+        "sha256": "68ec8fe04e6c868ee5bb285627c3b371f40cb3d967b4f25249e2e476055ba507"
+      },
+      "assets/forms-foundation-CINn4wyp.css": {
+        "bytes": 49494,
+        "sha256": "ab82ca4d68089ebd1a8d9d62746cb6d191b3fd673d3de9ac62af0673fbc8f282"
+      },
+      "assets/formsApi-Bu51RPL0.js": {
+        "bytes": 3079,
+        "sha256": "f836b23a8b5dcce759ffe6c2e3b1c155160ea15b3759a79ef36ee2ff0757b0dd"
+      },
+      "assets/formsApi-Bu51RPL0.js.map": {
+        "bytes": 10246,
+        "sha256": "d892a359d7ea0885acaf785e0d89cf96e65bb2c8cda070d8b535934d7d51376d"
+      },
+      "assets/FormsWorkspace-B7GCWf9C.js": {
+        "bytes": 65191,
+        "sha256": "5f8bbf2183070dd4527c9146a2fe8cb2361232291d8851cae79072e2793ef0a2"
+      },
+      "assets/FormsWorkspace-B7GCWf9C.js.map": {
+        "bytes": 185545,
+        "sha256": "6cef5fba5376ecf76212d04e6d70cbf44b6ab93bfdc6dfd000035fb22b544d63"
+      },
+      "assets/groupOversightApi-CM8Hxwyf.js": {
+        "bytes": 190,
+        "sha256": "c417d1bcd3726fca2518410ce0517105ac967efbedfdb10b7d7916d9f0d31553"
+      },
+      "assets/groupOversightApi-CM8Hxwyf.js.map": {
+        "bytes": 1919,
+        "sha256": "7dc742dcfb073d57769f62c8ab4a5e641dcd911bf9d22708da4a86a042c3f36f"
+      },
+      "assets/GroupOversightWorkspace-BIw-m5Lr.js": {
+        "bytes": 16878,
+        "sha256": "aacf3b00bf8ed1e9ca640cef861a3acd907894e64115e1f7950c969ddf306a7e"
+      },
+      "assets/GroupOversightWorkspace-BIw-m5Lr.js.map": {
+        "bytes": 50663,
+        "sha256": "9cf22970dd06ac97b5195b81ab7df4edd634151cfd0c0ae7c633b57e6c230c99"
+      },
+      "assets/GroupOversightWorkspace-DhypkV9J.js": {
+        "bytes": 95,
+        "sha256": "71bf6630bf91357502d0ddcdfb5dad51bc82355b5deab7605e950bfbe5e00f78"
+      },
+      "assets/GroupOversightWorkspace-FAWTwerR.css": {
+        "bytes": 1428,
+        "sha256": "b2b713d0e3bc731517f47626bee66dd6212a19d37bd364a988593bde4d53e242"
+      },
+      "assets/homeMetricPresentation-DRPLOH6L.js": {
+        "bytes": 1127,
+        "sha256": "7bedd8148b1e9f464074877ca81b91f17074f9eb039fc69e491cb87b719e84bc"
+      },
+      "assets/homeMetricPresentation-DRPLOH6L.js.map": {
+        "bytes": 3469,
+        "sha256": "c886c1e9c549672aae157ac2f5f1829165ed7a0e5101d8248de0ee2ca590a9ca"
+      },
+      "assets/http-NFAQrmHm.js": {
+        "bytes": 2481,
+        "sha256": "628b0ffe1e2a6e36f44bd8c29bb19e46defc50e45c188a5ebf5fed9ef01b4052"
+      },
+      "assets/http-NFAQrmHm.js.map": {
+        "bytes": 7756,
+        "sha256": "583be2e4145336a7769897ba9387a2f1006c210df155734c3269ac48d0753bcb"
+      },
+      "assets/identityAccessApi-COeRCgsk.js": {
+        "bytes": 4652,
+        "sha256": "6b217441507ead880c31359d7966f1092597ff369a0f78edb814dadf7180cbec"
+      },
+      "assets/identityAccessApi-COeRCgsk.js.map": {
+        "bytes": 25238,
+        "sha256": "d1cd81bdc38cd9b273c00f6b676a605f0f3ea5fcadd7ef219e02d90659998371"
+      },
+      "assets/index-_HVKKRvZ.css": {
+        "bytes": 182506,
+        "sha256": "3c46ecb437ff236b08e641ec28d4a9956e1c1fdeb8e101e183803f9b4e08bec6"
+      },
+      "assets/index-DTIFec9N.js": {
+        "bytes": 481805,
+        "sha256": "593ca4a51f43020353f6a3964dab04a03c413398a8c54dbcaa70f68bb4e03d56"
+      },
+      "assets/index-DTIFec9N.js.map": {
+        "bytes": 1511502,
+        "sha256": "edf72ada1231f956ff041ec8e809067b87143073d39b3ae1dbdeab06920f6859"
+      },
+      "assets/indicatorApi-D0EDXQnA.js": {
+        "bytes": 520,
+        "sha256": "7c17543016aac54a922c736d68b7c64ccf95d8f67d144759fd7b12b420ab3227"
+      },
+      "assets/indicatorApi-D0EDXQnA.js.map": {
+        "bytes": 1607,
+        "sha256": "6dddabc5f0581b0efb2708f1f78767e4123c3e1fc5a8bbb24e26ccd30e78bc03"
+      },
+      "assets/IndicatorDetail-tWzhSddl.js": {
+        "bytes": 9722,
+        "sha256": "a189c4d4a074939951cc1b33d4ba1d4065674d2e671f807d37da1f576069c0c1"
+      },
+      "assets/IndicatorDetail-tWzhSddl.js.map": {
+        "bytes": 25582,
+        "sha256": "dc0b99199ac8f30bd8830c316876b0d98e882aab302fa729aa5e964449b50e56"
+      },
+      "assets/indicatorPresentation-CikXSk_C.js": {
+        "bytes": 4060,
+        "sha256": "d1635c9c6e6903eba8d8caa31b97ce9794c5f3d66827194d2b69d117356c456d"
+      },
+      "assets/indicatorPresentation-CikXSk_C.js.map": {
+        "bytes": 13097,
+        "sha256": "9dd0b3e011f574712a52380e6dde842e036ab65c89419e40ecd09b2f986fca07"
+      },
+      "assets/indicatorPresentation-CjxE_j0H.css": {
+        "bytes": 3102,
+        "sha256": "f15ce54963dbd82218dc2e13b7d565e601a2ade8b4220d79058ef94c88cde973"
+      },
+      "assets/InsightsWorkspace-CgEtv6E6.js": {
+        "bytes": 11814,
+        "sha256": "a644c4bf55adebaad5e98d0a40d6f7de32c144034316c3422a8e0ec465b78335"
+      },
+      "assets/InsightsWorkspace-CgEtv6E6.js.map": {
+        "bytes": 38099,
+        "sha256": "d7b00d4eb672b55cc36a95191da68ecc5596f2818301a0f01690feb3e1917a71"
+      },
+      "assets/InsightsWorkspace-Ddu4RP1E.css": {
+        "bytes": 5863,
+        "sha256": "efefab0edb13512d07a740b299eff949e777593820519123606ddb5de0497ca9"
+      },
+      "assets/jsx-runtime-BKllkxft.js": {
+        "bytes": 8457,
+        "sha256": "d570da413d217278b5e77a876b290849a78fccff86b5136bb55d83463eac3c5c"
+      },
+      "assets/jsx-runtime-BKllkxft.js.map": {
+        "bytes": 28999,
+        "sha256": "c8f64bf2ae05b2b05fa590e9fb39f89646a3fc136874f7d9846ea00c94e137c9"
+      },
+      "assets/lossApi-B_TcBYnM.js": {
+        "bytes": 1218,
+        "sha256": "88755028d2985d4fa607730c42a75535070744c5ccda9119e5a388c703055879"
+      },
+      "assets/lossApi-B_TcBYnM.js.map": {
+        "bytes": 4306,
+        "sha256": "d15b59f7c0538ab1f6cb51c3b6585c8014d8c099978a0e8b87ae38009f592844"
+      },
+      "assets/LossesWorkspace-Be9pjFM1.js": {
+        "bytes": 23339,
+        "sha256": "3e21d1134967f61d6ed2f2e1d62c3d8816958c2309a94077807e70ce38e93335"
+      },
+      "assets/LossesWorkspace-Be9pjFM1.js.map": {
+        "bytes": 66643,
+        "sha256": "8fb7133817e9370f266313ba4cee0eb7eac46ef697e9c5854b645ae468a19f79"
+      },
+      "assets/LossesWorkspace-CkxCPC2T.css": {
+        "bytes": 6814,
+        "sha256": "ea18b4301b6a3f969ec30869287833ac8ebc218143052ef1f82588877f9b4ab2"
+      },
+      "assets/lossOverviewPresentation-3X01BhiZ.js": {
+        "bytes": 3948,
+        "sha256": "83237f9038c876949e9cce286264e7816cdf38966ee2802ca9d89cba82b38733"
+      },
+      "assets/lossOverviewPresentation-3X01BhiZ.js.map": {
+        "bytes": 19698,
+        "sha256": "89b8608fddf5747ea33ddbbd4645bf4dc386184863788843eb8d5d6a01c32ea2"
+      },
+      "assets/lossPresentation-DWiNJvkI.js": {
+        "bytes": 2743,
+        "sha256": "94dd80ad903db4fbb5ded3e3c30a29e431523bc728a6859cddd02513576591da"
+      },
+      "assets/lossPresentation-DWiNJvkI.js.map": {
+        "bytes": 9159,
+        "sha256": "1408e1e5451559c012fe7744d7dccfa48a2c6bd06ec989f2d155702d6506ccdf"
+      },
+      "assets/MetricMemberDrill-BNEnxVdh.js": {
+        "bytes": 2894,
+        "sha256": "e6cc0b7d22d01815be42d1f4f386bcdac282efa6cff1cd45165130ad959899e0"
+      },
+      "assets/MetricMemberDrill-BNEnxVdh.js.map": {
+        "bytes": 7470,
+        "sha256": "917e452ef0f2106ea9491b42e3c9e1f73a427d791538e4e186f28dead3576b56"
+      },
+      "assets/monitoringApi-CUTBhtfp.js": {
+        "bytes": 3061,
+        "sha256": "4ba00d9674940b39c834aec7bafb6d05b412717183db6a78403a4c6a2d3fbbc8"
+      },
+      "assets/monitoringApi-CUTBhtfp.js.map": {
+        "bytes": 9549,
+        "sha256": "9627f58e49484c51a5d0a8c90cbccec5f661d48cf1b41e1fe35d11160b4dcc2e"
+      },
+      "assets/NavigationIcon-Cw28lXWO.js": {
+        "bytes": 3372,
+        "sha256": "1ecfa7f3b854438575d1b465610ebef73a21e9ab1dba4e7872fded00aef1574d"
+      },
+      "assets/NavigationIcon-Cw28lXWO.js.map": {
+        "bytes": 6905,
+        "sha256": "dee749a9c90a4a483f2b891207ff33d96e529802f091248d704346b5297f0ce0"
+      },
+      "assets/NotificationCenter-Cuy6IrGt.js": {
+        "bytes": 1258,
+        "sha256": "6e31e89b4f136d95b1eee0db8327134c3c3ebb630a7d77f7ba5c5f10fcc6b953"
+      },
+      "assets/NotificationCenter-Cuy6IrGt.js.map": {
+        "bytes": 2703,
+        "sha256": "8cf2da5c3203d18298c5dbb9a75020b621f6859a3ad0067e8f3abdbe4dab5442"
+      },
+      "assets/NotificationCenter-y8gwOkyW.css": {
+        "bytes": 1555,
+        "sha256": "4854f3fa648a4e3fcd28745658ec95e3acb35cb490f1e7b820c2d535adce65b5"
+      },
+      "assets/NotificationDeliveryHistory-CikCYodx.js": {
+        "bytes": 2756,
+        "sha256": "68a8c4f906b9e9e44615852f5fbe047d452153c037a5953c819138213f99d1f9"
+      },
+      "assets/NotificationDeliveryHistory-CikCYodx.js.map": {
+        "bytes": 8509,
+        "sha256": "a6ba38dee6ee09aa3578216a84b6f32cc6aaba5377062ede9348fe99b656ea99"
+      },
+      "assets/NotificationsWorkspace-CumwR8ld.css": {
+        "bytes": 15011,
+        "sha256": "8e749a39073431a10864521b7768a92eb16c9a6966126901eeb93b233319e476"
+      },
+      "assets/NotificationsWorkspace-D4qXtlEi.js": {
+        "bytes": 25909,
+        "sha256": "39bb9168b7fb79a606324ec812c035e065c8eccb2992fec84f31870e850af1f7"
+      },
+      "assets/NotificationsWorkspace-D4qXtlEi.js.map": {
+        "bytes": 63900,
+        "sha256": "e001a3e10275b9f3eed01b71b1ff5bbe442d5c654eca423cc1a75e43b109284d"
+      },
+      "assets/OrganizationLossSummary-BE-QomL2.js": {
+        "bytes": 13311,
+        "sha256": "f5452c663ff7ab7ff6f1b18f79243343b3dfd59323c1faef12b30c2878d86307"
+      },
+      "assets/OrganizationLossSummary-BE-QomL2.js.map": {
+        "bytes": 42472,
+        "sha256": "2d46dd1f5e49b201997bea6053f0cae89b173a94f62ba3be1e492d8c91a0a922"
+      },
+      "assets/oversight-C7FJemrs.css": {
+        "bytes": 13803,
+        "sha256": "4869e6e477e4412bb55daefecf117d9344613130ece2488253981df667c61f09"
+      },
+      "assets/oversight-DTS-zoxZ.js": {
+        "bytes": 4804,
+        "sha256": "7b50ee21a5ac2893441002550c5d9d19ae78d5a6474d8a6a3b47340c43d6c68f"
+      },
+      "assets/oversight-DTS-zoxZ.js.map": {
+        "bytes": 13169,
+        "sha256": "f1c0d226863f22173eb607fc925543953b7e4385036fbe233ef3d4f604d1e960"
+      },
+      "assets/OversightPeriodPicker-NzncYZ5w.js": {
+        "bytes": 2951,
+        "sha256": "37d3b02e5bd97c5dba972a7c1c37915edb25c96e2b20e8f4049320ec76e05667"
+      },
+      "assets/OversightPeriodPicker-NzncYZ5w.js.map": {
+        "bytes": 7715,
+        "sha256": "b8815c90c6e797e8eb0f6909def4ff017362eb53bb83c2b7cfba4e3167c83c3c"
+      },
+      "assets/OversightWorkspace-D-XF6jP2.js": {
+        "bytes": 85,
+        "sha256": "d3950deda66433cf1e6f0640164ed3b55d7851554a3e0e2dfda2b3c7cf59ab91"
+      },
+      "assets/OversightWorkspace-KqwZvaKR.js": {
+        "bytes": 22634,
+        "sha256": "384d63e90b304a41edf621bcc65c340947a33cae3e038e50a5c9a45138da91ee"
+      },
+      "assets/OversightWorkspace-KqwZvaKR.js.map": {
+        "bytes": 65463,
+        "sha256": "4ad24eaae6d1dcdc05e1e7058f82b5bd1c279ea634b50cfe2f55be2c3e4928c0"
+      },
+      "assets/preload-helper-Czpn1I53.js": {
+        "bytes": 1196,
+        "sha256": "aba87f2a53e45ecdc9113fc30387d16e449d1676428cf5f82dd624c1df97d152"
+      },
+      "assets/RCSAWorkspace-BBbJ8vcX.css": {
+        "bytes": 7921,
+        "sha256": "a9c017e87c917a08d0c14117e9c7f83049d84f4cd126a513d73cdefb818af265"
+      },
+      "assets/RCSAWorkspace-mQkLafxo.js": {
+        "bytes": 15865,
+        "sha256": "ec0e0d66eb23ea062860065391d12927efcb9d3e6bf262bc09e8883aab41e5f1"
+      },
+      "assets/RCSAWorkspace-mQkLafxo.js.map": {
+        "bytes": 39802,
+        "sha256": "1b102a7c8861d3699989002d1aa2bd2e40de1344abe3618f2fa97d3f5e479d28"
+      },
+      "assets/reportingApi-CaL63rGk.js": {
+        "bytes": 2582,
+        "sha256": "0c7088105a766f10adf64bd55df8538fecb980c9f4e7345a3c359380743fce01"
+      },
+      "assets/reportingApi-CaL63rGk.js.map": {
+        "bytes": 13109,
+        "sha256": "1063f8ae2588323fec214fd3e29c669599564a764770891c34faebf0f3518198"
+      },
+      "assets/reportingPeriod-ChMy94oa.js": {
+        "bytes": 833,
+        "sha256": "500d55e6ef0648551211513ec03c2d27bdef5de9f2db8c31aa607ce570d5adc6"
+      },
+      "assets/reportingPeriod-ChMy94oa.js.map": {
+        "bytes": 3124,
+        "sha256": "97beb683b60a1ab1ccd3fc5ef106f5f3c56ba3567f1e5929f0c8359d6ee2818b"
+      },
+      "assets/ReportsExplore-DWws9bfr.css": {
+        "bytes": 4179,
+        "sha256": "314d400e41cb06e16ceadbd6b24f360735762edb622e3be41d52fe045841cd85"
+      },
+      "assets/ReportsExplore-UVSXWvTG.js": {
+        "bytes": 14795,
+        "sha256": "79ba0fa6025c03c995aee1e4ac4c8f33123a5870b451ffe8ec2f43379c7bff75"
+      },
+      "assets/ReportsExplore-UVSXWvTG.js.map": {
+        "bytes": 43715,
+        "sha256": "b71fce90e19313444f2cb8b6d6e85a0abb1a94c13dc31c7fcd4fb482c2b01625"
+      },
+      "assets/ReportsWorkspace-ClkqmnYL.css": {
+        "bytes": 19144,
+        "sha256": "2313869b7f79527953360805403eb0a37a65ae2281b89bb2ac321d3721e945e2"
+      },
+      "assets/ReportsWorkspace-H4eeZJj-.js": {
+        "bytes": 50501,
+        "sha256": "cf9309f8cf17fd2b94858ae0f17fe3ccb3ceadadb33fdc4692fa02559acf6b0d"
+      },
+      "assets/ReportsWorkspace-H4eeZJj-.js.map": {
+        "bytes": 127037,
+        "sha256": "9a8d90e1ddd8699441eb6e3ba4daf58c9c14f23e8c62bbd0d7c28b32d01e15a8"
+      },
+      "assets/ResponseAssessment-DoVFvv6a.js": {
+        "bytes": 40662,
+        "sha256": "33c9681b5c794e5fea15d250cef9b6a8456d66a514c2bc5a8bc5e3c509e46cce"
+      },
+      "assets/ResponseAssessment-DoVFvv6a.js.map": {
+        "bytes": 108952,
+        "sha256": "915292b717b3fedb13fffa590cef71a5c2edaf46708566d7f01d331c6ad0a667"
+      },
+      "assets/ResponseAssessment-DYFP7xBk.css": {
+        "bytes": 9312,
+        "sha256": "5c7d80d3beacc486aaa186cf58269b2818e23da389f14d02f35413813a2b486e"
+      },
+      "assets/ResponseBrowser-CoaMNd3G.js": {
+        "bytes": 8904,
+        "sha256": "19ed1ab311ce87a82373bac5b453e80439d10ce020b4eea50487db226b47afd3"
+      },
+      "assets/ResponseBrowser-CoaMNd3G.js.map": {
+        "bytes": 23675,
+        "sha256": "4e06a30543a88c3fc9c55fcf5ed44941680d8cb804b3509eeea41644669ee463"
+      },
+      "assets/RisksWorkspace-BZNkt3Qq.js": {
+        "bytes": 30814,
+        "sha256": "7f9adb5256fb5a533d02989b2c7abc3c8857e7758d7ddb05ba5866492c7be06e"
+      },
+      "assets/RisksWorkspace-BZNkt3Qq.js.map": {
+        "bytes": 86799,
+        "sha256": "5f060caf70f34665d911de8847d30148c93df918f6f32d3bfe51f3c2691941f8"
+      },
+      "assets/RisksWorkspace-DairWCjP.css": {
+        "bytes": 5899,
+        "sha256": "46f63dd3756f317b52ded15048e498d2dc4ff2cc5fe60f35d13515b1ccd5a5af"
+      },
+      "assets/ropa-BZkz5VZm.css": {
+        "bytes": 12275,
+        "sha256": "130ea769039d0972d6675a803271bfa52c847f509ed1fd63236803f7873a9587"
+      },
+      "assets/ropa-v7LSp0VW.js": {
+        "bytes": 1542,
+        "sha256": "f2c7ddc9dd59d8713f3f1c9eec1d83b79242f167f9224717f94ce3f07dad6019"
+      },
+      "assets/ropa-v7LSp0VW.js.map": {
+        "bytes": 5540,
+        "sha256": "d394ef15f66c5a496da53e5a0275909bfc3efc0bb8ba98d1419532a71644ced7"
+      },
+      "assets/RopaActivityPage-Ce_Xpg97.js": {
+        "bytes": 13176,
+        "sha256": "4e98e5f7f10a3d25ccd71de6f3c04cededb683582ad79757ba619521f6e6af7a"
+      },
+      "assets/RopaActivityPage-Ce_Xpg97.js.map": {
+        "bytes": 35222,
+        "sha256": "71360928ff23c787406f3ddc19f917993c0e2635ef5125646c2a36283769a3c8"
+      },
+      "assets/RopaActivityPage-Cuy0NHoh.css": {
+        "bytes": 2126,
+        "sha256": "3778cf3eb9b83a47be52bb4f14d83a2ac08896503871211029635c1b8532b89e"
+      },
+      "assets/RopaRegisterPage-CCzF8pgq.css": {
+        "bytes": 5829,
+        "sha256": "211c2c63c7decdc0ac7062086e22c871f036d73071cadca3e5d0b743dd3a5d97"
+      },
+      "assets/RopaRegisterPage-CQNDp1Zf.js": {
+        "bytes": 14851,
+        "sha256": "12ae3cc3f2d0cce11d26c758a021f0072f23851f57b363b299ab298b3d4d43bd"
+      },
+      "assets/RopaRegisterPage-CQNDp1Zf.js.map": {
+        "bytes": 36615,
+        "sha256": "2a99a8ff8a8ce090974a548ce6ac0c657eaa032ccdc970782ab4aa2abc40c317"
+      },
+      "assets/SentFormDetail-DFR_kdL0.css": {
+        "bytes": 488,
+        "sha256": "baafc90a6bda2d4168d24faa8c890bda0cc63112ea7955f0e698abb05360c84a"
+      },
+      "assets/SentFormDetail-EIFkIp_V.js": {
+        "bytes": 14019,
+        "sha256": "6e305b8cf51491c07088293a9158f484b65040f21b7550d86fde7a52eff6da03"
+      },
+      "assets/SentFormDetail-EIFkIp_V.js.map": {
+        "bytes": 35077,
+        "sha256": "26a694c5ee812f1ef5de910d95514d712fce57d59d5563271a163696a326538a"
+      },
+      "assets/SessionGate-CBjXMX21.css": {
+        "bytes": 57057,
+        "sha256": "9a396e9ad883c86588f0b24bad5bbd9ddb83996d97824e57250d7612b733d4da"
+      },
+      "assets/SessionGate-ClAuTSM1.js": {
+        "bytes": 167100,
+        "sha256": "4417aff95d90158b1a13dc34e74c704eaf0427d80e66b44c385cb0fa4c36bb89"
+      },
+      "assets/SessionGate-ClAuTSM1.js.map": {
+        "bytes": 449875,
+        "sha256": "4cdbc7fb4a1f0d0c12f025365d3ece7c952b88daf89fcf980413d505ff49af93"
+      },
+      "assets/staticDemoFixtures-BJo7eiOJ.json": {
+        "bytes": 23044,
+        "sha256": "a7e0d3e1cc827d5f944f106bf9d00adec80b846a2bc470968192ade84b99c8e7"
+      },
+      "assets/staticDemoWorkflowRuntime-CCKpbhZb.js": {
+        "bytes": 41611,
+        "sha256": "ea14d9dd642d241f2beb589cbf82f42817c0efe9c4160d1a1848c83db4ef3bc5"
+      },
+      "assets/systemActivityApi-Z_nwoiGu.js": {
+        "bytes": 1185,
+        "sha256": "3f50c58a3e3ff62d6366f016a019df97fb227881051fbe9d5a14ceb906a84ffa"
+      },
+      "assets/systemActivityApi-Z_nwoiGu.js.map": {
+        "bytes": 3693,
+        "sha256": "5ae3d4103a9ba12a4f5c98f92dd65888fe458a1769c1a0c1c4444c1043beaf66"
+      },
+      "assets/ui-BqQkgK9q.css": {
+        "bytes": 1624,
+        "sha256": "acca22c7531c9ed94232ba19bae9aa9127777aa55ed3462d71669eb4f9ce0050"
+      },
+      "assets/ui-TPYOS5zA.js": {
+        "bytes": 123183,
+        "sha256": "6ceda058922e1dc32cf38afabb7a44041a02512651946ab394e81463a32ed81c"
+      },
+      "assets/ui-TPYOS5zA.js.map": {
+        "bytes": 628609,
+        "sha256": "c17785e4ac29893b478cb7e7f5324021fda8ffea71fb281ca3c2c3b09818afe1"
+      },
+      "assets/UIComponentGallery-CLDlXZdO.js": {
+        "bytes": 20863,
+        "sha256": "9b1fd9c0e2f880fe8b6fbbe8c1aa7ad94ef7f6604c28a0ba2a78794525dc0bb9"
+      },
+      "assets/UIComponentGallery-CLDlXZdO.js.map": {
+        "bytes": 41045,
+        "sha256": "cfe6bb9aceafbc59758473b85dde01f9eaca6a537853e7b76997d4660b22ba15"
+      },
+      "assets/UIComponentGallery-NkyqwFG5.css": {
+        "bytes": 1850,
+        "sha256": "bc0f566888bf2fa229402a3a9ed4eb04e54130896050a17e3421d6acb04e7558"
+      },
+      "assets/useRiskLossMetrics-U-M2bDtE.js": {
+        "bytes": 3242,
+        "sha256": "829a1d2daf87df6d2fb747a1bb87d92e6ad2c23ddbd1fcf3546365b3a5dc5f46"
+      },
+      "assets/useRiskLossMetrics-U-M2bDtE.js.map": {
+        "bytes": 10949,
+        "sha256": "d31cfb466e3aac2335a81f137ba6c9207905813bc887ee773d687a80e259e8c8"
+      },
+      "assets/VendorComplianceOverview-DBsLWXEL.css": {
+        "bytes": 3004,
+        "sha256": "1abb61830a311c923ce2925bbee828d9a7ddb86384dd21d4655c0963c06ff116"
+      },
+      "assets/VendorComplianceOverview-DncOfhoc.js": {
+        "bytes": 14638,
+        "sha256": "825096a70127b8d2cd27bbceabaeee2ab7112bc1200d1ff60634128625618c00"
+      },
+      "assets/VendorComplianceOverview-DncOfhoc.js.map": {
+        "bytes": 38303,
+        "sha256": "45e547183db17136ed3714e1654edda281cd8a6deff6dfc8d6c9f28186fa35fc"
+      },
+      "assets/vendorFormsApi-DBEyKbo7.js": {
+        "bytes": 598,
+        "sha256": "797205efb31c8b6b245b7d83cff834bf2710d0c6fa954c0aa7442dafef1a801c"
+      },
+      "assets/vendorFormsApi-DBEyKbo7.js.map": {
+        "bytes": 4291,
+        "sha256": "d7d23dbcc85a4bcef4fe40d4291f0625b36ac272b9ae543671f34662e91525a4"
+      },
+      "assets/VendorsWorkspace-CgaqVHoL.css": {
+        "bytes": 56034,
+        "sha256": "d8202a1d062609f09af36cdbd5054cb46e06c195964c64cb189f376f1947d8a9"
+      },
+      "assets/VendorsWorkspace-DxMsztyI.js": {
+        "bytes": 179673,
+        "sha256": "c7a3f53df64f84e443a126aa947d8fc61b11139d7c4ed4988fc1ed8613f94974"
+      },
+      "assets/VendorsWorkspace-DxMsztyI.js.map": {
+        "bytes": 481370,
+        "sha256": "58fca3f8714426c76073724cdc650cb363bb0e6aa001e93293437bb00cb07e5c"
+      },
+      "assets/VendorWorkPanel-CU0uMlLg.css": {
+        "bytes": 4790,
+        "sha256": "26816dc7cfe250585f803eb70f78b478c1961dcd33ab24214ea13c45c75613d8"
+      },
+      "assets/VendorWorkPanel-DStbaKoU.js": {
+        "bytes": 30940,
+        "sha256": "eef5f2d65b1567a547e2b4697de334a65ba111705519171f8caca29807168765"
+      },
+      "assets/VendorWorkPanel-DStbaKoU.js.map": {
+        "bytes": 81447,
+        "sha256": "d4a644bed43a9dacaccdf8ee1f055ccc613e834ddd71fabe1de4fe5251856dd3"
+      },
+      "assets/WorkItemIcon-kUXpzmct.js": {
+        "bytes": 1338,
+        "sha256": "7054836cce24f37280c5decc5a418257edf25211a8ba7e93bc999609bd175f87"
+      },
+      "assets/WorkItemIcon-kUXpzmct.js.map": {
+        "bytes": 2783,
+        "sha256": "18af85ae36e69df3d19fc5b77caeda5dc5a038e9a75b8b79460ae5559946b88a"
+      },
+      "assets/WorkspaceErrorBoundary-D6Uj8R6Z.js": {
+        "bytes": 783,
+        "sha256": "3b33a594b6a935593f5a12f59451dd89eef7f9b98e9c129184f9d57a8e192e94"
+      },
+      "assets/WorkspaceErrorBoundary-D6Uj8R6Z.js.map": {
+        "bytes": 1782,
+        "sha256": "7decf212c43518619ffaaf287d9cbce78984e289e7059d62a5072d89e2081a03"
+      },
+      "index.html": {
+        "bytes": 4572,
+        "sha256": "b22cda108d9f040428acbece3f8d96df9bf970b89b33aa4b78283e89b96b889e"
+      }
+    }
+  },
+  "source": {
+    "path": "docs/design/references/clearsight-2026-10/source/clearsight-work-approvals-designs/work-approvals-preview.html",
+    "sha256": "202ed9c2b22ac4e921d9ba14aa41b61644ea54cbe55abcc81a86ec10b10ee8d2"
+  },
+  "inputs": {
+    "fixtureSHA256": "58b40b69c5e46c3a6e901659fa9389eaf570416ba7051ab2736f9659d30f2e96",
+    "captureSHA256": "59c2daf7d0c01d3389fb83b659d0e8fce3fe1e3ff6bdad736e2c01edf1ded5fb"
+  },
+  "layouts": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "tabs": {
+          "x": 260,
+          "y": 227.46875,
+          "width": 1148,
+          "height": 45,
+          "bottom": 272.46875
+        },
+        "measures": {
+          "x": 260,
+          "y": 308.46875,
+          "width": 1148,
+          "height": 103,
+          "bottom": 411.46875
+        },
+        "heading": {
+          "x": 277,
+          "y": 473.515625,
+          "width": 315.71875,
+          "height": 30,
+          "bottom": 503.515625
+        },
+        "filters": {
+          "x": 277,
+          "y": 565.703125,
+          "width": 774.5625,
+          "height": 44,
+          "bottom": 609.703125
+        },
+        "firstRecord": {
+          "x": 278,
+          "y": 653.203125,
+          "width": 772.5625,
+          "height": 69,
+          "bottom": 722.203125
+        },
+        "context": {
+          "x": 1084.5625,
+          "y": 456.515625,
+          "width": 323.4375,
+          "height": 357.6875,
+          "bottom": 814.203125
+        },
+        "queue": {
+          "x": 260,
+          "y": 456.515625,
+          "width": 808.5625,
+          "height": 490.1875,
+          "bottom": 946.703125
+        },
+        "queueFramed": true,
+        "rowDisplay": "table-row",
+        "tableClientWidth": 773,
+        "tableScrollWidth": 773,
+        "tabLabels": [
+          "My work",
+          "Approvals"
+        ],
+        "measureLabels": [
+          "Overdue: 61. Workflow assignments",
+          "Due next 7 days: 62. Workflow assignments",
+          "Your approvals: 1. Loaded work",
+          "Evidence needed: 1. Loaded work"
+        ],
+        "measureColumns": 4,
+        "controls": [
+          {
+            "width": 281,
+            "height": 103
+          },
+          {
+            "width": 281,
+            "height": 103
+          },
+          {
+            "width": 281,
+            "height": 103
+          },
+          {
+            "width": 281,
+            "height": 103
+          },
+          {
+            "width": 283.75,
+            "height": 44
+          },
+          {
+            "width": 283.765625,
+            "height": 44
+          }
+        ],
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "firstRecordInViewport": true,
+        "sourceOrder": true
+      },
+      "image": "layout-light-1440.png",
+      "errors": [],
+      "accessibility": []
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "tabs": {
+          "x": 260,
+          "y": 227.46875,
+          "width": 1148,
+          "height": 45,
+          "bottom": 272.46875
+        },
+        "measures": {
+          "x": 260,
+          "y": 308.46875,
+          "width": 1148,
+          "height": 103,
+          "bottom": 411.46875
+        },
+        "heading": {
+          "x": 277,
+          "y": 473.515625,
+          "width": 315.71875,
+          "height": 30,
+          "bottom": 503.515625
+        },
+        "filters": {
+          "x": 277,
+          "y": 565.703125,
+          "width": 774.5625,
+          "height": 44,
+          "bottom": 609.703125
+        },
+        "firstRecord": {
+          "x": 278,
+          "y": 653.203125,
+          "width": 772.5625,
+          "height": 69,
+          "bottom": 722.203125
+        },
+        "context": {
+          "x": 1084.5625,
+          "y": 456.515625,
+          "width": 323.4375,
+          "height": 357.6875,
+          "bottom": 814.203125
+        },
+        "queue": {
+          "x": 260,
+          "y": 456.515625,
+          "width": 808.5625,
+          "height": 490.1875,
+          "bottom": 946.703125
+        },
+        "queueFramed": true,
+        "rowDisplay": "table-row",
+        "tableClientWidth": 773,
+        "tableScrollWidth": 773,
+        "tabLabels": [
+          "My work",
+          "Approvals"
+        ],
+        "measureLabels": [
+          "Overdue: 61. Workflow assignments",
+          "Due next 7 days: 62. Workflow assignments",
+          "Your approvals: 1. Loaded work",
+          "Evidence needed: 1. Loaded work"
+        ],
+        "measureColumns": 4,
+        "controls": [
+          {
+            "width": 281,
+            "height": 103
+          },
+          {
+            "width": 281,
+            "height": 103
+          },
+          {
+            "width": 281,
+            "height": 103
+          },
+          {
+            "width": 281,
+            "height": 103
+          },
+          {
+            "width": 283.75,
+            "height": 44
+          },
+          {
+            "width": 283.765625,
+            "height": 44
+          }
+        ],
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "firstRecordInViewport": true,
+        "sourceOrder": true
+      },
+      "image": "layout-dark-1440.png",
+      "errors": [],
+      "accessibility": []
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "light",
+      "geometry": {
+        "tabs": {
+          "x": 260,
+          "y": 227.296875,
+          "width": 988,
+          "height": 45,
+          "bottom": 272.296875
+        },
+        "measures": {
+          "x": 260,
+          "y": 308.296875,
+          "width": 988,
+          "height": 103,
+          "bottom": 411.296875
+        },
+        "heading": {
+          "x": 277,
+          "y": 473.34375,
+          "width": 315.71875,
+          "height": 30,
+          "bottom": 503.34375
+        },
+        "filters": {
+          "x": 277,
+          "y": 565.53125,
+          "width": 658,
+          "height": 44,
+          "bottom": 609.53125
+        },
+        "firstRecord": {
+          "x": 278,
+          "y": 653.03125,
+          "width": 656,
+          "height": 69,
+          "bottom": 722.03125
+        },
+        "context": {
+          "x": 968,
+          "y": 456.34375,
+          "width": 280,
+          "height": 379.375,
+          "bottom": 835.71875
+        },
+        "queue": {
+          "x": 260,
+          "y": 456.34375,
+          "width": 692,
+          "height": 490.1875,
+          "bottom": 946.53125
+        },
+        "queueFramed": true,
+        "rowDisplay": "table-row",
+        "tableClientWidth": 656,
+        "tableScrollWidth": 656,
+        "tabLabels": [
+          "My work",
+          "Approvals"
+        ],
+        "measureLabels": [
+          "Overdue: 61. Workflow assignments",
+          "Due next 7 days: 62. Workflow assignments",
+          "Your approvals: 1. Loaded work",
+          "Evidence needed: 1. Loaded work"
+        ],
+        "measureColumns": 4,
+        "controls": [
+          {
+            "width": 241,
+            "height": 103
+          },
+          {
+            "width": 241,
+            "height": 103
+          },
+          {
+            "width": 241,
+            "height": 103
+          },
+          {
+            "width": 241,
+            "height": 103
+          },
+          {
+            "width": 225.46875,
+            "height": 44
+          },
+          {
+            "width": 225.484375,
+            "height": 44
+          }
+        ],
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "firstRecordInViewport": true,
+        "sourceOrder": true
+      },
+      "image": "layout-light-1280.png",
+      "errors": [],
+      "accessibility": []
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "dark",
+      "geometry": {
+        "tabs": {
+          "x": 260,
+          "y": 227.296875,
+          "width": 988,
+          "height": 45,
+          "bottom": 272.296875
+        },
+        "measures": {
+          "x": 260,
+          "y": 308.296875,
+          "width": 988,
+          "height": 103,
+          "bottom": 411.296875
+        },
+        "heading": {
+          "x": 277,
+          "y": 473.34375,
+          "width": 315.71875,
+          "height": 30,
+          "bottom": 503.34375
+        },
+        "filters": {
+          "x": 277,
+          "y": 565.53125,
+          "width": 658,
+          "height": 44,
+          "bottom": 609.53125
+        },
+        "firstRecord": {
+          "x": 278,
+          "y": 653.03125,
+          "width": 656,
+          "height": 69,
+          "bottom": 722.03125
+        },
+        "context": {
+          "x": 968,
+          "y": 456.34375,
+          "width": 280,
+          "height": 379.375,
+          "bottom": 835.71875
+        },
+        "queue": {
+          "x": 260,
+          "y": 456.34375,
+          "width": 692,
+          "height": 490.1875,
+          "bottom": 946.53125
+        },
+        "queueFramed": true,
+        "rowDisplay": "table-row",
+        "tableClientWidth": 656,
+        "tableScrollWidth": 656,
+        "tabLabels": [
+          "My work",
+          "Approvals"
+        ],
+        "measureLabels": [
+          "Overdue: 61. Workflow assignments",
+          "Due next 7 days: 62. Workflow assignments",
+          "Your approvals: 1. Loaded work",
+          "Evidence needed: 1. Loaded work"
+        ],
+        "measureColumns": 4,
+        "controls": [
+          {
+            "width": 241,
+            "height": 103
+          },
+          {
+            "width": 241,
+            "height": 103
+          },
+          {
+            "width": 241,
+            "height": 103
+          },
+          {
+            "width": 241,
+            "height": 103
+          },
+          {
+            "width": 225.46875,
+            "height": 44
+          },
+          {
+            "width": 225.484375,
+            "height": 44
+          }
+        ],
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "firstRecordInViewport": true,
+        "sourceOrder": true
+      },
+      "image": "layout-dark-1280.png",
+      "errors": [],
+      "accessibility": []
+    },
+    {
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "geometry": {
+        "tabs": {
+          "x": 104,
+          "y": 219.546875,
+          "width": 888,
+          "height": 45,
+          "bottom": 264.546875
+        },
+        "measures": {
+          "x": 104,
+          "y": 300.546875,
+          "width": 888,
+          "height": 103,
+          "bottom": 403.546875
+        },
+        "heading": {
+          "x": 121,
+          "y": 465.59375,
+          "width": 315.71875,
+          "height": 30,
+          "bottom": 495.59375
+        },
+        "filters": {
+          "x": 121,
+          "y": 557.78125,
+          "width": 854,
+          "height": 44,
+          "bottom": 601.78125
+        },
+        "firstRecord": {
+          "x": 122,
+          "y": 645.28125,
+          "width": 852,
+          "height": 69,
+          "bottom": 714.28125
+        },
+        "context": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "bottom": 0
+        },
+        "queue": {
+          "x": 104,
+          "y": 448.59375,
+          "width": 888,
+          "height": 490.1875,
+          "bottom": 938.78125
+        },
+        "queueFramed": true,
+        "rowDisplay": "table-row",
+        "tableClientWidth": 852,
+        "tableScrollWidth": 852,
+        "tabLabels": [
+          "My work",
+          "Approvals"
+        ],
+        "measureLabels": [
+          "Overdue: 61. Workflow assignments",
+          "Due next 7 days: 62. Workflow assignments",
+          "Your approvals: 1. Loaded work",
+          "Evidence needed: 1. Loaded work"
+        ],
+        "measureColumns": 4,
+        "controls": [
+          {
+            "width": 216,
+            "height": 103
+          },
+          {
+            "width": 216,
+            "height": 103
+          },
+          {
+            "width": 216,
+            "height": 103
+          },
+          {
+            "width": 216,
+            "height": 103
+          },
+          {
+            "width": 323.46875,
+            "height": 44
+          },
+          {
+            "width": 323.484375,
+            "height": 44
+          }
+        ],
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "firstRecordInViewport": true,
+        "sourceOrder": true
+      },
+      "image": "layout-light-1024.png",
+      "errors": [],
+      "accessibility": []
+    },
+    {
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "geometry": {
+        "tabs": {
+          "x": 104,
+          "y": 219.546875,
+          "width": 888,
+          "height": 45,
+          "bottom": 264.546875
+        },
+        "measures": {
+          "x": 104,
+          "y": 300.546875,
+          "width": 888,
+          "height": 103,
+          "bottom": 403.546875
+        },
+        "heading": {
+          "x": 121,
+          "y": 465.59375,
+          "width": 315.71875,
+          "height": 30,
+          "bottom": 495.59375
+        },
+        "filters": {
+          "x": 121,
+          "y": 557.78125,
+          "width": 854,
+          "height": 44,
+          "bottom": 601.78125
+        },
+        "firstRecord": {
+          "x": 122,
+          "y": 645.28125,
+          "width": 852,
+          "height": 69,
+          "bottom": 714.28125
+        },
+        "context": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "bottom": 0
+        },
+        "queue": {
+          "x": 104,
+          "y": 448.59375,
+          "width": 888,
+          "height": 490.1875,
+          "bottom": 938.78125
+        },
+        "queueFramed": true,
+        "rowDisplay": "table-row",
+        "tableClientWidth": 852,
+        "tableScrollWidth": 852,
+        "tabLabels": [
+          "My work",
+          "Approvals"
+        ],
+        "measureLabels": [
+          "Overdue: 61. Workflow assignments",
+          "Due next 7 days: 62. Workflow assignments",
+          "Your approvals: 1. Loaded work",
+          "Evidence needed: 1. Loaded work"
+        ],
+        "measureColumns": 4,
+        "controls": [
+          {
+            "width": 216,
+            "height": 103
+          },
+          {
+            "width": 216,
+            "height": 103
+          },
+          {
+            "width": 216,
+            "height": 103
+          },
+          {
+            "width": 216,
+            "height": 103
+          },
+          {
+            "width": 323.46875,
+            "height": 44
+          },
+          {
+            "width": 323.484375,
+            "height": 44
+          }
+        ],
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "firstRecordInViewport": true,
+        "sourceOrder": true
+      },
+      "image": "layout-dark-1024.png",
+      "errors": [],
+      "accessibility": []
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "tabs": {
+          "x": 80,
+          "y": 282.828125,
+          "width": 680,
+          "height": 45,
+          "bottom": 327.828125
+        },
+        "measures": {
+          "x": 80,
+          "y": 363.828125,
+          "width": 680,
+          "height": 121,
+          "bottom": 484.828125
+        },
+        "heading": {
+          "x": 97,
+          "y": 546.875,
+          "width": 315.71875,
+          "height": 30,
+          "bottom": 576.875
+        },
+        "filters": {
+          "x": 97,
+          "y": 639.0625,
+          "width": 646,
+          "height": 44,
+          "bottom": 683.0625
+        },
+        "firstRecord": {
+          "x": 98,
+          "y": 726.5625,
+          "width": 644,
+          "height": 69,
+          "bottom": 795.5625
+        },
+        "context": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "bottom": 0
+        },
+        "queue": {
+          "x": 80,
+          "y": 529.875,
+          "width": 680,
+          "height": 490.1875,
+          "bottom": 1020.0625
+        },
+        "queueFramed": true,
+        "rowDisplay": "table-row",
+        "tableClientWidth": 644,
+        "tableScrollWidth": 644,
+        "tabLabels": [
+          "My work",
+          "Approvals"
+        ],
+        "measureLabels": [
+          "Overdue: 61. Workflow assignments",
+          "Due next 7 days: 62. Workflow assignments",
+          "Your approvals: 1. Loaded work",
+          "Evidence needed: 1. Loaded work"
+        ],
+        "measureColumns": 4,
+        "controls": [
+          {
+            "width": 164,
+            "height": 121
+          },
+          {
+            "width": 164,
+            "height": 121
+          },
+          {
+            "width": 164,
+            "height": 121
+          },
+          {
+            "width": 164,
+            "height": 121
+          },
+          {
+            "width": 219.46875,
+            "height": 44
+          },
+          {
+            "width": 219.484375,
+            "height": 44
+          }
+        ],
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "firstRecordInViewport": true,
+        "sourceOrder": true
+      },
+      "image": "layout-light-768.png",
+      "errors": [],
+      "accessibility": []
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "tabs": {
+          "x": 80,
+          "y": 282.828125,
+          "width": 680,
+          "height": 45,
+          "bottom": 327.828125
+        },
+        "measures": {
+          "x": 80,
+          "y": 363.828125,
+          "width": 680,
+          "height": 121,
+          "bottom": 484.828125
+        },
+        "heading": {
+          "x": 97,
+          "y": 546.875,
+          "width": 315.71875,
+          "height": 30,
+          "bottom": 576.875
+        },
+        "filters": {
+          "x": 97,
+          "y": 639.0625,
+          "width": 646,
+          "height": 44,
+          "bottom": 683.0625
+        },
+        "firstRecord": {
+          "x": 98,
+          "y": 726.5625,
+          "width": 644,
+          "height": 69,
+          "bottom": 795.5625
+        },
+        "context": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "bottom": 0
+        },
+        "queue": {
+          "x": 80,
+          "y": 529.875,
+          "width": 680,
+          "height": 490.1875,
+          "bottom": 1020.0625
+        },
+        "queueFramed": true,
+        "rowDisplay": "table-row",
+        "tableClientWidth": 644,
+        "tableScrollWidth": 644,
+        "tabLabels": [
+          "My work",
+          "Approvals"
+        ],
+        "measureLabels": [
+          "Overdue: 61. Workflow assignments",
+          "Due next 7 days: 62. Workflow assignments",
+          "Your approvals: 1. Loaded work",
+          "Evidence needed: 1. Loaded work"
+        ],
+        "measureColumns": 4,
+        "controls": [
+          {
+            "width": 164,
+            "height": 121
+          },
+          {
+            "width": 164,
+            "height": 121
+          },
+          {
+            "width": 164,
+            "height": 121
+          },
+          {
+            "width": 164,
+            "height": 121
+          },
+          {
+            "width": 219.46875,
+            "height": 44
+          },
+          {
+            "width": 219.484375,
+            "height": 44
+          }
+        ],
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "firstRecordInViewport": true,
+        "sourceOrder": true
+      },
+      "image": "layout-dark-768.png",
+      "errors": [],
+      "accessibility": []
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "geometry": {
+        "tabs": {
+          "x": 64,
+          "y": 263.703125,
+          "width": 318,
+          "height": 45,
+          "bottom": 308.703125
+        },
+        "measures": {
+          "x": 64,
+          "y": 320.703125,
+          "width": 318,
+          "height": 199,
+          "bottom": 519.703125
+        },
+        "heading": {
+          "x": 77,
+          "y": 569.75,
+          "width": 292,
+          "height": 24,
+          "bottom": 593.75
+        },
+        "filters": {
+          "x": 77,
+          "y": 693.53125,
+          "width": 292,
+          "height": 69,
+          "bottom": 762.53125
+        },
+        "firstRecord": {
+          "x": 77,
+          "y": 762.53125,
+          "width": 292,
+          "height": 225,
+          "bottom": 987.53125
+        },
+        "context": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "bottom": 0
+        },
+        "queue": {
+          "x": 64,
+          "y": 556.75,
+          "width": 318,
+          "height": 1154.78125,
+          "bottom": 1711.53125
+        },
+        "queueFramed": true,
+        "rowDisplay": "grid",
+        "tableClientWidth": 292,
+        "tableScrollWidth": 292,
+        "tabLabels": [
+          "My work",
+          "Approvals"
+        ],
+        "measureLabels": [
+          "Overdue: 61. Workflow assignments",
+          "Due next 7 days: 62. Workflow assignments",
+          "Your approvals: 1. Loaded work",
+          "Evidence needed: 1. Loaded work"
+        ],
+        "measureColumns": 2,
+        "controls": [
+          {
+            "width": 155,
+            "height": 104.5
+          },
+          {
+            "width": 155,
+            "height": 104.5
+          },
+          {
+            "width": 155,
+            "height": 86.5
+          },
+          {
+            "width": 155,
+            "height": 86.5
+          },
+          {
+            "width": 172.625,
+            "height": 44
+          },
+          {
+            "width": 111.359375,
+            "height": 50
+          }
+        ],
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "firstRecordInViewport": true,
+        "sourceOrder": true
+      },
+      "image": "layout-light-390.png",
+      "errors": [],
+      "accessibility": []
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "geometry": {
+        "tabs": {
+          "x": 64,
+          "y": 263.703125,
+          "width": 318,
+          "height": 45,
+          "bottom": 308.703125
+        },
+        "measures": {
+          "x": 64,
+          "y": 320.703125,
+          "width": 318,
+          "height": 199,
+          "bottom": 519.703125
+        },
+        "heading": {
+          "x": 77,
+          "y": 569.75,
+          "width": 292,
+          "height": 24,
+          "bottom": 593.75
+        },
+        "filters": {
+          "x": 77,
+          "y": 693.53125,
+          "width": 292,
+          "height": 69,
+          "bottom": 762.53125
+        },
+        "firstRecord": {
+          "x": 77,
+          "y": 762.53125,
+          "width": 292,
+          "height": 225,
+          "bottom": 987.53125
+        },
+        "context": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "bottom": 0
+        },
+        "queue": {
+          "x": 64,
+          "y": 556.75,
+          "width": 318,
+          "height": 1154.78125,
+          "bottom": 1711.53125
+        },
+        "queueFramed": true,
+        "rowDisplay": "grid",
+        "tableClientWidth": 292,
+        "tableScrollWidth": 292,
+        "tabLabels": [
+          "My work",
+          "Approvals"
+        ],
+        "measureLabels": [
+          "Overdue: 61. Workflow assignments",
+          "Due next 7 days: 62. Workflow assignments",
+          "Your approvals: 1. Loaded work",
+          "Evidence needed: 1. Loaded work"
+        ],
+        "measureColumns": 2,
+        "controls": [
+          {
+            "width": 155,
+            "height": 104.5
+          },
+          {
+            "width": 155,
+            "height": 104.5
+          },
+          {
+            "width": 155,
+            "height": 86.5
+          },
+          {
+            "width": 155,
+            "height": 86.5
+          },
+          {
+            "width": 172.625,
+            "height": 44
+          },
+          {
+            "width": 111.359375,
+            "height": 50
+          }
+        ],
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "firstRecordInViewport": true,
+        "sourceOrder": true
+      },
+      "image": "layout-dark-390.png",
+      "errors": [],
+      "accessibility": []
+    }
+  ],
+  "sources": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "measureColumns": 4,
+        "firstRecordY": 542
+      },
+      "image": "source-1440.png"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "geometry": {
+        "measureColumns": 4,
+        "firstRecordY": 542
+      },
+      "image": "source-1280.png"
+    },
+    {
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "geometry": {
+        "measureColumns": 4,
+        "firstRecordY": 527
+      },
+      "image": "source-1024.png"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "geometry": {
+        "measureColumns": 4,
+        "firstRecordY": 587
+      },
+      "image": "source-768.png"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "measureColumns": 2,
+        "firstRecordY": 774
+      },
+      "image": "source-390.png"
+    }
+  ],
+  "behaviors": [
+    {
+      "name": "deadline-drills-light-1440",
+      "checks": {
+        "cardClearsOtherFilters": true,
+        "overdueFirstPage": 50,
+        "overdueComplete": true,
+        "upcomingInclusiveMicrosecondBounds": true,
+        "metricActivation": "keyboard",
+        "clearRestoresLoadedFeed": true,
+        "approvalsStayLoaded": true
+      },
+      "reads": [
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "q": "upcoming",
+            "limit": "50"
+          },
+          "method": "GET",
+          "population": [
+            "sample-upcoming-1",
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-4",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-7",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-10",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-13",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-16",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-19",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-22",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-25",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-28",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-31",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-34",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-37",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-40",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-43",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-46",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-49",
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-52",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-55",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-58",
+            "sample-upcoming-59",
+            "sample-upcoming-60"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-upcoming-1",
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-4",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-7",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-10",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-13",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-16",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-19",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-22",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-25",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-28",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-31",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-34",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-37",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-40",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-43",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-46",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-49",
+            "sample-upcoming-50"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        },
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "q": "upcoming",
+            "limit": "50",
+            "status": "READY"
+          },
+          "method": "GET",
+          "population": [
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-59",
+            "sample-upcoming-60"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-59",
+            "sample-upcoming-60"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        },
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "limit": "50",
+            "due_before": "2026-10-31T10:00:00.123456Z"
+          },
+          "method": "GET",
+          "population": [
+            "sample-overdue-1",
+            "sample-overdue-2",
+            "sample-overdue-3",
+            "sample-overdue-4",
+            "sample-overdue-5",
+            "sample-overdue-6",
+            "sample-overdue-7",
+            "sample-overdue-8",
+            "sample-overdue-9",
+            "sample-overdue-10",
+            "sample-overdue-11",
+            "sample-overdue-12",
+            "sample-overdue-13",
+            "sample-overdue-14",
+            "sample-overdue-15",
+            "sample-overdue-16",
+            "sample-overdue-17",
+            "sample-overdue-18",
+            "sample-overdue-19",
+            "sample-overdue-20",
+            "sample-overdue-21",
+            "sample-overdue-22",
+            "sample-overdue-23",
+            "sample-overdue-24",
+            "sample-overdue-25",
+            "sample-overdue-26",
+            "sample-overdue-27",
+            "sample-overdue-28",
+            "sample-overdue-29",
+            "sample-overdue-30",
+            "sample-overdue-31",
+            "sample-overdue-32",
+            "sample-overdue-33",
+            "sample-overdue-34",
+            "sample-overdue-35",
+            "sample-overdue-36",
+            "sample-overdue-37",
+            "sample-overdue-38",
+            "sample-overdue-39",
+            "sample-overdue-40",
+            "sample-overdue-41",
+            "sample-overdue-42",
+            "sample-overdue-43",
+            "sample-overdue-44",
+            "sample-overdue-45",
+            "sample-overdue-46",
+            "sample-overdue-47",
+            "sample-overdue-48",
+            "sample-overdue-49",
+            "sample-overdue-50",
+            "sample-overdue-51",
+            "sample-overdue-52",
+            "sample-overdue-53",
+            "sample-overdue-54",
+            "sample-overdue-55",
+            "sample-overdue-56",
+            "sample-overdue-57",
+            "sample-overdue-58",
+            "sample-overdue-59",
+            "sample-overdue-60",
+            "sample-before-start"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-overdue-1",
+            "sample-overdue-2",
+            "sample-overdue-3",
+            "sample-overdue-4",
+            "sample-overdue-5",
+            "sample-overdue-6",
+            "sample-overdue-7",
+            "sample-overdue-8",
+            "sample-overdue-9",
+            "sample-overdue-10",
+            "sample-overdue-11",
+            "sample-overdue-12",
+            "sample-overdue-13",
+            "sample-overdue-14",
+            "sample-overdue-15",
+            "sample-overdue-16",
+            "sample-overdue-17",
+            "sample-overdue-18",
+            "sample-overdue-19",
+            "sample-overdue-20",
+            "sample-overdue-21",
+            "sample-overdue-22",
+            "sample-overdue-23",
+            "sample-overdue-24",
+            "sample-overdue-25",
+            "sample-overdue-26",
+            "sample-overdue-27",
+            "sample-overdue-28",
+            "sample-overdue-29",
+            "sample-overdue-30",
+            "sample-overdue-31",
+            "sample-overdue-32",
+            "sample-overdue-33",
+            "sample-overdue-34",
+            "sample-overdue-35",
+            "sample-overdue-36",
+            "sample-overdue-37",
+            "sample-overdue-38",
+            "sample-overdue-39",
+            "sample-overdue-40",
+            "sample-overdue-41",
+            "sample-overdue-42",
+            "sample-overdue-43",
+            "sample-overdue-44",
+            "sample-overdue-45",
+            "sample-overdue-46",
+            "sample-overdue-47",
+            "sample-overdue-48",
+            "sample-overdue-49",
+            "sample-overdue-50"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        },
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "cursor": "eyJvZmZzZXQiOjUwLCJxdWVyeSI6IntcInNlYXJjaFwiOlwiXCIsXCJzdGF0dXNcIjpudWxsLFwiZnJvbVwiOlwibnVsbFwiLFwiYmVmb3JlXCI6XCIxNzkzNDQwODAwMTIzNDU2XCIsXCJzY29wZVwiOntcInRlbmFudF9pZFwiOlwiYmFuay1kZW1vXCIsXCJsZWdhbF9lbnRpdHlfaWRcIjpcImJhbmstbmdcIixcInByaW5jaXBhbF9pZFwiOlwicm9sZS1jcm9cIn19In0=",
+            "limit": "50",
+            "due_before": "2026-10-31T10:00:00.123456Z"
+          },
+          "method": "GET",
+          "population": [
+            "sample-overdue-1",
+            "sample-overdue-2",
+            "sample-overdue-3",
+            "sample-overdue-4",
+            "sample-overdue-5",
+            "sample-overdue-6",
+            "sample-overdue-7",
+            "sample-overdue-8",
+            "sample-overdue-9",
+            "sample-overdue-10",
+            "sample-overdue-11",
+            "sample-overdue-12",
+            "sample-overdue-13",
+            "sample-overdue-14",
+            "sample-overdue-15",
+            "sample-overdue-16",
+            "sample-overdue-17",
+            "sample-overdue-18",
+            "sample-overdue-19",
+            "sample-overdue-20",
+            "sample-overdue-21",
+            "sample-overdue-22",
+            "sample-overdue-23",
+            "sample-overdue-24",
+            "sample-overdue-25",
+            "sample-overdue-26",
+            "sample-overdue-27",
+            "sample-overdue-28",
+            "sample-overdue-29",
+            "sample-overdue-30",
+            "sample-overdue-31",
+            "sample-overdue-32",
+            "sample-overdue-33",
+            "sample-overdue-34",
+            "sample-overdue-35",
+            "sample-overdue-36",
+            "sample-overdue-37",
+            "sample-overdue-38",
+            "sample-overdue-39",
+            "sample-overdue-40",
+            "sample-overdue-41",
+            "sample-overdue-42",
+            "sample-overdue-43",
+            "sample-overdue-44",
+            "sample-overdue-45",
+            "sample-overdue-46",
+            "sample-overdue-47",
+            "sample-overdue-48",
+            "sample-overdue-49",
+            "sample-overdue-50",
+            "sample-overdue-51",
+            "sample-overdue-52",
+            "sample-overdue-53",
+            "sample-overdue-54",
+            "sample-overdue-55",
+            "sample-overdue-56",
+            "sample-overdue-57",
+            "sample-overdue-58",
+            "sample-overdue-59",
+            "sample-overdue-60",
+            "sample-before-start"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-overdue-51",
+            "sample-overdue-52",
+            "sample-overdue-53",
+            "sample-overdue-54",
+            "sample-overdue-55",
+            "sample-overdue-56",
+            "sample-overdue-57",
+            "sample-overdue-58",
+            "sample-overdue-59",
+            "sample-overdue-60",
+            "sample-before-start"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        },
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "limit": "50",
+            "due_from": "2026-10-31T10:00:00.123456Z",
+            "due_before": "2026-11-07T10:00:00.123457Z"
+          },
+          "method": "GET",
+          "population": [
+            "sample-at-start",
+            "sample-upcoming-1",
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-4",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-7",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-10",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-13",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-16",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-19",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-22",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-25",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-28",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-31",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-34",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-37",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-40",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-43",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-46",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-49",
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-52",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-55",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-58",
+            "sample-upcoming-59",
+            "sample-upcoming-60",
+            "sample-at-end"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-at-start",
+            "sample-upcoming-1",
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-4",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-7",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-10",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-13",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-16",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-19",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-22",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-25",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-28",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-31",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-34",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-37",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-40",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-43",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-46",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-49"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        },
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "cursor": "eyJvZmZzZXQiOjUwLCJxdWVyeSI6IntcInNlYXJjaFwiOlwiXCIsXCJzdGF0dXNcIjpudWxsLFwiZnJvbVwiOlwiMTc5MzQ0MDgwMDEyMzQ1NlwiLFwiYmVmb3JlXCI6XCIxNzk0MDQ1NjAwMTIzNDU3XCIsXCJzY29wZVwiOntcInRlbmFudF9pZFwiOlwiYmFuay1kZW1vXCIsXCJsZWdhbF9lbnRpdHlfaWRcIjpcImJhbmstbmdcIixcInByaW5jaXBhbF9pZFwiOlwicm9sZS1jcm9cIn19In0=",
+            "limit": "50",
+            "due_from": "2026-10-31T10:00:00.123456Z",
+            "due_before": "2026-11-07T10:00:00.123457Z"
+          },
+          "method": "GET",
+          "population": [
+            "sample-at-start",
+            "sample-upcoming-1",
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-4",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-7",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-10",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-13",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-16",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-19",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-22",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-25",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-28",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-31",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-34",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-37",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-40",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-43",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-46",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-49",
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-52",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-55",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-58",
+            "sample-upcoming-59",
+            "sample-upcoming-60",
+            "sample-at-end"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-52",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-55",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-58",
+            "sample-upcoming-59",
+            "sample-upcoming-60",
+            "sample-at-end"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        }
+      ],
+      "errors": [],
+      "overdueImage": "overdue-complete-light-1440.png",
+      "upcomingImage": "upcoming-complete-light-1440.png",
+      "commands": []
+    },
+    {
+      "name": "deadline-drills-dark-390",
+      "checks": {
+        "cardClearsOtherFilters": true,
+        "overdueFirstPage": 50,
+        "overdueComplete": true,
+        "upcomingInclusiveMicrosecondBounds": true,
+        "metricActivation": "touch",
+        "clearRestoresLoadedFeed": true,
+        "approvalsStayLoaded": true
+      },
+      "reads": [
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "q": "upcoming",
+            "limit": "50"
+          },
+          "method": "GET",
+          "population": [
+            "sample-upcoming-1",
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-4",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-7",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-10",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-13",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-16",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-19",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-22",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-25",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-28",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-31",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-34",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-37",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-40",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-43",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-46",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-49",
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-52",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-55",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-58",
+            "sample-upcoming-59",
+            "sample-upcoming-60"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-upcoming-1",
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-4",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-7",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-10",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-13",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-16",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-19",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-22",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-25",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-28",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-31",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-34",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-37",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-40",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-43",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-46",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-49",
+            "sample-upcoming-50"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        },
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "q": "upcoming",
+            "limit": "50",
+            "status": "READY"
+          },
+          "method": "GET",
+          "population": [
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-59",
+            "sample-upcoming-60"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-59",
+            "sample-upcoming-60"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        },
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "limit": "50",
+            "due_before": "2026-10-31T10:00:00.123456Z"
+          },
+          "method": "GET",
+          "population": [
+            "sample-overdue-1",
+            "sample-overdue-2",
+            "sample-overdue-3",
+            "sample-overdue-4",
+            "sample-overdue-5",
+            "sample-overdue-6",
+            "sample-overdue-7",
+            "sample-overdue-8",
+            "sample-overdue-9",
+            "sample-overdue-10",
+            "sample-overdue-11",
+            "sample-overdue-12",
+            "sample-overdue-13",
+            "sample-overdue-14",
+            "sample-overdue-15",
+            "sample-overdue-16",
+            "sample-overdue-17",
+            "sample-overdue-18",
+            "sample-overdue-19",
+            "sample-overdue-20",
+            "sample-overdue-21",
+            "sample-overdue-22",
+            "sample-overdue-23",
+            "sample-overdue-24",
+            "sample-overdue-25",
+            "sample-overdue-26",
+            "sample-overdue-27",
+            "sample-overdue-28",
+            "sample-overdue-29",
+            "sample-overdue-30",
+            "sample-overdue-31",
+            "sample-overdue-32",
+            "sample-overdue-33",
+            "sample-overdue-34",
+            "sample-overdue-35",
+            "sample-overdue-36",
+            "sample-overdue-37",
+            "sample-overdue-38",
+            "sample-overdue-39",
+            "sample-overdue-40",
+            "sample-overdue-41",
+            "sample-overdue-42",
+            "sample-overdue-43",
+            "sample-overdue-44",
+            "sample-overdue-45",
+            "sample-overdue-46",
+            "sample-overdue-47",
+            "sample-overdue-48",
+            "sample-overdue-49",
+            "sample-overdue-50",
+            "sample-overdue-51",
+            "sample-overdue-52",
+            "sample-overdue-53",
+            "sample-overdue-54",
+            "sample-overdue-55",
+            "sample-overdue-56",
+            "sample-overdue-57",
+            "sample-overdue-58",
+            "sample-overdue-59",
+            "sample-overdue-60",
+            "sample-before-start"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-overdue-1",
+            "sample-overdue-2",
+            "sample-overdue-3",
+            "sample-overdue-4",
+            "sample-overdue-5",
+            "sample-overdue-6",
+            "sample-overdue-7",
+            "sample-overdue-8",
+            "sample-overdue-9",
+            "sample-overdue-10",
+            "sample-overdue-11",
+            "sample-overdue-12",
+            "sample-overdue-13",
+            "sample-overdue-14",
+            "sample-overdue-15",
+            "sample-overdue-16",
+            "sample-overdue-17",
+            "sample-overdue-18",
+            "sample-overdue-19",
+            "sample-overdue-20",
+            "sample-overdue-21",
+            "sample-overdue-22",
+            "sample-overdue-23",
+            "sample-overdue-24",
+            "sample-overdue-25",
+            "sample-overdue-26",
+            "sample-overdue-27",
+            "sample-overdue-28",
+            "sample-overdue-29",
+            "sample-overdue-30",
+            "sample-overdue-31",
+            "sample-overdue-32",
+            "sample-overdue-33",
+            "sample-overdue-34",
+            "sample-overdue-35",
+            "sample-overdue-36",
+            "sample-overdue-37",
+            "sample-overdue-38",
+            "sample-overdue-39",
+            "sample-overdue-40",
+            "sample-overdue-41",
+            "sample-overdue-42",
+            "sample-overdue-43",
+            "sample-overdue-44",
+            "sample-overdue-45",
+            "sample-overdue-46",
+            "sample-overdue-47",
+            "sample-overdue-48",
+            "sample-overdue-49",
+            "sample-overdue-50"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        },
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "cursor": "eyJvZmZzZXQiOjUwLCJxdWVyeSI6IntcInNlYXJjaFwiOlwiXCIsXCJzdGF0dXNcIjpudWxsLFwiZnJvbVwiOlwibnVsbFwiLFwiYmVmb3JlXCI6XCIxNzkzNDQwODAwMTIzNDU2XCIsXCJzY29wZVwiOntcInRlbmFudF9pZFwiOlwiYmFuay1kZW1vXCIsXCJsZWdhbF9lbnRpdHlfaWRcIjpcImJhbmstbmdcIixcInByaW5jaXBhbF9pZFwiOlwicm9sZS1jcm9cIn19In0=",
+            "limit": "50",
+            "due_before": "2026-10-31T10:00:00.123456Z"
+          },
+          "method": "GET",
+          "population": [
+            "sample-overdue-1",
+            "sample-overdue-2",
+            "sample-overdue-3",
+            "sample-overdue-4",
+            "sample-overdue-5",
+            "sample-overdue-6",
+            "sample-overdue-7",
+            "sample-overdue-8",
+            "sample-overdue-9",
+            "sample-overdue-10",
+            "sample-overdue-11",
+            "sample-overdue-12",
+            "sample-overdue-13",
+            "sample-overdue-14",
+            "sample-overdue-15",
+            "sample-overdue-16",
+            "sample-overdue-17",
+            "sample-overdue-18",
+            "sample-overdue-19",
+            "sample-overdue-20",
+            "sample-overdue-21",
+            "sample-overdue-22",
+            "sample-overdue-23",
+            "sample-overdue-24",
+            "sample-overdue-25",
+            "sample-overdue-26",
+            "sample-overdue-27",
+            "sample-overdue-28",
+            "sample-overdue-29",
+            "sample-overdue-30",
+            "sample-overdue-31",
+            "sample-overdue-32",
+            "sample-overdue-33",
+            "sample-overdue-34",
+            "sample-overdue-35",
+            "sample-overdue-36",
+            "sample-overdue-37",
+            "sample-overdue-38",
+            "sample-overdue-39",
+            "sample-overdue-40",
+            "sample-overdue-41",
+            "sample-overdue-42",
+            "sample-overdue-43",
+            "sample-overdue-44",
+            "sample-overdue-45",
+            "sample-overdue-46",
+            "sample-overdue-47",
+            "sample-overdue-48",
+            "sample-overdue-49",
+            "sample-overdue-50",
+            "sample-overdue-51",
+            "sample-overdue-52",
+            "sample-overdue-53",
+            "sample-overdue-54",
+            "sample-overdue-55",
+            "sample-overdue-56",
+            "sample-overdue-57",
+            "sample-overdue-58",
+            "sample-overdue-59",
+            "sample-overdue-60",
+            "sample-before-start"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-overdue-51",
+            "sample-overdue-52",
+            "sample-overdue-53",
+            "sample-overdue-54",
+            "sample-overdue-55",
+            "sample-overdue-56",
+            "sample-overdue-57",
+            "sample-overdue-58",
+            "sample-overdue-59",
+            "sample-overdue-60",
+            "sample-before-start"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        },
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "limit": "50",
+            "due_from": "2026-10-31T10:00:00.123456Z",
+            "due_before": "2026-11-07T10:00:00.123457Z"
+          },
+          "method": "GET",
+          "population": [
+            "sample-at-start",
+            "sample-upcoming-1",
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-4",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-7",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-10",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-13",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-16",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-19",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-22",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-25",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-28",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-31",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-34",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-37",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-40",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-43",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-46",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-49",
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-52",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-55",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-58",
+            "sample-upcoming-59",
+            "sample-upcoming-60",
+            "sample-at-end"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-at-start",
+            "sample-upcoming-1",
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-4",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-7",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-10",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-13",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-16",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-19",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-22",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-25",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-28",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-31",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-34",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-37",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-40",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-43",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-46",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-49"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        },
+        {
+          "path": "/api/v1/work/assignments",
+          "query": {
+            "tenant_id": "bank-demo",
+            "cursor": "eyJvZmZzZXQiOjUwLCJxdWVyeSI6IntcInNlYXJjaFwiOlwiXCIsXCJzdGF0dXNcIjpudWxsLFwiZnJvbVwiOlwiMTc5MzQ0MDgwMDEyMzQ1NlwiLFwiYmVmb3JlXCI6XCIxNzk0MDQ1NjAwMTIzNDU3XCIsXCJzY29wZVwiOntcInRlbmFudF9pZFwiOlwiYmFuay1kZW1vXCIsXCJsZWdhbF9lbnRpdHlfaWRcIjpcImJhbmstbmdcIixcInByaW5jaXBhbF9pZFwiOlwicm9sZS1jcm9cIn19In0=",
+            "limit": "50",
+            "due_from": "2026-10-31T10:00:00.123456Z",
+            "due_before": "2026-11-07T10:00:00.123457Z"
+          },
+          "method": "GET",
+          "population": [
+            "sample-at-start",
+            "sample-upcoming-1",
+            "sample-upcoming-2",
+            "sample-upcoming-3",
+            "sample-upcoming-4",
+            "sample-upcoming-5",
+            "sample-upcoming-6",
+            "sample-upcoming-7",
+            "sample-upcoming-8",
+            "sample-upcoming-9",
+            "sample-upcoming-10",
+            "sample-upcoming-11",
+            "sample-upcoming-12",
+            "sample-upcoming-13",
+            "sample-upcoming-14",
+            "sample-upcoming-15",
+            "sample-upcoming-16",
+            "sample-upcoming-17",
+            "sample-upcoming-18",
+            "sample-upcoming-19",
+            "sample-upcoming-20",
+            "sample-upcoming-21",
+            "sample-upcoming-22",
+            "sample-upcoming-23",
+            "sample-upcoming-24",
+            "sample-upcoming-25",
+            "sample-upcoming-26",
+            "sample-upcoming-27",
+            "sample-upcoming-28",
+            "sample-upcoming-29",
+            "sample-upcoming-30",
+            "sample-upcoming-31",
+            "sample-upcoming-32",
+            "sample-upcoming-33",
+            "sample-upcoming-34",
+            "sample-upcoming-35",
+            "sample-upcoming-36",
+            "sample-upcoming-37",
+            "sample-upcoming-38",
+            "sample-upcoming-39",
+            "sample-upcoming-40",
+            "sample-upcoming-41",
+            "sample-upcoming-42",
+            "sample-upcoming-43",
+            "sample-upcoming-44",
+            "sample-upcoming-45",
+            "sample-upcoming-46",
+            "sample-upcoming-47",
+            "sample-upcoming-48",
+            "sample-upcoming-49",
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-52",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-55",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-58",
+            "sample-upcoming-59",
+            "sample-upcoming-60",
+            "sample-at-end"
+          ],
+          "status": 200,
+          "ids": [
+            "sample-upcoming-50",
+            "sample-upcoming-51",
+            "sample-upcoming-52",
+            "sample-upcoming-53",
+            "sample-upcoming-54",
+            "sample-upcoming-55",
+            "sample-upcoming-56",
+            "sample-upcoming-57",
+            "sample-upcoming-58",
+            "sample-upcoming-59",
+            "sample-upcoming-60",
+            "sample-at-end"
+          ],
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          },
+          "asOf": "2026-10-31T10:00:05.123456Z"
+        }
+      ],
+      "errors": [],
+      "overdueImage": "overdue-complete-dark-390.png",
+      "upcomingImage": "upcoming-complete-dark-390.png",
+      "commands": []
+    },
+    {
+      "name": "counts-unavailable",
+      "passed": true,
+      "observation": {
+        "scenario": "counts-unavailable",
+        "reads": [
+          {
+            "path": "/api/v1/today",
+            "query": {},
+            "method": "GET",
+            "status": 200,
+            "ids": [
+              "sample-overdue-1",
+              "sample-upcoming-1",
+              "sample-loaded-recovery",
+              "sample-loaded-evidence"
+            ],
+            "asOf": "2026-10-31T10:00:00.123456Z"
+          },
+          {
+            "path": "/api/v1/work/assignment-counts",
+            "query": {
+              "tenant_id": "bank-demo"
+            },
+            "method": "GET",
+            "status": 503
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        },
+        "asOf": "2026-10-31T10:00:00.123456Z",
+        "pageAsOf": "2026-10-31T10:00:05.123456Z",
+        "totals": {
+          "total": 125,
+          "overdue": 61,
+          "due_soon": 62,
+          "undated": 1
+        }
+      },
+      "image": "counts-unavailable.png"
+    },
+    {
+      "name": "counts-scope",
+      "passed": true,
+      "observation": {
+        "scenario": "counts-scope",
+        "reads": [
+          {
+            "path": "/api/v1/today",
+            "query": {},
+            "method": "GET",
+            "status": 200,
+            "ids": [
+              "sample-overdue-1",
+              "sample-upcoming-1",
+              "sample-loaded-recovery",
+              "sample-loaded-evidence"
+            ],
+            "asOf": "2026-10-31T10:00:00.123456Z"
+          },
+          {
+            "path": "/api/v1/work/assignment-counts",
+            "query": {
+              "tenant_id": "bank-demo"
+            },
+            "method": "GET",
+            "status": 200,
+            "scope": {
+              "tenant_id": "other-bank",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "asOf": "2026-10-31T10:00:00.123456Z"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        },
+        "asOf": "2026-10-31T10:00:00.123456Z",
+        "pageAsOf": "2026-10-31T10:00:05.123456Z",
+        "totals": {
+          "total": 125,
+          "overdue": 61,
+          "due_soon": 62,
+          "undated": 1
+        }
+      },
+      "image": "counts-scope.png"
+    },
+    {
+      "name": "page-scope",
+      "passed": true,
+      "observation": {
+        "scenario": "page-scope",
+        "reads": [
+          {
+            "path": "/api/v1/today",
+            "query": {},
+            "method": "GET",
+            "status": 200,
+            "ids": [
+              "sample-overdue-1",
+              "sample-upcoming-1",
+              "sample-loaded-recovery",
+              "sample-loaded-evidence"
+            ],
+            "asOf": "2026-10-31T10:00:00.123456Z"
+          },
+          {
+            "path": "/api/v1/work/assignment-counts",
+            "query": {
+              "tenant_id": "bank-demo"
+            },
+            "method": "GET",
+            "status": 200,
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "asOf": "2026-10-31T10:00:00.123456Z"
+          },
+          {
+            "path": "/api/v1/work/assignments",
+            "query": {
+              "tenant_id": "bank-demo",
+              "limit": "50",
+              "due_before": "2026-10-31T10:00:00.123456Z"
+            },
+            "method": "GET",
+            "population": [
+              "sample-overdue-1",
+              "sample-overdue-2",
+              "sample-overdue-3",
+              "sample-overdue-4",
+              "sample-overdue-5",
+              "sample-overdue-6",
+              "sample-overdue-7",
+              "sample-overdue-8",
+              "sample-overdue-9",
+              "sample-overdue-10",
+              "sample-overdue-11",
+              "sample-overdue-12",
+              "sample-overdue-13",
+              "sample-overdue-14",
+              "sample-overdue-15",
+              "sample-overdue-16",
+              "sample-overdue-17",
+              "sample-overdue-18",
+              "sample-overdue-19",
+              "sample-overdue-20",
+              "sample-overdue-21",
+              "sample-overdue-22",
+              "sample-overdue-23",
+              "sample-overdue-24",
+              "sample-overdue-25",
+              "sample-overdue-26",
+              "sample-overdue-27",
+              "sample-overdue-28",
+              "sample-overdue-29",
+              "sample-overdue-30",
+              "sample-overdue-31",
+              "sample-overdue-32",
+              "sample-overdue-33",
+              "sample-overdue-34",
+              "sample-overdue-35",
+              "sample-overdue-36",
+              "sample-overdue-37",
+              "sample-overdue-38",
+              "sample-overdue-39",
+              "sample-overdue-40",
+              "sample-overdue-41",
+              "sample-overdue-42",
+              "sample-overdue-43",
+              "sample-overdue-44",
+              "sample-overdue-45",
+              "sample-overdue-46",
+              "sample-overdue-47",
+              "sample-overdue-48",
+              "sample-overdue-49",
+              "sample-overdue-50",
+              "sample-overdue-51",
+              "sample-overdue-52",
+              "sample-overdue-53",
+              "sample-overdue-54",
+              "sample-overdue-55",
+              "sample-overdue-56",
+              "sample-overdue-57",
+              "sample-overdue-58",
+              "sample-overdue-59",
+              "sample-overdue-60",
+              "sample-before-start"
+            ],
+            "status": 200,
+            "ids": [
+              "sample-overdue-1",
+              "sample-overdue-2",
+              "sample-overdue-3",
+              "sample-overdue-4",
+              "sample-overdue-5",
+              "sample-overdue-6",
+              "sample-overdue-7",
+              "sample-overdue-8",
+              "sample-overdue-9",
+              "sample-overdue-10",
+              "sample-overdue-11",
+              "sample-overdue-12",
+              "sample-overdue-13",
+              "sample-overdue-14",
+              "sample-overdue-15",
+              "sample-overdue-16",
+              "sample-overdue-17",
+              "sample-overdue-18",
+              "sample-overdue-19",
+              "sample-overdue-20",
+              "sample-overdue-21",
+              "sample-overdue-22",
+              "sample-overdue-23",
+              "sample-overdue-24",
+              "sample-overdue-25",
+              "sample-overdue-26",
+              "sample-overdue-27",
+              "sample-overdue-28",
+              "sample-overdue-29",
+              "sample-overdue-30",
+              "sample-overdue-31",
+              "sample-overdue-32",
+              "sample-overdue-33",
+              "sample-overdue-34",
+              "sample-overdue-35",
+              "sample-overdue-36",
+              "sample-overdue-37",
+              "sample-overdue-38",
+              "sample-overdue-39",
+              "sample-overdue-40",
+              "sample-overdue-41",
+              "sample-overdue-42",
+              "sample-overdue-43",
+              "sample-overdue-44",
+              "sample-overdue-45",
+              "sample-overdue-46",
+              "sample-overdue-47",
+              "sample-overdue-48",
+              "sample-overdue-49",
+              "sample-overdue-50"
+            ],
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "another-person"
+            },
+            "asOf": "2026-10-31T10:00:05.123456Z"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        },
+        "asOf": "2026-10-31T10:00:00.123456Z",
+        "pageAsOf": "2026-10-31T10:00:05.123456Z",
+        "totals": {
+          "total": 125,
+          "overdue": 61,
+          "due_soon": 62,
+          "undated": 1
+        }
+      },
+      "image": "page-scope.png"
+    }
+  ],
+  "images": [
+    {
+      "file": "source-1440.png",
+      "bytes": 169727,
+      "sha256": "84a1fcf7a4feb3730ae83ce92af7a524b03cc25c011b8a9fc668278c2374e73e"
+    },
+    {
+      "file": "layout-light-1440.png",
+      "bytes": 178679,
+      "sha256": "64bb6482ecc0e6f2c0cc4a5c665f5ac7a3cd58416fee78a87b65d622c0b081a7"
+    },
+    {
+      "file": "layout-dark-1440.png",
+      "bytes": 174046,
+      "sha256": "baa8a4417dc8e02308a0527ceb4ecb56f437cba12553277796c0c3d02d69a6ec"
+    },
+    {
+      "file": "source-1280.png",
+      "bytes": 145589,
+      "sha256": "bf62bd5784b269cc7962c8fde551663a427783ecb2e05e5405511f987c93e97c"
+    },
+    {
+      "file": "layout-light-1280.png",
+      "bytes": 157942,
+      "sha256": "fcdc78733d9bbf6722ac6583e2fff6815a245c68928a7c78c6b56685af8fdbbc"
+    },
+    {
+      "file": "layout-dark-1280.png",
+      "bytes": 153506,
+      "sha256": "7a039f092338d0287835b7e6dc3400aa6c6024d1c29610bff1598e22dcaa5e35"
+    },
+    {
+      "file": "source-1024.png",
+      "bytes": 102967,
+      "sha256": "82ae665fce37b894715ec370949caca964a104823312554f7540cdb7c4ee791c"
+    },
+    {
+      "file": "layout-light-1024.png",
+      "bytes": 114775,
+      "sha256": "df6bb93dd3b546801c7e0ed1175ad95683bdb968bb2b90483c9f8e81fe717e1a"
+    },
+    {
+      "file": "layout-dark-1024.png",
+      "bytes": 113386,
+      "sha256": "cdc165663fd39d8b43f45172c94d4b56f1869fc99c0d5dddf937e461736c9912"
+    },
+    {
+      "file": "source-768.png",
+      "bytes": 102574,
+      "sha256": "744c5a04e5b35f469ec6e4ef9ce52d43ff8ecd9d61051d7058e742a0b7910716"
+    },
+    {
+      "file": "layout-light-768.png",
+      "bytes": 112134,
+      "sha256": "c923dd05ad1f98efa88f65123a18e876a182d550d276b7bee1f377ee72956f5a"
+    },
+    {
+      "file": "layout-dark-768.png",
+      "bytes": 108737,
+      "sha256": "f182e6195e0fb9553f15ec13e0003aaea0b1874edf9bbf92a848fdb3c6defa12"
+    },
+    {
+      "file": "source-390.png",
+      "bytes": 68749,
+      "sha256": "07240a198a4e04931f42b32437d9236d776e90e72924c11c0070300bd2ada84e"
+    },
+    {
+      "file": "layout-light-390.png",
+      "bytes": 77003,
+      "sha256": "1b5b532e62d3bb05c075456043a278daeae608880aa42f0461eb8c56806c5898"
+    },
+    {
+      "file": "layout-dark-390.png",
+      "bytes": 75098,
+      "sha256": "f0172c4fbe2dad89f569557aa01856b74e69b52f947204c0a7e8db1ba2182be0"
+    },
+    {
+      "file": "overdue-complete-light-1440.png",
+      "bytes": 204359,
+      "sha256": "3cb6f37e2bc36a33c7d441ab1ced623234349f38075fb13e36d912b2b974258d"
+    },
+    {
+      "file": "upcoming-complete-light-1440.png",
+      "bytes": 204694,
+      "sha256": "79065b361b90f740cbc789278056f0111d3e97ba09369ba4f44dab18f9ea6cba"
+    },
+    {
+      "file": "overdue-complete-dark-390.png",
+      "bytes": 64838,
+      "sha256": "2f6df329a463ab082844ae0b3fcf906759cf97b5db7065604b70f18f20164769"
+    },
+    {
+      "file": "upcoming-complete-dark-390.png",
+      "bytes": 64809,
+      "sha256": "bc0f1bb75b1d76cc23052f431bbddc82d43574d081b4f7cb0612654f571a6dc5"
+    },
+    {
+      "file": "counts-unavailable.png",
+      "bytes": 157694,
+      "sha256": "23dd052eecb59fd177dd4c025b2fab87a4a0f0d8c211e6fb46ca4a76d2606259"
+    },
+    {
+      "file": "counts-scope.png",
+      "bytes": 157694,
+      "sha256": "23dd052eecb59fd177dd4c025b2fab87a4a0f0d8c211e6fb46ca4a76d2606259"
+    },
+    {
+      "file": "page-scope.png",
+      "bytes": 141181,
+      "sha256": "35d831d3cf0a0c1de7e28c066118764a6936c568e9fbdb3546010350f4e9532b"
+    }
+  ],
+  "failure": null
+}

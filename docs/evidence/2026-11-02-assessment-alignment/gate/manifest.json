@@ -1,0 +1,139 @@
+{
+  "generatedAt": "2026-11-02T22:54:32.378Z",
+  "baseURL": "http://127.0.0.1:4178",
+  "failure": null,
+  "captures": [
+    {
+      "name": "211-internal-assessment-light-1440x900",
+      "route": "#today",
+      "fixture": "internal-assessment-layout",
+      "state": "assessment-internal-three-pane",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Back to work"
+      }
+    },
+    {
+      "name": "212-internal-assessment-dark-1280x800",
+      "route": "#today",
+      "fixture": "internal-assessment-layout",
+      "state": "assessment-internal-three-pane",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "clientHeight": 800,
+        "scrollHeight": 913,
+        "scrollY": 0,
+        "theme": "dark",
+        "density": "comfortable",
+        "activeElement": "Back to work"
+      }
+    },
+    {
+      "name": "215-internal-assessment-light-1024x768",
+      "route": "#today",
+      "fixture": "internal-assessment-layout",
+      "state": "assessment-internal-tablet",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "clientHeight": 768,
+        "scrollHeight": 1238,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Back to work"
+      }
+    },
+    {
+      "name": "216-internal-assessment-dark-768x900",
+      "route": "#today",
+      "fixture": "internal-assessment-layout",
+      "state": "assessment-internal-mobile",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "clientHeight": 900,
+        "scrollHeight": 1280,
+        "scrollY": 0,
+        "theme": "dark",
+        "density": "comfortable",
+        "activeElement": "Back to work"
+      }
+    },
+    {
+      "name": "213-internal-assessment-light-mobile-390x844",
+      "route": "#today",
+      "fixture": "internal-assessment-layout",
+      "state": "assessment-internal-mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1305,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Back to work"
+      }
+    },
+    {
+      "name": "214-internal-assessment-dark-mobile-390x844",
+      "route": "#today",
+      "fixture": "internal-assessment-layout",
+      "state": "assessment-internal-mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1305,
+        "scrollY": 0,
+        "theme": "dark",
+        "density": "comfortable",
+        "activeElement": "Back to work"
+      }
+    }
+  ]
+}

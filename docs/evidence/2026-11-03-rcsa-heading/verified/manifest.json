@@ -1,0 +1,4658 @@
+{
+  "generatedAt": "2026-11-03T19:52:40.378Z",
+  "baseURL": "http://127.0.0.1:4178",
+  "failure": null,
+  "captures": [
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "251-risk-loss-rcsa-light-1440x900",
+      "state": "risk-loss-rcsa-layout-light-1440",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "layout",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 111,
+          "right": 1408,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 694.5625,
+          "right": 1408,
+          "bottom": 786.5625
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 517.5625,
+          "right": 1408,
+          "bottom": 786.5625
+        },
+        "controls": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 73,
+          "right": 1408,
+          "bottom": 342
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 1148,
+          "height": 49,
+          "right": 1408,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 260,
+          "y": 390.59375,
+          "width": 1148,
+          "height": 333.96875,
+          "right": 1408,
+          "bottom": 724.5625
+        },
+        "columns": 3,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 260,
+          "y": 269,
+          "width": 291.21875,
+          "height": 27.5,
+          "right": 551.21875,
+          "bottom": 296.5
+        },
+        "rcsaFilter": {
+          "x": 1184,
+          "y": 269,
+          "width": 224,
+          "height": 73,
+          "right": 1408,
+          "bottom": 342
+        },
+        "rcsaHeadingWeight": 400,
+        "records": 2,
+        "firstRecord": {
+          "x": 260,
+          "y": 390.59375,
+          "width": 373.328125,
+          "height": 333.96875,
+          "right": 633.328125,
+          "bottom": 724.5625
+        },
+        "firstIdentity": {
+          "x": 284,
+          "y": 414.59375,
+          "width": 138.75,
+          "height": 21,
+          "right": 422.75,
+          "bottom": 435.59375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 274,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 390.921875,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 661.328125,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 778.25,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.41114125439252647",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900
+      },
+      "imageBytes": 83215,
+      "imageSHA256": "cf8c5c7d4f5eb489dd48ed7cec75bccfc8f5053b35ed33ee08c1b5551d14e7f3"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "251-risk-loss-rcsa-light-1280x800",
+      "state": "risk-loss-rcsa-layout-light-1280",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "layout",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "touch": false,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 988,
+          "height": 111,
+          "right": 1248,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 988,
+          "height": 694.5625,
+          "right": 1248,
+          "bottom": 786.5625
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 988,
+          "height": 517.5625,
+          "right": 1248,
+          "bottom": 786.5625
+        },
+        "controls": {
+          "x": 260,
+          "y": 269,
+          "width": 988,
+          "height": 73,
+          "right": 1248,
+          "bottom": 342
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 988,
+          "height": 49,
+          "right": 1248,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 260,
+          "y": 390.59375,
+          "width": 988,
+          "height": 333.96875,
+          "right": 1248,
+          "bottom": 724.5625
+        },
+        "columns": 3,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 260,
+          "y": 269,
+          "width": 291.21875,
+          "height": 27.5,
+          "right": 551.21875,
+          "bottom": 296.5
+        },
+        "rcsaFilter": {
+          "x": 1024,
+          "y": 269,
+          "width": 224,
+          "height": 73,
+          "right": 1248,
+          "bottom": 342
+        },
+        "rcsaHeadingWeight": 400,
+        "records": 2,
+        "firstRecord": {
+          "x": 260,
+          "y": 390.59375,
+          "width": 320,
+          "height": 333.96875,
+          "right": 580,
+          "bottom": 724.5625
+        },
+        "firstIdentity": {
+          "x": 284,
+          "y": 414.59375,
+          "width": 138.75,
+          "height": 21,
+          "right": 422.75,
+          "bottom": 435.59375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 274,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 390.921875,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 608,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 724.921875,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.09726175556705019",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "clientHeight": 800,
+        "scrollHeight": 835
+      },
+      "imageBytes": 75943,
+      "imageSHA256": "975a9e67b382deece1bc172d39ca85452e6881d4ec15d149eb243b226ad54d86"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "251-risk-loss-rcsa-light-1024x768",
+      "state": "risk-loss-rcsa-layout-light-1024",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "layout",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 104,
+          "y": 92,
+          "width": 888,
+          "height": 111,
+          "right": 992,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 104,
+          "y": 92,
+          "width": 888,
+          "height": 694.5625,
+          "right": 992,
+          "bottom": 786.5625
+        },
+        "collection": {
+          "x": 104,
+          "y": 269,
+          "width": 888,
+          "height": 517.5625,
+          "right": 992,
+          "bottom": 786.5625
+        },
+        "controls": {
+          "x": 104,
+          "y": 269,
+          "width": 888,
+          "height": 73,
+          "right": 992,
+          "bottom": 342
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 104,
+          "y": 203,
+          "width": 888,
+          "height": 49,
+          "right": 992,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 104,
+          "y": 390.59375,
+          "width": 888,
+          "height": 333.96875,
+          "right": 992,
+          "bottom": 724.5625
+        },
+        "columns": 2,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 104,
+          "y": 269,
+          "width": 291.21875,
+          "height": 27.5,
+          "right": 395.21875,
+          "bottom": 296.5
+        },
+        "rcsaFilter": {
+          "x": 768,
+          "y": 269,
+          "width": 224,
+          "height": 73,
+          "right": 992,
+          "bottom": 342
+        },
+        "rcsaHeadingWeight": 400,
+        "records": 2,
+        "firstRecord": {
+          "x": 104,
+          "y": 390.59375,
+          "width": 437,
+          "height": 333.96875,
+          "right": 541,
+          "bottom": 724.5625
+        },
+        "firstIdentity": {
+          "x": 128,
+          "y": 414.59375,
+          "width": 138.75,
+          "height": 21,
+          "right": 266.75,
+          "bottom": 435.59375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 118,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 234.921875,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 569,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 685.921875,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.25428464684464647",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "clientHeight": 768,
+        "scrollHeight": 835
+      },
+      "imageBytes": 58739,
+      "imageSHA256": "13a5b3e2b6f93d620e90c27df473ef6526c56cbfe893efad745aefa5328890dd"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "251-risk-loss-rcsa-light-768x900",
+      "state": "risk-loss-rcsa-layout-light-768",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "layout",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 80,
+          "y": 88,
+          "width": 680,
+          "height": 111,
+          "right": 760,
+          "bottom": 199
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 80,
+          "y": 88,
+          "width": 680,
+          "height": 694.5625,
+          "right": 760,
+          "bottom": 782.5625
+        },
+        "collection": {
+          "x": 80,
+          "y": 265,
+          "width": 680,
+          "height": 517.5625,
+          "right": 760,
+          "bottom": 782.5625
+        },
+        "controls": {
+          "x": 80,
+          "y": 265,
+          "width": 680,
+          "height": 73,
+          "right": 760,
+          "bottom": 338
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 80,
+          "y": 199,
+          "width": 680,
+          "height": 49,
+          "right": 760,
+          "bottom": 248
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 80,
+          "y": 386.59375,
+          "width": 680,
+          "height": 333.96875,
+          "right": 760,
+          "bottom": 720.5625
+        },
+        "columns": 2,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 80,
+          "y": 265,
+          "width": 291.21875,
+          "height": 27.5,
+          "right": 371.21875,
+          "bottom": 292.5
+        },
+        "rcsaFilter": {
+          "x": 536,
+          "y": 265,
+          "width": 224,
+          "height": 73,
+          "right": 760,
+          "bottom": 338
+        },
+        "rcsaHeadingWeight": 400,
+        "records": 2,
+        "firstRecord": {
+          "x": 80,
+          "y": 386.59375,
+          "width": 333,
+          "height": 333.96875,
+          "right": 413,
+          "bottom": 720.5625
+        },
+        "firstIdentity": {
+          "x": 104,
+          "y": 410.59375,
+          "width": 138.75,
+          "height": 21,
+          "right": 242.75,
+          "bottom": 431.59375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 94,
+              "y": 652.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 210.921875,
+              "bottom": 696.5625
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 441,
+              "y": 652.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 557.921875,
+              "bottom": 696.5625
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.4196291286303273",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "clientHeight": 900,
+        "scrollHeight": 900
+      },
+      "imageBytes": 55515,
+      "imageSHA256": "59c44a1f297ce7a294085e87e4416b312910b12df27bce5af522366ed2f04c53"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "251-risk-loss-rcsa-light-390x844",
+      "state": "risk-loss-rcsa-layout-light-390",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "layout",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 135.375,
+          "right": 382,
+          "bottom": 223.375
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 1065.28125,
+          "right": 382,
+          "bottom": 1153.28125
+        },
+        "collection": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 864.90625,
+          "right": 382,
+          "bottom": 1153.28125
+        },
+        "controls": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 84.375,
+          "right": 382,
+          "bottom": 372.75
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 64,
+          "y": 223.375,
+          "width": 318,
+          "height": 49,
+          "right": 382,
+          "bottom": 272.375
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 64,
+          "y": 421.34375,
+          "width": 318,
+          "height": 669.9375,
+          "right": 382,
+          "bottom": 1091.28125
+        },
+        "columns": 1,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 64,
+          "y": 288.375,
+          "width": 172.21875,
+          "height": 43.1875,
+          "right": 236.21875,
+          "bottom": 331.5625
+        },
+        "rcsaFilter": {
+          "x": 244.21875,
+          "y": 288.375,
+          "width": 137.78125,
+          "height": 73,
+          "right": 382,
+          "bottom": 361.375
+        },
+        "rcsaHeadingWeight": 700,
+        "records": 2,
+        "firstRecord": {
+          "x": 64,
+          "y": 421.34375,
+          "width": 318,
+          "height": 327.96875,
+          "right": 382,
+          "bottom": 749.3125
+        },
+        "firstIdentity": {
+          "x": 85,
+          "y": 442.34375,
+          "width": 138.75,
+          "height": 21,
+          "right": 223.75,
+          "bottom": 463.34375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 75,
+              "y": 684.3125,
+              "width": 116.921875,
+              "height": 44,
+              "right": 191.921875,
+              "bottom": 728.3125
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 75,
+              "y": 1026.28125,
+              "width": 116.921875,
+              "height": 44,
+              "right": 191.921875,
+              "bottom": 1070.28125
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.32611840435770945",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1177
+      },
+      "imageBytes": 46019,
+      "imageSHA256": "23f6fd6fa3fa8ab8d1b7fc51299d77b6e2011e195805c173bb733c5559455cda"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "251-risk-loss-rcsa-dark-1440x900",
+      "state": "risk-loss-rcsa-layout-dark-1440",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "layout",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 111,
+          "right": 1408,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 694.5625,
+          "right": 1408,
+          "bottom": 786.5625
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 517.5625,
+          "right": 1408,
+          "bottom": 786.5625
+        },
+        "controls": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 73,
+          "right": 1408,
+          "bottom": 342
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 1148,
+          "height": 49,
+          "right": 1408,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 260,
+          "y": 390.59375,
+          "width": 1148,
+          "height": 333.96875,
+          "right": 1408,
+          "bottom": 724.5625
+        },
+        "columns": 3,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 260,
+          "y": 269,
+          "width": 291.21875,
+          "height": 27.5,
+          "right": 551.21875,
+          "bottom": 296.5
+        },
+        "rcsaFilter": {
+          "x": 1184,
+          "y": 269,
+          "width": 224,
+          "height": 73,
+          "right": 1408,
+          "bottom": 342
+        },
+        "rcsaHeadingWeight": 400,
+        "records": 2,
+        "firstRecord": {
+          "x": 260,
+          "y": 390.59375,
+          "width": 373.328125,
+          "height": 333.96875,
+          "right": 633.328125,
+          "bottom": 724.5625
+        },
+        "firstIdentity": {
+          "x": 284,
+          "y": 414.59375,
+          "width": 138.75,
+          "height": 21,
+          "right": 422.75,
+          "bottom": 435.59375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 274,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 390.921875,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 661.328125,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 778.25,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.8946639732928855",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900
+      },
+      "imageBytes": 81751,
+      "imageSHA256": "698d67fb313576a6481620099b6d0ea81f2a6a3afba1a7eed80f3493cd03a87d"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "251-risk-loss-rcsa-dark-1280x800",
+      "state": "risk-loss-rcsa-layout-dark-1280",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "layout",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "touch": false,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 988,
+          "height": 111,
+          "right": 1248,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 988,
+          "height": 694.5625,
+          "right": 1248,
+          "bottom": 786.5625
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 988,
+          "height": 517.5625,
+          "right": 1248,
+          "bottom": 786.5625
+        },
+        "controls": {
+          "x": 260,
+          "y": 269,
+          "width": 988,
+          "height": 73,
+          "right": 1248,
+          "bottom": 342
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 988,
+          "height": 49,
+          "right": 1248,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 260,
+          "y": 390.59375,
+          "width": 988,
+          "height": 333.96875,
+          "right": 1248,
+          "bottom": 724.5625
+        },
+        "columns": 3,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 260,
+          "y": 269,
+          "width": 291.21875,
+          "height": 27.5,
+          "right": 551.21875,
+          "bottom": 296.5
+        },
+        "rcsaFilter": {
+          "x": 1024,
+          "y": 269,
+          "width": 224,
+          "height": 73,
+          "right": 1248,
+          "bottom": 342
+        },
+        "rcsaHeadingWeight": 400,
+        "records": 2,
+        "firstRecord": {
+          "x": 260,
+          "y": 390.59375,
+          "width": 320,
+          "height": 333.96875,
+          "right": 580,
+          "bottom": 724.5625
+        },
+        "firstIdentity": {
+          "x": 284,
+          "y": 414.59375,
+          "width": 138.75,
+          "height": 21,
+          "right": 422.75,
+          "bottom": 435.59375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 274,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 390.921875,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 608,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 724.921875,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.3295541128019004",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "clientHeight": 800,
+        "scrollHeight": 835
+      },
+      "imageBytes": 74523,
+      "imageSHA256": "d477ad7ee8445abe5172e3c0d1ff5fae4f2bc02609201ba0588a9cd611b8d874"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "251-risk-loss-rcsa-dark-1024x768",
+      "state": "risk-loss-rcsa-layout-dark-1024",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "layout",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 104,
+          "y": 92,
+          "width": 888,
+          "height": 111,
+          "right": 992,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 104,
+          "y": 92,
+          "width": 888,
+          "height": 694.5625,
+          "right": 992,
+          "bottom": 786.5625
+        },
+        "collection": {
+          "x": 104,
+          "y": 269,
+          "width": 888,
+          "height": 517.5625,
+          "right": 992,
+          "bottom": 786.5625
+        },
+        "controls": {
+          "x": 104,
+          "y": 269,
+          "width": 888,
+          "height": 73,
+          "right": 992,
+          "bottom": 342
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 104,
+          "y": 203,
+          "width": 888,
+          "height": 49,
+          "right": 992,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 104,
+          "y": 390.59375,
+          "width": 888,
+          "height": 333.96875,
+          "right": 992,
+          "bottom": 724.5625
+        },
+        "columns": 2,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 104,
+          "y": 269,
+          "width": 291.21875,
+          "height": 27.5,
+          "right": 395.21875,
+          "bottom": 296.5
+        },
+        "rcsaFilter": {
+          "x": 768,
+          "y": 269,
+          "width": 224,
+          "height": 73,
+          "right": 992,
+          "bottom": 342
+        },
+        "rcsaHeadingWeight": 400,
+        "records": 2,
+        "firstRecord": {
+          "x": 104,
+          "y": 390.59375,
+          "width": 437,
+          "height": 333.96875,
+          "right": 541,
+          "bottom": 724.5625
+        },
+        "firstIdentity": {
+          "x": 128,
+          "y": 414.59375,
+          "width": 138.75,
+          "height": 21,
+          "right": 266.75,
+          "bottom": 435.59375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 118,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 234.921875,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 569,
+              "y": 656.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 685.921875,
+              "bottom": 700.5625
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.20334910158062203",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "clientHeight": 768,
+        "scrollHeight": 835
+      },
+      "imageBytes": 57121,
+      "imageSHA256": "39bc331f5883386faf4f418cb45cd482d09503fb88ee15e70e05ae2554cb7ea8"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "251-risk-loss-rcsa-dark-768x900",
+      "state": "risk-loss-rcsa-layout-dark-768",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "layout",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 80,
+          "y": 88,
+          "width": 680,
+          "height": 111,
+          "right": 760,
+          "bottom": 199
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 80,
+          "y": 88,
+          "width": 680,
+          "height": 694.5625,
+          "right": 760,
+          "bottom": 782.5625
+        },
+        "collection": {
+          "x": 80,
+          "y": 265,
+          "width": 680,
+          "height": 517.5625,
+          "right": 760,
+          "bottom": 782.5625
+        },
+        "controls": {
+          "x": 80,
+          "y": 265,
+          "width": 680,
+          "height": 73,
+          "right": 760,
+          "bottom": 338
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 80,
+          "y": 199,
+          "width": 680,
+          "height": 49,
+          "right": 760,
+          "bottom": 248
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 80,
+          "y": 386.59375,
+          "width": 680,
+          "height": 333.96875,
+          "right": 760,
+          "bottom": 720.5625
+        },
+        "columns": 2,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 80,
+          "y": 265,
+          "width": 291.21875,
+          "height": 27.5,
+          "right": 371.21875,
+          "bottom": 292.5
+        },
+        "rcsaFilter": {
+          "x": 536,
+          "y": 265,
+          "width": 224,
+          "height": 73,
+          "right": 760,
+          "bottom": 338
+        },
+        "rcsaHeadingWeight": 400,
+        "records": 2,
+        "firstRecord": {
+          "x": 80,
+          "y": 386.59375,
+          "width": 333,
+          "height": 333.96875,
+          "right": 413,
+          "bottom": 720.5625
+        },
+        "firstIdentity": {
+          "x": 104,
+          "y": 410.59375,
+          "width": 138.75,
+          "height": 21,
+          "right": 242.75,
+          "bottom": 431.59375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 94,
+              "y": 652.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 210.921875,
+              "bottom": 696.5625
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 441,
+              "y": 652.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 557.921875,
+              "bottom": 696.5625
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.2975371052417013",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "clientHeight": 900,
+        "scrollHeight": 900
+      },
+      "imageBytes": 54473,
+      "imageSHA256": "3747258139e2c34ff32774f5fd6c91820ea3bbd05b699b0830699d26a9839eb7"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "251-risk-loss-rcsa-dark-390x844",
+      "state": "risk-loss-rcsa-layout-dark-390",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "layout",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 135.375,
+          "right": 382,
+          "bottom": 223.375
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 1065.28125,
+          "right": 382,
+          "bottom": 1153.28125
+        },
+        "collection": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 864.90625,
+          "right": 382,
+          "bottom": 1153.28125
+        },
+        "controls": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 84.375,
+          "right": 382,
+          "bottom": 372.75
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 64,
+          "y": 223.375,
+          "width": 318,
+          "height": 49,
+          "right": 382,
+          "bottom": 272.375
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 64,
+          "y": 421.34375,
+          "width": 318,
+          "height": 669.9375,
+          "right": 382,
+          "bottom": 1091.28125
+        },
+        "columns": 1,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 64,
+          "y": 288.375,
+          "width": 172.21875,
+          "height": 43.1875,
+          "right": 236.21875,
+          "bottom": 331.5625
+        },
+        "rcsaFilter": {
+          "x": 244.21875,
+          "y": 288.375,
+          "width": 137.78125,
+          "height": 73,
+          "right": 382,
+          "bottom": 361.375
+        },
+        "rcsaHeadingWeight": 700,
+        "records": 2,
+        "firstRecord": {
+          "x": 64,
+          "y": 421.34375,
+          "width": 318,
+          "height": 327.96875,
+          "right": 382,
+          "bottom": 749.3125
+        },
+        "firstIdentity": {
+          "x": 85,
+          "y": 442.34375,
+          "width": 138.75,
+          "height": 21,
+          "right": 223.75,
+          "bottom": 463.34375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 75,
+              "y": 684.3125,
+              "width": 116.921875,
+              "height": 44,
+              "right": 191.921875,
+              "bottom": 728.3125
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 75,
+              "y": 1026.28125,
+              "width": 116.921875,
+              "height": 44,
+              "right": 191.921875,
+              "bottom": 1070.28125
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.04955427333980633",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1177
+      },
+      "imageBytes": 45448,
+      "imageSHA256": "ce4d2308d36c4c42cab97217bb440d178266c736ce20cffee79ad93830d25cd0"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "2541-risk-loss-rcsa-detail-light-1440",
+      "state": "risk-loss-rcsa-detail-light-1440",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "detail",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa/cycle-rcsa-1",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": null,
+        "headingText": "Risk & Losses",
+        "main": null,
+        "collection": null,
+        "controls": null,
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": null,
+        "menuRows": 1,
+        "selectedTabVisible": false,
+        "menuMatches": true,
+        "table": null,
+        "grid": null,
+        "columns": 3,
+        "presentation": "cards",
+        "rcsaHeading": null,
+        "rcsaFilter": null,
+        "rcsaHeadingWeight": 400,
+        "records": 0,
+        "firstRecord": null,
+        "firstIdentity": null,
+        "firstRecordColumns": null,
+        "rowActions": [],
+        "statusBadges": [],
+        "recordTitles": [],
+        "recordAccessibleNames": [],
+        "rowValues": [],
+        "cardNumbers": [],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": false,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": true,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "detail": {
+        "route": "#rcsa/cycle-rcsa-1",
+        "exactTarget": true,
+        "titleMatches": true,
+        "placement": "sheet",
+        "width": 480,
+        "x": 960,
+        "height": 900,
+        "titleVisible": true,
+        "close": {
+          "x": 1372,
+          "y": 24,
+          "width": 44,
+          "height": 44,
+          "right": 1416,
+          "bottom": 68
+        },
+        "closeVisible": true,
+        "focusContained": true,
+        "primaryAction": {
+          "label": "Open challenge work",
+          "bounds": {
+            "x": 1002,
+            "y": 341.796875,
+            "width": 173.046875,
+            "height": 44,
+            "right": 1175.046875,
+            "bottom": 385.796875
+          },
+          "visible": true
+        },
+        "internalTables": [
+          {
+            "clientWidth": 431,
+            "scrollWidth": 431,
+            "presentation": "block"
+          },
+          {
+            "clientWidth": 431,
+            "scrollWidth": 431,
+            "presentation": "block"
+          }
+        ],
+        "rcsaPopulation": {
+          "card": {
+            "Risks": "3",
+            "Controls": "2"
+          },
+          "detailRows": {
+            "Risks": 3,
+            "Controls": 2
+          },
+          "detailSummary": "3 Risks · 2 controls"
+        },
+        "pendingReads": 0,
+        "commands": [],
+        "documentToken": "risk-loss-0.6287394262669963"
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "detail",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles/cycle-rcsa-1",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.6287394262669963",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900
+      },
+      "imageBytes": 193876,
+      "imageSHA256": "f90c1bacdc0ee6a05a92b520a9d1da6d99efbd5d8f7e11af7282b0ca0cb9a060"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "2551-risk-loss-rcsa-detail-dark-390",
+      "state": "risk-loss-rcsa-detail-dark-390",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "detail",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa/cycle-rcsa-1",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": null,
+        "headingText": "Risk & Losses",
+        "main": null,
+        "collection": null,
+        "controls": null,
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": null,
+        "menuRows": 1,
+        "selectedTabVisible": false,
+        "menuMatches": true,
+        "table": null,
+        "grid": null,
+        "columns": 1,
+        "presentation": "cards",
+        "rcsaHeading": null,
+        "rcsaFilter": null,
+        "rcsaHeadingWeight": 700,
+        "records": 0,
+        "firstRecord": null,
+        "firstIdentity": null,
+        "firstRecordColumns": null,
+        "rowActions": [],
+        "statusBadges": [],
+        "recordTitles": [],
+        "recordAccessibleNames": [],
+        "rowValues": [],
+        "cardNumbers": [],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": false,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": true,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "detail": {
+        "route": "#rcsa/cycle-rcsa-1",
+        "exactTarget": true,
+        "titleMatches": true,
+        "placement": "sheet",
+        "width": 390,
+        "x": 0,
+        "height": 844,
+        "titleVisible": true,
+        "close": {
+          "x": 326,
+          "y": 20,
+          "width": 44,
+          "height": 44,
+          "right": 370,
+          "bottom": 64
+        },
+        "closeVisible": true,
+        "focusContained": true,
+        "primaryAction": {
+          "label": "Open challenge work",
+          "bounds": {
+            "x": 37,
+            "y": 358.796875,
+            "width": 173.046875,
+            "height": 44,
+            "right": 210.046875,
+            "bottom": 402.796875
+          },
+          "visible": true
+        },
+        "internalTables": [
+          {
+            "clientWidth": 350,
+            "scrollWidth": 350,
+            "presentation": "block"
+          },
+          {
+            "clientWidth": 350,
+            "scrollWidth": 350,
+            "presentation": "block"
+          }
+        ],
+        "rcsaPopulation": {
+          "card": {
+            "Risks": "3",
+            "Controls": "2"
+          },
+          "detailRows": {
+            "Risks": 3,
+            "Controls": 2
+          },
+          "detailSummary": "3 Risks · 2 controls"
+        },
+        "pendingReads": 0,
+        "commands": [],
+        "documentToken": "risk-loss-0.46567596554954394"
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "detail",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles/cycle-rcsa-1",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.46567596554954394",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1177
+      },
+      "imageBytes": 34019,
+      "imageSHA256": "1b994efee5eec01ae633fc2bc4e6ff60a98c79e713705ddb7be8e80bf06dba93"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "2561-risk-loss-rcsa-history-dark-390",
+      "state": "risk-loss-rcsa-history-dark-390",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "history",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 135.375,
+          "right": 382,
+          "bottom": 223.375
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 1065.28125,
+          "right": 382,
+          "bottom": 1153.28125
+        },
+        "collection": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 864.90625,
+          "right": 382,
+          "bottom": 1153.28125
+        },
+        "controls": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 84.375,
+          "right": 382,
+          "bottom": 372.75
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 64,
+          "y": 223.375,
+          "width": 318,
+          "height": 49,
+          "right": 382,
+          "bottom": 272.375
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 64,
+          "y": 421.34375,
+          "width": 318,
+          "height": 669.9375,
+          "right": 382,
+          "bottom": 1091.28125
+        },
+        "columns": 1,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 64,
+          "y": 288.375,
+          "width": 172.21875,
+          "height": 43.1875,
+          "right": 236.21875,
+          "bottom": 331.5625
+        },
+        "rcsaFilter": {
+          "x": 244.21875,
+          "y": 288.375,
+          "width": 137.78125,
+          "height": 73,
+          "right": 382,
+          "bottom": 361.375
+        },
+        "rcsaHeadingWeight": 700,
+        "records": 2,
+        "firstRecord": {
+          "x": 64,
+          "y": 421.34375,
+          "width": 318,
+          "height": 327.96875,
+          "right": 382,
+          "bottom": 749.3125
+        },
+        "firstIdentity": {
+          "x": 85,
+          "y": 442.34375,
+          "width": 138.75,
+          "height": 21,
+          "right": 223.75,
+          "bottom": 463.34375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 75,
+              "y": 684.3125,
+              "width": 116.921875,
+              "height": 44,
+              "right": 191.921875,
+              "bottom": 728.3125
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 75,
+              "y": 1026.28125,
+              "width": 116.921875,
+              "height": 44,
+              "right": 191.921875,
+              "bottom": 1070.28125
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "history": {
+        "actualBack": true,
+        "sameDocument": true,
+        "selectedMenu": "RCSA",
+        "noSelectedDetail": true,
+        "backRoute": "#rcsa",
+        "populationBefore": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "populationAfter": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "backLayout": {
+          "kind": "rcsa",
+          "route": "#rcsa",
+          "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+          "heading": {
+            "x": 64,
+            "y": 88,
+            "width": 318,
+            "height": 135.375,
+            "right": 382,
+            "bottom": 223.375
+          },
+          "headingText": "Risk & Losses",
+          "main": {
+            "x": 64,
+            "y": 88,
+            "width": 318,
+            "height": 1065.28125,
+            "right": 382,
+            "bottom": 1153.28125
+          },
+          "collection": {
+            "x": 64,
+            "y": 288.375,
+            "width": 318,
+            "height": 864.90625,
+            "right": 382,
+            "bottom": 1153.28125
+          },
+          "controls": {
+            "x": 64,
+            "y": 288.375,
+            "width": 318,
+            "height": 84.375,
+            "right": 382,
+            "bottom": 372.75
+          },
+          "localTabs": [
+            "Risks",
+            "RCSA",
+            "Key indicators",
+            "Loss events"
+          ],
+          "selectedTab": "RCSA",
+          "selectedTabID": "rcsa",
+          "menu": {
+            "x": 64,
+            "y": 223.375,
+            "width": 318,
+            "height": 49,
+            "right": 382,
+            "bottom": 272.375
+          },
+          "menuRows": 1,
+          "selectedTabVisible": true,
+          "menuMatches": true,
+          "table": null,
+          "grid": {
+            "x": 64,
+            "y": 421.34375,
+            "width": 318,
+            "height": 669.9375,
+            "right": 382,
+            "bottom": 1091.28125
+          },
+          "columns": 1,
+          "presentation": "cards",
+          "rcsaHeading": {
+            "x": 64,
+            "y": 288.375,
+            "width": 172.21875,
+            "height": 43.1875,
+            "right": 236.21875,
+            "bottom": 331.5625
+          },
+          "rcsaFilter": {
+            "x": 244.21875,
+            "y": 288.375,
+            "width": 137.78125,
+            "height": 73,
+            "right": 382,
+            "bottom": 361.375
+          },
+          "rcsaHeadingWeight": 700,
+          "records": 2,
+          "firstRecord": {
+            "x": 64,
+            "y": 421.34375,
+            "width": 318,
+            "height": 327.96875,
+            "right": 382,
+            "bottom": 749.3125
+          },
+          "firstIdentity": {
+            "x": 85,
+            "y": 442.34375,
+            "width": 138.75,
+            "height": 21,
+            "right": 223.75,
+            "bottom": 463.34375
+          },
+          "firstRecordColumns": null,
+          "rowActions": [
+            {
+              "label": "Review cycle for Q3 Technology RCSA",
+              "bounds": {
+                "x": 75,
+                "y": 684.3125,
+                "width": 116.921875,
+                "height": 44,
+                "right": 191.921875,
+                "bottom": 728.3125
+              },
+              "lines": 2
+            },
+            {
+              "label": "Review cycle for Q4 Operations RCSA",
+              "bounds": {
+                "x": 75,
+                "y": 1026.28125,
+                "width": 116.921875,
+                "height": 44,
+                "right": 191.921875,
+                "bottom": 1070.28125
+              },
+              "lines": 2
+            }
+          ],
+          "statusBadges": [],
+          "recordTitles": [
+            "Q3 Technology RCSA",
+            "Q4 Operations RCSA"
+          ],
+          "recordAccessibleNames": [
+            "Q3 Technology RCSA",
+            "Q4 Operations RCSA"
+          ],
+          "rowValues": [
+            {
+              "title": "Q3 Technology RCSA",
+              "facts": {
+                "Risks": "3",
+                "Controls": "2",
+                "First-line owner": "Morgan Ellis",
+                "Updated": "5 Oct 2026"
+              }
+            },
+            {
+              "title": "Q4 Operations RCSA",
+              "facts": {
+                "Risks": "2",
+                "Controls": "2",
+                "First-line owner": "Operations Risk",
+                "Updated": "4 Oct 2026"
+              }
+            }
+          ],
+          "cardNumbers": [
+            {
+              "label": "Risks",
+              "value": "3",
+              "labelFontSize": 12,
+              "fontSize": 34,
+              "aligned": true,
+              "textAlign": "start"
+            },
+            {
+              "label": "Controls",
+              "value": "2",
+              "labelFontSize": 12,
+              "fontSize": 34,
+              "aligned": true,
+              "textAlign": "start"
+            }
+          ],
+          "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled2 cycles shownQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleCycle statusDisplayed cycles2 shown1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+          "disclosures": [
+            {
+              "label": "Cycle status",
+              "open": false
+            }
+          ],
+          "firstUsefulContentVisible": true,
+          "tableHeaders": [],
+          "primaryCurrent": [
+            "Risk & Losses"
+          ],
+          "dialogVisible": false,
+          "documentWidth": 390,
+          "scrollWidth": 390,
+          "populatedIDs": [
+            "cycle-rcsa-1",
+            "cycle-rcsa-2"
+          ],
+          "pendingReads": 0,
+          "commands": []
+        },
+        "backDocumentToken": "risk-loss-0.08100255238558296",
+        "initialDocumentToken": "risk-loss-0.08100255238558296",
+        "forwardDocumentToken": "risk-loss-0.08100255238558296",
+        "forwardExactTarget": true,
+        "forwardRoute": "#rcsa/cycle-rcsa-1",
+        "explicitReturn": true,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "history",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles/cycle-rcsa-1",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles/cycle-rcsa-1",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.08100255238558296",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1177
+      },
+      "imageBytes": 45448,
+      "imageSHA256": "ce4d2308d36c4c42cab97217bb440d178266c736ce20cffee79ad93830d25cd0"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "2571-risk-loss-rcsa-empty-light-1440",
+      "state": "risk-loss-rcsa-empty-light-1440",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "empty",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 111,
+          "right": 1408,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 431.28125,
+          "right": 1408,
+          "bottom": 523.28125
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 254.28125,
+          "right": 1408,
+          "bottom": 523.28125
+        },
+        "controls": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 73,
+          "right": 1408,
+          "bottom": 342
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 1148,
+          "height": 49,
+          "right": 1408,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": null,
+        "columns": null,
+        "presentation": "state",
+        "rcsaHeading": {
+          "x": 260,
+          "y": 269,
+          "width": 291.21875,
+          "height": 27.5,
+          "right": 551.21875,
+          "bottom": 296.5
+        },
+        "rcsaFilter": {
+          "x": 1184,
+          "y": 269,
+          "width": 224,
+          "height": 73,
+          "right": 1408,
+          "bottom": 342
+        },
+        "rcsaHeadingWeight": 400,
+        "records": 0,
+        "firstRecord": null,
+        "firstIdentity": null,
+        "firstRecordColumns": null,
+        "rowActions": [],
+        "statusBadges": [],
+        "recordTitles": [],
+        "recordAccessibleNames": [],
+        "rowValues": [],
+        "cardNumbers": [],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelledRCSA cyclesNo cycles in this viewNo RCSA cycles are available to you in this legal entity.",
+        "disclosures": [],
+        "firstUsefulContentVisible": false,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "populatedIDs": [],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "empty",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.5355848409153873",
+        "responsePopulation": [],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [],
+            "titles": [],
+            "complete": true,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900
+      },
+      "imageBytes": 66093,
+      "imageSHA256": "c429199e13b5b763e50ee173671b19b0a32fde1ce35c305da87ad0ffc44d0f45"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "2581-risk-loss-rcsa-denied-dark-390",
+      "state": "risk-loss-rcsa-denied-dark-390",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "denied",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 135.375,
+          "right": 382,
+          "bottom": 223.375
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 555.03125,
+          "right": 382,
+          "bottom": 643.03125
+        },
+        "collection": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 354.65625,
+          "right": 382,
+          "bottom": 643.03125
+        },
+        "controls": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 84.375,
+          "right": 382,
+          "bottom": 372.75
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 64,
+          "y": 223.375,
+          "width": 318,
+          "height": 49,
+          "right": 382,
+          "bottom": 272.375
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": null,
+        "columns": null,
+        "presentation": "state",
+        "rcsaHeading": {
+          "x": 64,
+          "y": 288.375,
+          "width": 172.21875,
+          "height": 43.1875,
+          "right": 236.21875,
+          "bottom": 331.5625
+        },
+        "rcsaFilter": {
+          "x": 244.21875,
+          "y": 288.375,
+          "width": 137.78125,
+          "height": 73,
+          "right": 382,
+          "bottom": 361.375
+        },
+        "rcsaHeadingWeight": 700,
+        "records": 0,
+        "firstRecord": null,
+        "firstIdentity": null,
+        "firstRecordColumns": null,
+        "rowActions": [],
+        "statusBadges": [],
+        "recordTitles": [],
+        "recordAccessibleNames": [],
+        "rowValues": [],
+        "cardNumbers": [],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelledRCSA cyclesRCSA cycles could not be loadedThe cycle register is unavailable.Try again",
+        "disclosures": [],
+        "firstUsefulContentVisible": false,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "denied",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 403
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.21096993672200604",
+        "responsePopulation": [],
+        "responses": []
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 844
+      },
+      "imageBytes": 38674,
+      "imageSHA256": "a1e0d3dc0fc9fe8839f3ca6646e67c60cb11b14581fe7167dae69e63c4586836"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "2591-risk-loss-rcsa-partial-light-1440",
+      "state": "risk-loss-rcsa-partial-light-1440",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "partial",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 111,
+          "right": 1408,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 844.5625,
+          "right": 1408,
+          "bottom": 936.5625
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 667.5625,
+          "right": 1408,
+          "bottom": 936.5625
+        },
+        "controls": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 73,
+          "right": 1408,
+          "bottom": 342
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 1148,
+          "height": 49,
+          "right": 1408,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 260,
+          "y": 478.59375,
+          "width": 1148,
+          "height": 333.96875,
+          "right": 1408,
+          "bottom": 812.5625
+        },
+        "columns": 3,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 260,
+          "y": 269,
+          "width": 291.21875,
+          "height": 27.5,
+          "right": 551.21875,
+          "bottom": 296.5
+        },
+        "rcsaFilter": {
+          "x": 1184,
+          "y": 269,
+          "width": 224,
+          "height": 73,
+          "right": 1408,
+          "bottom": 342
+        },
+        "rcsaHeadingWeight": 400,
+        "records": 2,
+        "firstRecord": {
+          "x": 260,
+          "y": 478.59375,
+          "width": 373.328125,
+          "height": 333.96875,
+          "right": 633.328125,
+          "bottom": 812.5625
+        },
+        "firstIdentity": {
+          "x": 284,
+          "y": 502.59375,
+          "width": 138.75,
+          "height": 21,
+          "right": 422.75,
+          "bottom": 523.59375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 274,
+              "y": 744.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 390.921875,
+              "bottom": 788.5625
+            },
+            "lines": 2
+          },
+          {
+            "label": "Review cycle for Q4 Operations RCSA",
+            "bounds": {
+              "x": 661.328125,
+              "y": 744.5625,
+              "width": 116.921875,
+              "height": 44,
+              "right": 778.25,
+              "bottom": 788.5625
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA",
+          "Q4 Operations RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          },
+          {
+            "title": "Q4 Operations RCSA",
+            "facts": {
+              "Risks": "2",
+              "Controls": "2",
+              "First-line owner": "Operations Risk",
+              "Updated": "4 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelledSome cycles unavailable. Retry to confirm the full register. Retry2 cycles shown · More availableQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleQ4 Operations RCSAFirst lineRCSA-Q4-OPS · ChangeRisks2Controls2First-line assessment in progressFirst-line ownerOperations RiskUpdated4 Oct 2026Review cycleNext pageCycle statusDisplayed cycles2 shown · More available1 First-line collection1 Awaiting challenge or resolutionReview 1 awaiting challengeReview 1 first-lineCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "populatedIDs": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "partial",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.4859376077302914",
+        "responsePopulation": [
+          "cycle-rcsa-1",
+          "cycle-rcsa-2"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1",
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q3 Technology RCSA",
+              "Q4 Operations RCSA"
+            ],
+            "complete": false,
+            "nextCursor": "sample-risk-loss-next-page"
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 985
+      },
+      "imageBytes": 87583,
+      "imageSHA256": "c774bd0307f526ab67871e8d437afe71e3dd10c59d7a1ccf15e2c0308e4420c6"
+    },
+    {
+      "id": "rcsa",
+      "label": "RCSA",
+      "heading": "Risk & control self-assessments",
+      "baselineHeading": "RCSA cycles",
+      "fixture": "rcsa-cycles",
+      "route": "#rcsa",
+      "source": "rcsa",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "RCSA cycles",
+      "firstRecord": "Q3 Technology RCSA",
+      "detailID": "cycle-rcsa-1",
+      "name": "2601-risk-loss-rcsa-filters-light-390",
+      "state": "risk-loss-rcsa-filters-light-390",
+      "riskLossView": "rcsa",
+      "riskLossCheck": "filters",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "rcsa",
+        "route": "#rcsa",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 135.375,
+          "right": 382,
+          "bottom": 223.375
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 785.3125,
+          "right": 382,
+          "bottom": 873.3125
+        },
+        "collection": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 584.9375,
+          "right": 382,
+          "bottom": 873.3125
+        },
+        "controls": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 84.375,
+          "right": 382,
+          "bottom": 372.75
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "RCSA",
+        "selectedTabID": "rcsa",
+        "menu": {
+          "x": 64,
+          "y": 223.375,
+          "width": 318,
+          "height": 49,
+          "right": 382,
+          "bottom": 272.375
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": {
+          "x": 64,
+          "y": 421.34375,
+          "width": 318,
+          "height": 327.96875,
+          "right": 382,
+          "bottom": 749.3125
+        },
+        "columns": 1,
+        "presentation": "cards",
+        "rcsaHeading": {
+          "x": 64,
+          "y": 288.375,
+          "width": 172.21875,
+          "height": 43.1875,
+          "right": 236.21875,
+          "bottom": 331.5625
+        },
+        "rcsaFilter": {
+          "x": 244.21875,
+          "y": 288.375,
+          "width": 137.78125,
+          "height": 73,
+          "right": 382,
+          "bottom": 361.375
+        },
+        "rcsaHeadingWeight": 700,
+        "records": 1,
+        "firstRecord": {
+          "x": 64,
+          "y": 421.34375,
+          "width": 318,
+          "height": 327.96875,
+          "right": 382,
+          "bottom": 749.3125
+        },
+        "firstIdentity": {
+          "x": 85,
+          "y": 442.34375,
+          "width": 138.75,
+          "height": 21,
+          "right": 223.75,
+          "bottom": 463.34375
+        },
+        "firstRecordColumns": null,
+        "rowActions": [
+          {
+            "label": "Review cycle for Q3 Technology RCSA",
+            "bounds": {
+              "x": 75,
+              "y": 684.3125,
+              "width": 116.921875,
+              "height": 44,
+              "right": 191.921875,
+              "bottom": 728.3125
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Q3 Technology RCSA"
+        ],
+        "recordAccessibleNames": [
+          "Q3 Technology RCSA"
+        ],
+        "rowValues": [
+          {
+            "title": "Q3 Technology RCSA",
+            "facts": {
+              "Risks": "3",
+              "Controls": "2",
+              "First-line owner": "Morgan Ellis",
+              "Updated": "5 Oct 2026"
+            }
+          }
+        ],
+        "cardNumbers": [
+          {
+            "label": "Risks",
+            "value": "3",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          },
+          {
+            "label": "Controls",
+            "value": "2",
+            "labelFontSize": 12,
+            "fontSize": 34,
+            "aligned": true,
+            "textAlign": "start"
+          }
+        ],
+        "stateText": "Risk & control self-assessmentsAssessment cycles for Meridian Trust Bank Nigeria.StatusAll statuses⌄ All statusesDraftFirst lineChallengeCompletedCancelled1 cycle shown · More availableQ3 Technology RCSAChallengeRCSA-Q3-TECH · ScheduledRisks3Controls2Independent challenge in progressFirst-line ownerMorgan EllisUpdated5 Oct 2026Review cycleNext pageCycle statusDisplayed cycles1 shown · More available1 Awaiting challenge or resolutionReview 1 awaiting challengeCounts apply to displayed cycles only.",
+        "disclosures": [
+          {
+            "label": "Cycle status",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [
+          "cycle-rcsa-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "filters": {
+        "nextPageDistinct": true,
+        "previousPageRestored": true,
+        "filterSentToReader": true,
+        "phoneFiltersAccessible": true,
+        "pages": {
+          "before": {
+            "ids": [
+              "cycle-rcsa-1"
+            ],
+            "titles": [
+              "Q3 Technology RCSA"
+            ],
+            "query": {
+              "limit": "25"
+            }
+          },
+          "next": {
+            "ids": [
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q4 Operations RCSA"
+            ],
+            "query": {
+              "cursor": "sample-risk-loss-next-page",
+              "limit": "25"
+            }
+          },
+          "previous": {
+            "ids": [
+              "cycle-rcsa-1"
+            ],
+            "titles": [
+              "Q3 Technology RCSA"
+            ],
+            "query": {
+              "limit": "25"
+            }
+          },
+          "filtered": {
+            "ids": [
+              "cycle-rcsa-1"
+            ],
+            "titles": [
+              "Q3 Technology RCSA"
+            ],
+            "query": {
+              "status": "AWAITING_CHALLENGE",
+              "limit": "25"
+            }
+          },
+          "restored": {
+            "ids": [
+              "cycle-rcsa-1"
+            ],
+            "titles": [
+              "Q3 Technology RCSA"
+            ],
+            "query": {
+              "limit": "25"
+            }
+          }
+        },
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "cursor": "sample-risk-loss-next-page",
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "status": "AWAITING_CHALLENGE",
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": []
+      },
+      "observation": {
+        "view": "rcsa",
+        "check": "filters",
+        "reads": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "cursor": "sample-risk-loss-next-page",
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "status": "AWAITING_CHALLENGE",
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.9530425582491641",
+        "responsePopulation": [
+          "cycle-rcsa-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1"
+            ],
+            "titles": [
+              "Q3 Technology RCSA"
+            ],
+            "complete": true,
+            "nextCursor": "sample-risk-loss-next-page"
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "cursor": "sample-risk-loss-next-page",
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-2"
+            ],
+            "titles": [
+              "Q4 Operations RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1"
+            ],
+            "titles": [
+              "Q3 Technology RCSA"
+            ],
+            "complete": true,
+            "nextCursor": "sample-risk-loss-next-page"
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "status": "AWAITING_CHALLENGE",
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1"
+            ],
+            "titles": [
+              "Q3 Technology RCSA"
+            ],
+            "complete": true,
+            "nextCursor": null
+          },
+          {
+            "path": "/api/v1/rcsa/cycles",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "cycle-rcsa-1"
+            ],
+            "titles": [
+              "Q3 Technology RCSA"
+            ],
+            "complete": true,
+            "nextCursor": "sample-risk-loss-next-page"
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 897
+      },
+      "imageBytes": 43617,
+      "imageSHA256": "ebdb5f5a4b732d215f835237e8a00fada343d85b504c5e437dbd45133f3e1570"
+    }
+  ],
+  "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION"
+}

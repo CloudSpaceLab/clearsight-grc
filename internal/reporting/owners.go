@@ -3,6 +3,8 @@ package reporting
 import (
 	"context"
 	"strings"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 const maxReportOwnerOptions = 200
@@ -20,6 +22,9 @@ func (s *Service) ListOwners(ctx context.Context, scope ReportScope, dataset Rep
 	actor, verifiedScope, err := s.scopedActor(ctx, scope)
 	if err != nil {
 		return nil, err
+	}
+	if !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
+		return nil, ErrPrivacyReadForbidden
 	}
 	if !validReportDataset(dataset) {
 		return nil, ErrInvalid

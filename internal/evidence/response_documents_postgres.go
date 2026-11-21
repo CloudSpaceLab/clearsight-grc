@@ -35,6 +35,17 @@ func (s *PostgresDistributionStore) ReadCompletedResponseAnswers(ctx context.Con
 // ListDocuments resolves the immutable submitted occurrence first. Artifact's
 // first submission is deliberately not used as membership for later revisions.
 func (s *PostgresDistributionStore) ListDocuments(ctx context.Context, q DocumentQuery) (DocumentPage, error) {
+	return s.listDocuments(ctx, q, false)
+}
+
+func (s *PostgresDistributionStore) ListExactDocuments(ctx context.Context, q DocumentQuery) (DocumentPage, error) {
+	if q.SubmissionID == "" || q.FieldID == "" || q.ArtifactID == "" || q.Limit != 1 {
+		return DocumentPage{}, ErrDistributionInvalid
+	}
+	return s.listDocuments(ctx, q, true)
+}
+
+func (s *PostgresDistributionStore) listDocuments(ctx context.Context, q DocumentQuery, exact bool) (DocumentPage, error) {
 	cursor, err := normalizeDocumentQuery(&q)
 	if err != nil {
 		return DocumentPage{}, err
@@ -47,7 +58,15 @@ func (s *PostgresDistributionStore) ListDocuments(ctx context.Context, q Documen
 			}
 		}
 	}
-	rows, err := s.repo.pool.Query(ctx, documentInventorySQL(), q.TenantID, q.LegalEntityID, q.PrincipalID, time.Now().UTC(), q.FormTemplateID, q.RelationshipID, q.ResponseRevisionID, q.CurrentOnly, string(q.FileKind), q.Query, cursor.SubmittedAt, cursor.ID, q.SubmissionID, q.FieldID, q.ArtifactID, q.Limit+1, q.assessmentRead, q.ProgramID)
+	sql := documentInventorySQL()
+	if exact {
+		var ok bool
+		sql, ok = exactDocumentInventorySQL(sql)
+		if !ok {
+			return DocumentPage{}, ErrDistributionInvalid
+		}
+	}
+	rows, err := s.repo.pool.Query(ctx, sql, q.TenantID, q.LegalEntityID, q.PrincipalID, time.Now().UTC(), q.FormTemplateID, q.RelationshipID, q.ResponseRevisionID, q.CurrentOnly, string(q.FileKind), q.Query, cursor.SubmittedAt, cursor.ID, q.SubmissionID, q.FieldID, q.ArtifactID, q.Limit+1, q.assessmentRead, q.ProgramID, string(q.View))
 	if err != nil {
 		return DocumentPage{}, err
 	}
@@ -70,6 +89,14 @@ func (s *PostgresDistributionStore) ListDocuments(ctx context.Context, q Documen
 		return DocumentPage{}, err
 	}
 	return documentPage(values, q.Limit), nil
+}
+
+func exactDocumentInventorySQL(sql string) (string, bool) {
+	const optional = "AND ($13='' OR submission.id=NULLIF($13,'')::uuid) AND ($14='' OR field->>'id'=$14) AND ($15='' OR artifact.id=NULLIF($15,'')::uuid)"
+	if strings.Count(sql, optional) != 1 {
+		return "", false
+	}
+	return strings.Replace(sql, optional, "AND submission.id=$13::uuid AND field->>'id'=$14 AND artifact.id=$15::uuid", 1), true
 }
 
 func documentInventorySQL() string {
@@ -110,6 +137,9 @@ func documentInventorySQL() string {
  ) SELECT to_jsonb(o)-'artifact_request_id',artifact_request_id FROM occurrences o
  WHERE ($6='' OR relationship_id=$6) AND (NOT $8::boolean OR current) AND ($9='' OR file_kind=$9)
  AND ($10='' OR strpos(lower(file_name),lower($10))>0)
+ AND ($19='' OR ($19='AWAITING_REVIEW' AND current AND review->>'status'='SUBMITTED')
+ OR ($19='NEEDS_REFRESH' AND current AND (review->>'status'='EXPIRED' OR CASE WHEN pg_input_is_valid(expires_on,'date') AND expires_on ~ '^\d{4}-\d{2}-\d{2}$' THEN expires_on::date < ($4::timestamptz AT TIME ZONE 'UTC')::date ELSE false END))
+ OR ($19='REVIEW_HISTORY' AND review IS NOT NULL))
  AND ($12='' OR (submitted_at,id)<($11::timestamptz,$12))
  ORDER BY submitted_at DESC,id DESC LIMIT $16`
 }

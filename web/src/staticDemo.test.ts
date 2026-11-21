@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import fixtures from "./staticDemoFixtures.json";
 import { canRespondToEvidenceRequest } from "./evidenceAuthorization";
-import { answerIsPresent } from "./components/capture/contract";
+import { answerIsPresent } from "./captureContract";
 import type { EvidenceRequest } from "./types";
 // @ts-expect-error The static-only runtime is a browser asset with no TypeScript declarations.
 await import("./staticDemoWorkflowRuntime.js");
@@ -22,6 +22,16 @@ beforeEach(() => {
 });
 
 describe("static stakeholder demo transport", () => {
+  it("keeps a sample standard API check as a typed draft", async () => {
+    const { staticDemoRequest } = await demo();
+    const source = await staticDemoRequest<any>("/api/v1/evidence/sources", { method: "POST", body: JSON.stringify({ code: "CHECK", name: "Check", type: "SYSTEM", authority_class: "INTERNAL_CONTROL", expected_freshness_minutes: 60 }) });
+    const connection = await staticDemoRequest<any>(`/api/v1/config/sources/${source.id}/connections`, { method: "POST", body: JSON.stringify({ code: "CHECK-REST", name: "Check endpoint", adapter_kind: "REST_JSON", adapter_version: "rest-json-v1", definition: { base_url: "https://example.test", authentication: { kind: "NONE" } }, declared_capabilities: ["INSPECT", "PAGE"] }) });
+    let view = await staticDemoRequest<any>(`/api/v1/config/source-connections/${connection.connection_id}/views`, { method: "POST", body: JSON.stringify({ connection_version: connection.version, code: "CHECK-VIEW", name: "Check", definition: { path: "/check", singleton: true, result_type: "NUMBER", pagination: { mode: "NONE" } }, output_kind: "RECORDS" }) });
+    view = (await staticDemoRequest<any>(`/api/v1/config/source-views/${view.view_id}/inspect?version=${view.version}`, { method: "POST", body: JSON.stringify({ stable_keys: [] }) })).view;
+    expect(view.native_schema).toContainEqual({ name: "result", native_type: "json:number", nullable: false });
+    const binding = await staticDemoRequest<any>(`/api/v1/config/source-views/${view.view_id}/bindings`, { method: "POST", body: JSON.stringify({ view_version: view.version, code: "CHECK-BINDING", name: "Check", purpose: "monitoring", operations: ["PAGE"], selected_fields: ["result"], key_fields: [] }) });
+    expect(binding.status).toBe("DRAFT");
+  });
   it("exposes illustrative framework references only in an explicit evidence fixture", async () => {
     window.history.replaceState(null, "", "/?fixture=framework-library-loaded");
     const { staticDemoRequest } = await demo();
@@ -493,7 +503,7 @@ describe("static stakeholder demo transport", () => {
     expect((await staticDemoRequest<any>(`/api/v1/matters/${linked.matter.id}`)).matter.id).toBe(linked.matter.id);
   });
 
-  it("configures connected monitoring data and isolates evaluated results and linked issues by check", async () => {
+  it("rejects a monitoring check for an unapproved source draft", async () => {
     const { staticDemoRequest } = await demo();
     await staticDemoRequest("/api/v1/demo/login", { method: "POST", body: JSON.stringify({ username: "dpo@demo.clearsight" }) });
     const source = await staticDemoRequest<any>("/api/v1/evidence/sources", { method: "POST", body: JSON.stringify({ legal_entity_id: "bank-ng", code: "RETURN-STATUS", name: "Annual return status", type: "SYSTEM", authority_class: "INTERNAL_CONTROL", owner_principal_id: "role-dpo", endpoint: "https://records.example.test/returns", expected_freshness_minutes: 60 }) });
@@ -502,17 +512,8 @@ describe("static stakeholder demo transport", () => {
     view = (await staticDemoRequest<any>(`/api/v1/config/source-views/${view.view_id}/inspect?version=${view.version}`, { method: "POST", body: JSON.stringify({ stable_keys: [] }) })).view;
     view = (await staticDemoRequest<any>(`/api/v1/config/source-views/${view.view_id}/inspect?version=${view.version}`, { method: "POST", body: JSON.stringify({ stable_keys: ["status"] }) })).view;
     const binding = await staticDemoRequest<any>(`/api/v1/config/source-views/${view.view_id}/bindings`, { method: "POST", body: JSON.stringify({ view_version: view.version, code: "RETURN-STATUS-MONITOR", name: "Annual return status monitoring", purpose: "monitoring", operations: ["PAGE"], selected_fields: ["status"], key_fields: ["status"] }) });
-    let check = await staticDemoRequest<any>("/api/v1/programs/program-ndpa/monitoring-checks", { method: "POST", body: JSON.stringify({ code: "RETURN-STATUS-CHECK", name: "Annual return status", claim: "The annual return is accepted.", input_kind: "SOURCE", binding_id: binding.binding_id, binding_version: binding.version, source_rules: [{ id: "accepted", field: "status", operator: "EQUALS", expected: "accepted", risk_points: 100, critical: true }], failure_action: "RECOMMEND_MATTER" }) });
-    check = await staticDemoRequest<any>(`/api/v1/monitoring-checks/${check.id}/transition`, { method: "POST", body: JSON.stringify({ expected_version: check.version, to: "PENDING_APPROVAL" }) });
-    await staticDemoRequest("/api/v1/demo/login", { method: "POST", body: JSON.stringify({ username: "dpco@demo.clearsight" }) });
-    check = await staticDemoRequest<any>(`/api/v1/monitoring-checks/${check.id}/transition`, { method: "POST", body: JSON.stringify({ expected_version: check.version, to: "ACTIVE" }) });
-    const result = await staticDemoRequest<any>(`/api/v1/monitoring-checks/${check.id}/evaluate-source`, { method: "POST", body: JSON.stringify({ check_version: check.version }) });
-    expect(result).toMatchObject({ monitoring_check_id: check.id, monitoring_check_version: check.version });
-    expect(result.evaluation.rule_results).toEqual([expect.objectContaining({ rule_id: "accepted", field_id: "status" })]);
-    expect((await staticDemoRequest<any>(`/api/v1/monitoring-checks/${check.id}/results`)).items).toEqual([result]);
-    const linked = await staticDemoRequest<any>(`/api/v1/monitoring-results/${result.id}/linked-issue`, { method: "POST", body: "{}" });
-    expect(linked.matter).toMatchObject({ id: `matter-${check.id}`, known_facts: { monitoring_result_id: result.id } });
-    expect((await staticDemoRequest<any>(`/api/v1/matters/${linked.matter.id}`)).matter.id).toBe(linked.matter.id);
+    expect(binding.status).toBe("DRAFT");
+    await expect(staticDemoRequest("/api/v1/programs/program-ndpa/monitoring-checks", { method: "POST", body: JSON.stringify({ code: "RETURN-STATUS-CHECK", name: "Annual return status", claim: "The annual return is accepted.", input_kind: "SOURCE", binding_id: binding.binding_id, binding_version: binding.version, source_rules: [{ id: "accepted", field: "status", operator: "EQUALS", expected: "accepted", risk_points: 100 }] }) })).rejects.toMatchObject({ status: 409, code: "source_inactive" });
   });
 
   it("keeps newly created Programs and issues operable on their returned exact routes", async () => {
@@ -849,8 +850,10 @@ describe("static stakeholder demo transport", () => {
     expect(completed.items).toMatchObject([{ id: "response-revision-acme-2", revision: 2, current: true }]);
     const completedDetail = await staticDemoRequest<{ response: { id: string }; revision: { revision: number } }>("/api/v1/forms/responses/response-revision-acme-2");
     expect(completedDetail).toMatchObject({ response: { id: "response-revision-acme-2" }, revision: { revision: 2 } });
+    const earlierDetail = await staticDemoRequest<{ response: { id: string; current: boolean }; revision: { id: string; revision: number } }>("/api/v1/forms/responses/response-revision-acme-1");
+    expect(earlierDetail).toMatchObject({ response: { id: "response-revision-acme-1", current: false }, revision: { id: "response-revision-acme-1", revision: 1 } });
     const assessment = await staticDemoRequest<{ response_id: string; current: boolean; state: string; automatic_score: { raw_score: number }; may_review: boolean }>("/api/v1/forms/responses/response-revision-acme-2/assessment");
-    expect(assessment).toMatchObject({ response_id: "response-revision-acme-2", current: true, state: "NOT_REQUIRED", automatic_score: { raw_score: 86 }, may_review: false });
+    expect(assessment).toMatchObject({ response_id: "response-revision-acme-2", current: true, state: "NOT_REQUIRED", automatic_score: { raw_score: 86 }, may_review: false, submission_recipient: { type: "EXTERNAL_AUDIENCE", label: "Vendor security lead" } });
     const priorAssessment = await staticDemoRequest<{ response_id: string; current: boolean; automatic_score: { raw_score: number } }>("/api/v1/forms/responses/response-revision-acme-1/assessment");
     expect(priorAssessment).toMatchObject({ response_id: "response-revision-acme-1", current: false, automatic_score: { raw_score: 72 } });
     await expect(staticDemoRequest("/api/v1/forms/responses/unknown/assessment")).rejects.toMatchObject({ status: 404, code: "response_not_found" });

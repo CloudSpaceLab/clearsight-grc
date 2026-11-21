@@ -1,0 +1,23 @@
+{
+  "fixture": "synthetic, not backend authorization",
+  "results": [
+    {
+      "width": 1440,
+      "focused": "v-authoring-question-0",
+      "overflow": false,
+      "disabled": true
+    },
+    {
+      "width": 768,
+      "focused": "v-authoring-question-0",
+      "overflow": false,
+      "disabled": true
+    },
+    {
+      "width": 390,
+      "focused": "v-authoring-question-0",
+      "overflow": false,
+      "disabled": true
+    }
+  ]
+}

@@ -80,6 +80,36 @@ func TestPostgresRelationshipTransactionReuseAndScope(t *testing.T) {
 	if len(page.Items) != 1 || page.Items[0].Relationship.LegalEntityID != thirdPartyEntityA {
 		t.Fatalf("legal entity scope was not applied before limit: %#v", page)
 	}
+	actorUUID := Actor{TenantID: thirdPartyTenantID, LegalEntityID: thirdPartyEntityA, PrincipalID: thirdPartyPrincipal}
+	uuidPage, err := service.ListRelationships(ctx, actorUUID, ListInput{Limit: 10})
+	if err != nil || len(uuidPage.Items) != 2 {
+		t.Fatalf("UUID-scoped vendor list: %#v %v", uuidPage, err)
+	}
+	for _, item := range uuidPage.Items {
+		if item.Vendor.TenantID != thirdPartyTenantID || item.Relationship.TenantID != thirdPartyTenantID || item.Relationship.LegalEntityID != thirdPartyEntityA {
+			t.Fatalf("UUID-scoped vendor returned wrong scope: %#v", item)
+		}
+	}
+	uuidDetail, err := service.GetRelationship(ctx, actorUUID, first.Relationship.ID)
+	if err != nil || uuidDetail.Vendor.TenantID != thirdPartyTenantID || uuidDetail.Relationship.TenantID != thirdPartyTenantID {
+		t.Fatalf("UUID-scoped vendor detail: %#v %v", uuidDetail, err)
+	}
+	repository := NewPostgresRepository(pool)
+	candidates, err := repository.ListActivationCandidates(ctx, Scope{TenantID: thirdPartyTenantID, LegalEntityID: thirdPartyEntityA}, "", 10)
+	if err != nil || len(candidates.Items) != 2 || candidates.Items[0].TenantID != thirdPartyTenantID {
+		t.Fatalf("UUID-scoped activation candidates: %#v %v", candidates, err)
+	}
+	activationRelationship, _, err := repository.ReadActivationFacts(ctx, Scope{TenantID: thirdPartyTenantID, LegalEntityID: thirdPartyEntityA}, first.Relationship.ID, ActivationPolicy{})
+	if err != nil || activationRelationship.TenantID != thirdPartyTenantID {
+		t.Fatalf("UUID-scoped activation facts: %#v %v", activationRelationship, err)
+	}
+	if _, err := service.GetRelationship(ctx, Actor{TenantID: thirdPartyTenantID, LegalEntityID: thirdPartyEntityB, PrincipalID: thirdPartyPrincipal}, first.Relationship.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("UUID-scoped cross-entity read returned %v", err)
+	}
+	uuidUpdated, err := service.UpdateRelationship(ctx, actorUUID, first.Relationship.ID, UpdateRelationshipInput{ExpectedVersion: first.Relationship.Version, ServiceName: "Updated processing", Criticality: CriticalityImportant, PrivacyRole: PrivacyProcessor})
+	if err != nil || uuidUpdated.Vendor.TenantID != thirdPartyTenantID || uuidUpdated.Relationship.TenantID != thirdPartyTenantID {
+		t.Fatalf("UUID-scoped vendor update: %#v %v", uuidUpdated, err)
+	}
 	if _, err := service.GetRelationship(ctx, actorB, first.Relationship.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("cross-entity read returned %v", err)
 	}

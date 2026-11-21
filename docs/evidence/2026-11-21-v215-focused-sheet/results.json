@@ -1,0 +1,20 @@
+{
+  "fixture": "synthetic, not backend authorization",
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "modalChecks": false
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "modalChecks": false
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "modalChecks": true
+    }
+  ]
+}

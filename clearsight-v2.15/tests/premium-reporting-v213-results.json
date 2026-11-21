@@ -1,0 +1,42 @@
+{
+  "suite": "V2.13 premium reporting presentation",
+  "runtime": "Actual application sources and controlled DOM disclosure nodes",
+  "browserLayoutValidated": false,
+  "pdfPaginationValidated": false,
+  "results": [
+    {
+      "name": "Adapter loading does not render, mutate application state or replace source read models",
+      "status": "PASS"
+    },
+    {
+      "name": "Dashboard and all report perspectives retain exact prior content, values, controls and routes",
+      "status": "PASS"
+    },
+    {
+      "name": "Detail routes retain their prior scope, currency, date and source checks",
+      "status": "PASS"
+    },
+    {
+      "name": "Captured pack and read-only builder presentation leave the frozen renderer and snapshot unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "No-access and invalid-filter reporting states retain the original blocker and disabled controls",
+      "status": "PASS"
+    },
+    {
+      "name": "Printing opens only reporting analysis and restores every prior disclosure state",
+      "status": "PASS"
+    },
+    {
+      "name": "Repeated print-entry events do not overwrite original disclosure state or captured output",
+      "status": "PASS"
+    },
+    {
+      "name": "Native print listeners are installed without triggering print or opening disclosures on load",
+      "status": "PASS"
+    }
+  ],
+  "passed": 8,
+  "failed": 0
+}

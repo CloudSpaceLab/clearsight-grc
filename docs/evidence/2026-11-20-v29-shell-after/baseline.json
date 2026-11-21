@@ -1,0 +1,64 @@
+{
+  "records": [
+    {
+      "name": "reference",
+      "width": 1440,
+      "title": "Overview",
+      "overflow": false
+    },
+    {
+      "name": "runtime",
+      "width": 1440,
+      "title": "Enterprise Control Tower",
+      "overflow": false
+    },
+    {
+      "name": "reference",
+      "width": 1280,
+      "title": "Overview",
+      "overflow": false
+    },
+    {
+      "name": "runtime",
+      "width": 1280,
+      "title": "Enterprise Control Tower",
+      "overflow": false
+    },
+    {
+      "name": "reference",
+      "width": 1024,
+      "title": "Overview",
+      "overflow": false
+    },
+    {
+      "name": "runtime",
+      "width": 1024,
+      "title": "Enterprise Control Tower",
+      "overflow": false
+    },
+    {
+      "name": "reference",
+      "width": 768,
+      "title": "Overview",
+      "overflow": false
+    },
+    {
+      "name": "runtime",
+      "width": 768,
+      "title": "Enterprise Control Tower",
+      "overflow": false
+    },
+    {
+      "name": "reference",
+      "width": 390,
+      "title": "Overview",
+      "overflow": false
+    },
+    {
+      "name": "runtime",
+      "width": 390,
+      "title": "Enterprise Control Tower",
+      "overflow": false
+    }
+  ]
+}

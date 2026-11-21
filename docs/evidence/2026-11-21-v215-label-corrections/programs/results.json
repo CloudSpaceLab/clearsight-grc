@@ -1,0 +1,26 @@
+{
+  "fixture": "SYNTHETIC_NOT_BACKEND_AUTHORIZATION",
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "stale": "Out of date",
+      "incomplete": "Unknown",
+      "current": "Up to date"
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "stale": "Out of date",
+      "incomplete": "Unknown",
+      "current": "Up to date"
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "stale": "Out of date",
+      "incomplete": "Unknown",
+      "current": "Up to date"
+    }
+  ]
+}

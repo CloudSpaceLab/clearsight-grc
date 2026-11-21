@@ -1,0 +1,6 @@
+{
+  "evidence": "SYNTHETIC_BROWSER_TRANSPORT_NOT_BACKEND_AUTHORIZATION",
+  "parallelCreates": 1,
+  "recoveryCreates": 1,
+  "recoveryCalls": 2
+}

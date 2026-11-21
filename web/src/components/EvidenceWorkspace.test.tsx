@@ -151,10 +151,20 @@ describe("EvidenceWorkspace response authority", () => {
     expect(screen.getByText("Yes")).toBeTruthy();
     expect(screen.getByText("ENC-2026-09")).toBeTruthy();
     expect(screen.getByText("Internal response")).toBeTruthy();
+    expect(screen.getByText("recipient-1")).toBeTruthy();
+    expect(screen.getByText("Submitted by")).toBeTruthy();
     expect(screen.getByText("3 of 3")).toBeTruthy();
     expect(screen.getByText("Read only")).toBeTruthy();
     expect(screen.getByText("Confirmed")).toBeTruthy();
     expect(loadEvidenceReviewSubmission).toHaveBeenCalledWith(submitted.id);
+  });
+
+  it("identifies a submission with no recorded person as unknown", async () => {
+    const submitted = request({ status: "SUBMITTED", known_facts: { reviewer: "reviewer-1" } });
+    vi.mocked(loadEvidenceReviewSubmission).mockResolvedValue({ id: "submission-1", request_id: submitted.id, channel: "EXTERNAL", answers: {}, submitted_at: "2026-08-29T12:00:00Z" });
+    renderWorkspace(submitted, "reviewer-1");
+    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
+    expect(await screen.findByText("Submitter not recorded")).toBeTruthy();
   });
 
   it("does not offer submitted-response review to an unassigned reviewer", () => {

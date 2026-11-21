@@ -1,0 +1,36 @@
+{
+  "suite": "Document navigation and comparison V2.15",
+  "browserLayoutValidated": false,
+  "passed": 7,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Folder and archive selections persist before render and retain route history metadata",
+      "status": "PASS"
+    },
+    {
+      "name": "Repeated format, state and sort changes survive route restoration; clean destinations reset omitted filters",
+      "status": "PASS"
+    },
+    {
+      "name": "Document titles pin the same exact version and filtered return destination as Preview",
+      "status": "PASS"
+    },
+    {
+      "name": "Comparison finds later lines and long-line changes while bounding rendered excerpts",
+      "status": "PASS"
+    },
+    {
+      "name": "Exact-version comparison displays late changes safely without mutating source records",
+      "status": "PASS"
+    },
+    {
+      "name": "Matching bounded previews explicitly disclose that later original text was not compared",
+      "status": "PASS"
+    },
+    {
+      "name": "Comparison refuses a selected version changed during asynchronous text extraction",
+      "status": "PASS"
+    }
+  ]
+}

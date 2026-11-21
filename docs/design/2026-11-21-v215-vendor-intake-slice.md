@@ -1,0 +1,19 @@
+# Vendor intake: matching relationships and corrections
+
+The existing intake creates a proposed relationship from a legal name and service details. Before creation, a user needs to check whether a relationship already exists and correct details on the review step. The reference is `clearsight-v2.15/vendor-intake.html` (SHA-256 `a2f177737f663accf820631bba30fe03e3692101e40be60fe7eb91fd2a8c3329`) and `clearsight-v2.15/docs/VENDOR_ONBOARDING_V210.md`. This is a partial interaction slice, not a full onboarding cutover.
+
+The legal-name step searches at most 20 relationships through the existing scoped vendor API and presents matching relationship links. It rejects malformed or out-of-scope results, discards stale results after a name or scope change, and asks for a more specific name when more results exist. Search is advisory: it does not establish uniqueness, select an existing vendor for reuse, or create an engagement. The review step offers direct edits while retaining entered values. Creation continues to use the existing verified actor route and uncertain-outcome recovery.
+
+The previous render baseline is `docs/evidence/2026-11-21-v210-vendor-intake/`. The sample after-state captures and check results are in `docs/evidence/2026-11-21-v215-vendor-intake/`, covering widths 1440, 1280, 1024, 768 and 390, step focus, search link, retained fields and horizontal overflow. They use sample data and do not establish backend authorization or production acceptance. Dark-mode evidence and the full v2.15 four-step onboarding remain outstanding.
+
+The reference includes named external respondents, independent intake review, document requests and approved diligence plans. These remain outstanding; the present creation endpoint cannot persist these facts, and relationship reuse and idempotent create remain unavailable pending transactional authority synchronization. No values are invented to simulate them.
+
+## Uncertain creation recovery
+
+An unconfirmed create retains the submitted legal name, service, criticality and privacy role in the current actor and entity scope. Those details remain visible while the filtered vendor list is checked; a new intake is withheld until the person dismisses them. The details are browser-session state and do not prove the command failed or survived reload. Matching relationship links open in a separate tab so examining a relationship does not discard the intake values. A new tab still performs the normal authenticated, scoped read.
+
+The retained sample checks in `docs/evidence/2026-11-21-v215-vendor-recovery/` cover 1440, 1280, 1024, 768 and 390 pixels, including the separate relationship link and an intentionally unconfirmed sample create. No production command was issued. These checks do not establish backend authorization, durable recovery or full onboarding acceptance. The previous `docs/evidence/2026-11-21-v215-vendor-intake/` captures remain the before-state baseline.
+
+## Scoped vendor reads
+
+Changing the verified tenant, legal entity or actor remounts the workspace and discards earlier list, detail, search and creation state. Vendor reads reject a response when the relationship and vendor do not agree with the verified tenant and legal entity. These checks do not replace server-side authorization. PostgreSQL list, detail, update and activation reads now return the same tenant identifier representation used for their already-scoped query, whether UUID or slug; this is an actor-scope representation, not a claim that every response always uses a canonical UUID. The database query still enforces tenant and entity before pagination. PostgreSQL integration tests for both forms of identifier were added but have not been run without a test database. Keyed-create receipt replay remains gated and still needs equivalent scope-representation checks before exposure.

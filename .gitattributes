@@ -1,2 +1,4 @@
-# The verifier fixture's checksum is defined over the repository's LF bytes.
-internal/frameworkcatalog/testdata/synthetic_source.txt text eol=lf
+# Hash-pinned design and catalog sources retain their original bytes.
+docs/design/references/clearsight-2026-10/source/** -text
+clearsight-v2.15/** -text
+internal/frameworkcatalog/testdata/synthetic_source.txt -text

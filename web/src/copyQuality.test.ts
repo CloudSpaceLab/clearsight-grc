@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 const interfaceSources = import.meta.glob(
-  ["./*.ts", "./*.tsx", "./components/**/*.ts", "./components/**/*.tsx", "!./**/*.test.ts", "!./**/*.test.tsx", "!./**/*.d.ts"],
+  ["./*.ts", "./*.tsx", "./v210/**/*.ts", "./v210/**/*.tsx", "!./**/*.test.ts", "!./**/*.test.tsx", "!./**/*.d.ts"],
   { eager: true, query: "?raw", import: "default" },
 ) as Record<string, string>;
 
 const productCommentary = [
+  /\b(?:your|the) inbox brings together\b/i,
+  /\b(?:new )?assignments and mentions will appear here\b/i,
+  /\bnotifications loaded below\b/i,
+  /\beach (?:event|record|row) shows\b/i,
   /\b(?:latest stored|reusable now)\b/i,
   /evidence quality is assessed separately/i,
+  /You cannot review this response\.(?! Reload to check access\.)/i,
   /a response is recorded first/i,
   /this form editor is not connected to a governed save command/i,
   /checks whether calculated program status has caught up/i,

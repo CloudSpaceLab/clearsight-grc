@@ -1,0 +1,893 @@
+{
+  "release": "2.14",
+  "date": "2026-11-21",
+  "registeredRoutes": 79,
+  "htmlEntryPoints": 80,
+  "coverage": "Assigned source presentation layers; not rendered browser acceptance",
+  "sharedSurfaces": [
+    "Shell and organizational scope",
+    "Display preferences",
+    "Search",
+    "Mobile navigation",
+    "Dialogs and validation",
+    "Empty states",
+    "Contextual Copilot"
+  ],
+  "routes": [
+    {
+      "route": "access-review",
+      "entryPoints": [
+        "access-review"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "activity",
+      "entryPoints": [
+        "processing-activity"
+      ],
+      "adapters": [
+        "premium-privacy"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "activity-version",
+      "entryPoints": [
+        "processing-version"
+      ],
+      "adapters": [
+        "premium-privacy"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "activity-wizard",
+      "entryPoints": [
+        "processing-registration"
+      ],
+      "adapters": [
+        "premium-privacy"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "adopt",
+      "entryPoints": [
+        "framework-adoption"
+      ],
+      "adapters": [
+        "premium-programs"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "approval",
+      "entryPoints": [
+        "approval-review"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "approval-request",
+      "entryPoints": [
+        "approval-request"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "approvals",
+      "entryPoints": [
+        "approval-inbox"
+      ],
+      "adapters": [
+        "premium-utilities"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "assessment",
+      "entryPoints": [
+        "assessment-workspace"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "assessment-history",
+      "entryPoints": [
+        "assessment-history"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "assessment-insights",
+      "entryPoints": [
+        "assessment-insights"
+      ],
+      "adapters": [
+        "premium-reporting"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "assessment-review",
+      "entryPoints": [
+        "assessment-response-review"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "case-intake",
+      "entryPoints": [
+        "privacy-case-intake"
+      ],
+      "adapters": [
+        "premium-privacy"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "check-runs",
+      "entryPoints": [
+        "check-runs"
+      ],
+      "adapters": [
+        "premium-programs"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "control",
+      "entryPoints": [
+        "control-workspace"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "control-editor",
+      "entryPoints": [
+        "control-editor"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "control-test",
+      "entryPoints": [
+        "control-test"
+      ],
+      "adapters": [
+        "premium-forms",
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "controls",
+      "entryPoints": [
+        "controls"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "data-health",
+      "entryPoints": [
+        "data-checks"
+      ],
+      "adapters": [
+        "premium-privacy"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "document",
+      "entryPoints": [
+        "document-workspace"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "document-upload",
+      "entryPoints": [
+        "document-upload"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "documents",
+      "entryPoints": [
+        "documents"
+      ],
+      "adapters": [
+        "premium-utilities"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "dpia",
+      "entryPoints": [
+        "privacy-impact-assessment"
+      ],
+      "adapters": [
+        "premium-privacy"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "dpia-wizard",
+      "entryPoints": [
+        "privacy-impact-wizard"
+      ],
+      "adapters": [
+        "premium-privacy"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "escalation-matrix",
+      "entryPoints": [
+        "escalation-matrix"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "escalation-policy",
+      "entryPoints": [
+        "escalation-policy"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "evidence",
+      "entryPoints": [
+        "evidence"
+      ],
+      "adapters": [
+        "premium-utilities"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "evidence-review",
+      "entryPoints": [
+        "evidence-review"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "external-assessment-request",
+      "entryPoints": [
+        "external-assessment-request"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "external-assessments",
+      "entryPoints": [
+        "external-assessments"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "form-builder",
+      "entryPoints": [
+        "form-builder"
+      ],
+      "adapters": [
+        "premium-forms",
+        "premium-programs"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "form-response",
+      "entryPoints": [
+        "form-response"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "forms",
+      "entryPoints": [
+        "forms"
+      ],
+      "adapters": [
+        "premium-programs"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "frameworks",
+      "entryPoints": [
+        "framework-library"
+      ],
+      "adapters": [
+        "premium-programs"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "home",
+      "entryPoints": [
+        "dashboard"
+      ],
+      "adapters": [
+        "premium-reporting"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "inbox",
+      "entryPoints": [
+        "inbox"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "indicator",
+      "entryPoints": [
+        "indicator-workspace"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "indicators",
+      "entryPoints": [
+        "key-indicators"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "insight-detail",
+      "entryPoints": [
+        "insight-detail"
+      ],
+      "adapters": [
+        "premium-reporting"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "integrations",
+      "entryPoints": [
+        "integrations"
+      ],
+      "adapters": [
+        "premium-privacy"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "kri-cycle",
+      "entryPoints": [
+        "kri-cycle-setup"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "kri-library",
+      "entryPoints": [
+        "kri-question-library"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "kri-return",
+      "entryPoints": [
+        "branch-kri-return"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "kri-returns",
+      "entryPoints": [
+        "branch-kri-returns"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "loss",
+      "entryPoints": [
+        "loss-workspace"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "loss-import",
+      "entryPoints": [
+        "loss-import"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "loss-insights",
+      "entryPoints": [
+        "loss-insights"
+      ],
+      "adapters": [
+        "premium-reporting"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "loss-intake",
+      "entryPoints": [
+        "loss-intake"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "losses",
+      "entryPoints": [
+        "losses"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "my-access",
+      "entryPoints": [
+        "my-access"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "my-workspace",
+      "entryPoints": [
+        "index",
+        "my-workspace"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "notification",
+      "entryPoints": [
+        "notification-detail"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "notification-preferences",
+      "entryPoints": [
+        "notification-preferences"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "privacy",
+      "entryPoints": [
+        "privacy"
+      ],
+      "adapters": [
+        "premium-privacy"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "privacy-case",
+      "entryPoints": [
+        "privacy-case"
+      ],
+      "adapters": [
+        "premium-privacy"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "program",
+      "entryPoints": [
+        "program-workspace"
+      ],
+      "adapters": [
+        "premium-forms",
+        "premium-programs"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "programs",
+      "entryPoints": [
+        "programs"
+      ],
+      "adapters": [
+        "premium-programs"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "rcsa",
+      "entryPoints": [
+        "rcsa"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "rcsa-review",
+      "entryPoints": [
+        "rcsa-review"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "report-builder",
+      "entryPoints": [
+        "report-builder"
+      ],
+      "adapters": [
+        "premium-reporting"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "report-pack",
+      "entryPoints": [
+        "report-pack"
+      ],
+      "adapters": [
+        "premium-reporting"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "reports",
+      "entryPoints": [
+        "reports"
+      ],
+      "adapters": [
+        "premium-reporting"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "requirement-review",
+      "entryPoints": [
+        "requirement-review"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "risk",
+      "entryPoints": [
+        "risk-workspace"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "risk-edit",
+      "entryPoints": [
+        "risk-editor"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "risks",
+      "entryPoints": [
+        "risks"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "role-change-review",
+      "entryPoints": [
+        "role-change-review"
+      ],
+      "adapters": [
+        "premium-workspaces",
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "role-detail",
+      "entryPoints": [
+        "role-detail"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "roles",
+      "entryPoints": [
+        "roles-permissions"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "settings",
+      "entryPoints": [
+        "settings"
+      ],
+      "adapters": [
+        "premium-utilities"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "setup",
+      "entryPoints": [
+        "guided-setup"
+      ],
+      "adapters": [
+        "premium-forms",
+        "premium-programs"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "vendor",
+      "entryPoints": [
+        "vendor-engagement"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "vendor-intake",
+      "entryPoints": [
+        "vendor-intake"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "vendor-onboarding",
+      "entryPoints": [
+        "vendor-onboarding"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "vendor-requests",
+      "entryPoints": [
+        "vendor-requests"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "vendor-review",
+      "entryPoints": [
+        "vendor-review"
+      ],
+      "adapters": [
+        "premium-forms"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "vendors",
+      "entryPoints": [
+        "vendors"
+      ],
+      "adapters": [
+        "premium-risk"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "work",
+      "entryPoints": [
+        "work-approvals"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    },
+    {
+      "route": "work-item",
+      "entryPoints": [
+        "work-item"
+      ],
+      "adapters": [
+        "premium-workspaces"
+      ],
+      "foundation": "premium-foundation",
+      "browserAcceptance": "Pending"
+    }
+  ]
+}

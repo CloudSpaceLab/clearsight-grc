@@ -14,7 +14,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type PostgresRepository struct{ pool *pgxpool.Pool }
+type PostgresRepository struct {
+	pool                  *pgxpool.Pool
+	formBindingTransition FormBindingTransitionHook
+}
+
+type FormBindingTransitionHook interface {
+	ApplyFormBindingTransition(context.Context, pgx.Tx, FormTemplate, FormTemplate, LifecycleTransition) error
+}
+
+func (r *PostgresRepository) ConfigureFormBindingTransition(hook FormBindingTransitionHook) {
+	r.formBindingTransition = hook
+}
 
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
@@ -99,7 +110,37 @@ type queryRower interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
 
+// Lock the latest existing revision before inserting a successor. Draft
+// configuration uses the same row lock, so a form revision cannot overtake it.
+func lockFormRevisionLineage(ctx context.Context, db queryRower, value FormTemplate) error {
+	if value.Version <= 1 {
+		return nil
+	}
+	var locked int64
+	err := db.QueryRow(ctx, `SELECT f.version FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND f.legal_entity_id=$2::uuid AND f.id=$3::uuid ORDER BY f.version DESC LIMIT 1 FOR UPDATE OF f`, value.TenantID, value.LegalEntityID, value.ID).Scan(&locked)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrConflict
+	}
+	if err != nil {
+		return mapPostgresError(err)
+	}
+	// A waiter may have selected the predecessor before another transaction
+	// committed its successor. Re-read after acquiring the lock.
+	var latest int64
+	err = db.QueryRow(ctx, `SELECT COALESCE(MAX(f.version),0) FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND f.legal_entity_id=$2::uuid AND f.id=$3::uuid`, value.TenantID, value.LegalEntityID, value.ID).Scan(&latest)
+	if err != nil {
+		return mapPostgresError(err)
+	}
+	if locked != value.Version-1 || latest != value.Version-1 {
+		return ErrConflict
+	}
+	return nil
+}
+
 func insertFormRevision(ctx context.Context, db queryRower, value FormTemplate) (FormTemplate, error) {
+	if err := lockFormRevisionLineage(ctx, db, value); err != nil {
+		return FormTemplate{}, err
+	}
 	applyFormMetadataDefaults(&value)
 	presentation, err := json.Marshal(value.Presentation)
 	if err != nil {
@@ -135,6 +176,9 @@ func insertFormRevision(ctx context.Context, db queryRower, value FormTemplate) 
 }
 
 func (r *PostgresRepository) TransitionForm(ctx context.Context, input LifecycleTransition) (FormTemplate, error) {
+	if input.BindingImpact != nil && r.formBindingTransition == nil {
+		return FormTemplate{}, ErrBindingTransitionUnavailable
+	}
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return FormTemplate{}, mapPostgresError(err)
@@ -164,6 +208,11 @@ func (r *PostgresRepository) TransitionForm(ctx context.Context, input Lifecycle
 	created, err := insertFormRevision(ctx, tx, next)
 	if err != nil {
 		return FormTemplate{}, err
+	}
+	if r.formBindingTransition != nil {
+		if err := r.formBindingTransition.ApplyFormBindingTransition(ctx, tx, current, created, input); err != nil {
+			return FormTemplate{}, err
+		}
 	}
 	event, err := newMonitoringEvent(created.TenantID, AggregateMonitoringForm, created.ID, created.Version, EventMonitoringFormStateChanged, created, input.ActorID, input.At)
 	if err != nil {

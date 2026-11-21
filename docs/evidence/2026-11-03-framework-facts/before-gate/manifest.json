@@ -1,0 +1,6 @@
+{
+  "generatedAt": "2026-11-03T16:32:34.156Z",
+  "baseURL": "http://127.0.0.1:4178",
+  "failure": "200-framework-library-light-1440x900: edition fact values must align under their labels: [{\"labelX\":1093,\"valueX\":1093,\"align\":\"right\"},{\"labelX\":1248,\"valueX\":1248,\"align\":\"right\"},{\"labelX\":1093,\"valueX\":1093,\"align\":\"right\"},{\"labelX\":1248,\"valueX\":1248,\"align\":\"right\"},{\"labelX\":1093,\"valueX\":1093,\"align\":\"right\"},{\"labelX\":1248,\"valueX\":1248,\"align\":\"right\"},{\"labelX\":1093,\"valueX\":1093,\"align\":\"right\"}]",
+  "captures": []
+}

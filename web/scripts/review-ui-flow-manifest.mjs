@@ -479,30 +479,42 @@ if (manifest) {
   // Reuse the existing Reports viewport matrix for the shared source menu.
   // Dedicated captures add only the compact disclosure and denied Settings.
   const navigationFailuresBefore = failures.length;
-  const navigationLabels = ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Work & Approvals", "Reports"];
-  const navigationHrefs = ["#oversight", "#programs/library", "#programs", "#forms", "#vendors", "#risks", "#ropa", "#work", "#reports"];
+  const navigationLabels = ["Inbox", "Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Documents", "Work & Approvals", "Reports & Insights"];
+  const navigationHrefs = ["#notifications", "#oversight", "#programs/library", "#programs", "#forms", "#vendors", "#risks", "#ropa", "#documents", "#work", "#reports"];
   const navigationCaptures = [...loadedReportVariants, ...manifest.captures.filter((capture) =>
     capture.fixture === "no-config-access" || capture.state?.startsWith("navigation-menu-"))];
   if (navigationCaptures.length !== 14) failures.push("source menu adaptation requires ten viewport states plus four compact-menu and permission states");
   for (const capture of navigationCaptures) {
     const navigation = capture.navigation;
     const compact = capture.viewport?.width <= 1024;
+    const phone = capture.viewport?.width <= 560;
     const denied = capture.fixture === "no-config-access";
-    const railWidth = capture.viewport?.width <= 560 ? 56 : compact ? 72 : 228;
-    if (!navigation || navigation.labels?.join("|") !== navigationLabels.join("|") || navigation.hrefs?.join("|") !== navigationHrefs.join("|")
-        || navigation.activePage?.join("|") !== (denied ? "Home" : "Reports")
+    const railWidth = compact ? 72 : 228;
+    const commonFailure = !navigation || navigation.labels?.join("|") !== navigationLabels.join("|") || navigation.hrefs?.join("|") !== navigationHrefs.join("|")
+        || navigation.activePage?.join("|") !== (denied ? "Home" : "Reports & Insights") || navigation.settingsPresent !== !denied
+        || navigation.duplicateMobileNavigation !== false || navigation.legacyPortfolioNavigation !== false;
+    const phoneDrawer = navigation?.phoneDrawer;
+    const phoneFailure = phone && (navigation?.mode !== "drawer" || navigation?.phoneRailHidden !== true || navigation?.compactMenuAvailable !== true
+        || !phoneDrawer || phoneDrawer.labels?.join("|") !== navigationLabels.join("|")
+        || phoneDrawer.activePage?.join("|") !== (denied ? "Home" : "Reports & Insights") || phoneDrawer.settingsPresent !== !denied
+        || phoneDrawer.labelsVisible !== true || phoneDrawer.maxLabelLines !== 1 || phoneDrawer.targetsContained !== true
+        || phoneDrawer.bounded !== true || phoneDrawer.currentPageVisible !== true || !(phoneDrawer.minTargetWidth >= 44)
+        || !(phoneDrawer.minTargetHeight >= 44) || phoneDrawer.focusContained !== true || phoneDrawer.dismissalRestoredFocus !== true);
+    const railFailure = !phone && (
+           !navigation
         || !(Math.abs(navigation.railWidth - railWidth) <= 1) || navigation.railX !== 0
         || navigation.labelMode !== (compact ? "icons" : "expanded") || navigation.maxLabelLines !== (compact ? 0 : 1) || navigation.labelsContained !== true
         || !(navigation.minTargetWidth >= 44) || !(navigation.minTargetHeight >= 44) || navigation.targetsContained !== true || navigation.primaryReachable !== true
         || navigation.settingsPresent !== !denied || (!denied && (navigation.settingsFooter !== true || navigation.footerReachable !== true))
         || navigation.compactMenuAvailable !== compact || navigation.duplicateMobileNavigation !== false || navigation.legacyPortfolioNavigation !== false
-        || navigation.activeMarkerVisible !== true || !(navigation.activeMarkerWidth >= 3) || !(navigation.activeMarkerHeight >= 20)) {
+        || navigation.activeMarkerVisible !== true || !(navigation.activeMarkerWidth >= 3) || !(navigation.activeMarkerHeight >= 20));
+    if (commonFailure || phoneFailure || railFailure) {
       failures.push(`${capture.name}: primary navigation source, permission or measured geometry evidence is missing or inconsistent`);
     }
     if (capture.state?.startsWith("navigation-menu-") || (denied && compact)) {
       const drawer = navigation?.drawer;
       if (!drawer || drawer.labels?.join("|") !== navigationLabels.join("|")
-          || drawer.activePage?.join("|") !== (denied ? "Home" : "Reports") || drawer.settingsPresent !== !denied
+          || drawer.activePage?.join("|") !== (denied ? "Home" : "Reports & Insights") || drawer.settingsPresent !== !denied
           || (!denied && (drawer.riskChildren?.join("|") !== "Risks|RCSA|Key indicators|Loss events" || drawer.riskExpandedByKeyboard !== true))
           || drawer.labelsVisible !== true || drawer.maxLabelLines !== 1 || drawer.targetsContained !== true || drawer.bounded !== true
           || drawer.currentPageVisible !== true || !(drawer.currentPageBounds?.top >= drawer.currentPageBounds?.clipTop - 1)
@@ -519,7 +531,7 @@ if (manifest) {
   for (const width of [1440, 390]) {
     const capture = loadedReportVariants.find((item) => item.theme === "light" && item.viewport?.width === width);
     const keyboard = capture?.navigation?.keyboard;
-    if (!keyboard || keyboard.focusVisible !== true || keyboard.directDestination !== "Frameworks" || keyboard.browserBack !== "Reports"
+    if (!keyboard || keyboard.focusVisible !== true || keyboard.directDestination !== "Frameworks" || keyboard.browserBack !== "Reports & Insights"
         || keyboard.riskDestination !== "Loss events" || keyboard.primaryCurrent !== "Risk & Losses" || keyboard.childCurrent !== "location"
         || keyboard.compactDrawer !== (width <= 1024) || keyboard.baselineRestored !== true) {
       failures.push(`primary navigation ${width}px is missing keyboard, history or risk-family selection evidence`);
@@ -528,8 +540,8 @@ if (manifest) {
       const recovery = keyboard?.resizeRecovery;
       if (!recovery || recovery.viewport?.width !== 320 || recovery.viewport?.height !== 568
           || recovery.primaryKeyboardReachable !== true || recovery.expandedRiskKeyboardReachable !== true || recovery.footerReachable !== true
-          || !(Math.abs(recovery.railWidth - 56) <= 1) || !(recovery.horizontalOverflow <= 1) || recovery.primaryScrolls !== true
-          || !(Math.abs(recovery.desktopRecovery?.railWidth - 228) <= 1) || recovery.desktopRecovery?.activeFocus !== "Reports"
+          || recovery.railWidth !== 0 || !(recovery.horizontalOverflow <= 1) || recovery.primaryScrolls !== true
+          || !(Math.abs(recovery.desktopRecovery?.railWidth - 228) <= 1) || recovery.desktopRecovery?.activeFocus !== "Reports & Insights"
           || recovery.desktopRecovery?.openerHidden !== true || recovery.compactRecovery !== true) {
         failures.push("primary navigation is missing short-height scrolling or open-sheet resize recovery evidence");
       }

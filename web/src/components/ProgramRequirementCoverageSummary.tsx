@@ -33,7 +33,6 @@ export function ProgramRequirementCoverageSummary({
       <div>
         <span className="eyebrow">Obligations</span>
         <h2 id="program-overview-coverage-heading">Requirement coverage</h2>
-        <p>Current approved calculation and assessment coverage</p>
       </div>
       <button type="button" className="text-button" onClick={() => onNavigate("requirements-controls")}>View requirements</button>
     </header>
@@ -58,7 +57,6 @@ export function ProgramRequirementCoverageSummary({
       <p>{snapshot?.program_version && snapshot.program_version !== aggregate.program.version
         ? "The previous calculation does not match this Program revision."
         : "A current approved calculation is required before coverage can be shown."}</p>
-      <p>Requirements remain available for review without an inferred compliance result.</p>
     </div>}
     <section className="program-overview-coverage__areas" aria-labelledby="program-overview-areas-heading">
       <h3 id="program-overview-areas-heading">By control area</h3>

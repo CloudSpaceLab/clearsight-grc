@@ -62,6 +62,17 @@ func TestResponseAssessmentImmutableConflictAndAuthority(t *testing.T) {
 	}
 }
 
+func TestResponseAssessmentRetainsRecordedSubmitter(t *testing.T) {
+	s, store, ctx := assessmentFixture(t)
+	sub := store.repo.submissions["submission"]
+	sub.SubmittedBy = "respondent-1"
+	store.repo.submissions["submission"] = sub
+	value, err := s.GetResponseAssessment(ctx, "tenant", "entity", "reviewer", "response")
+	if err != nil || value.SubmittedBy != "respondent-1" {
+		t.Fatalf("submitter=%q err=%v", value.SubmittedBy, err)
+	}
+}
+
 func TestResponseAssessmentRejectsScopeSupersessionAndInvalidDecision(t *testing.T) {
 	s, store, ctx := assessmentFixture(t)
 	input := RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Missing scope."}}}
@@ -109,6 +120,71 @@ func TestResponseAssessmentRejectsRespondentReview(t *testing.T) {
 	_, err := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
 	if !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatalf("respondent self-review accepted %v", err)
+	}
+}
+
+func TestResponseAssessmentRejectsAssignedRespondentWhenLinkSubmitterUnknown(t *testing.T) {
+	s, store, ctx := assessmentFixture(t)
+	request := store.repo.requests["request"]
+	request.Recipient = Recipient{Type: RecipientInternalPrincipal, PrincipalID: "reviewer", State: RecipientStateAssigned}
+	store.repo.requests["request"] = request
+	sub := store.repo.submissions["submission"]
+	sub.SubmittedBy = ""
+	sub.Channel = "MAGIC_LINK"
+	store.repo.submissions["submission"] = sub
+	view, err := s.GetResponseAssessment(ctx, "tenant", "entity", "reviewer", "response")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.MayReview || view.Fields[0].MayReview {
+		t.Fatal("assigned respondent offered review controls")
+	}
+	_, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
+	if !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("assigned respondent allowed to review: %v", err)
+	}
+	if len(store.events) != 0 || len(store.assessmentDecisions) != 0 {
+		t.Fatal("forbidden review changed history")
+	}
+}
+
+func TestResponseAssessmentRejectsOriginalRecipientAfterReassignment(t *testing.T) {
+	s, store, ctx := assessmentFixture(t)
+	request := store.repo.requests["request"]
+	request.Recipient = Recipient{Type: RecipientInternalPrincipal, PrincipalID: "another-person", State: RecipientStateAssigned}
+	store.repo.requests["request"] = request
+	store.recipients["distribution"] = []memoryDistributionRecipient{{safe: DistributionRecipient{ID: "recipient-1", TenantID: "tenant", LegalEntityID: "entity", DistributionID: "distribution", RequestID: "request", Role: RecipientTo, Type: RecipientInternalPrincipal, PrincipalID: "reviewer"}}}
+	revision := store.responseRevisions["distribution"][0]
+	revision.SubmittedRecipientID = "recipient-1"
+	revision.SubmittedRecipientPrincipalID = "reviewer"
+	revision.SubmittedRecipientType = RecipientInternalPrincipal
+	revision.SubmittedRecipientLabel = "Ada Okafor"
+	store.responseRevisions["distribution"][0] = revision
+	view, err := s.GetResponseAssessment(ctx, "tenant", "entity", "reviewer", "response")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.MayReview || view.Fields[0].MayReview {
+		t.Fatal("original recipient offered review controls")
+	}
+	if view.SubmissionRecipient == nil || view.SubmissionRecipient.Label != "Ada Okafor" || view.SubmissionRecipient.PrincipalID != "reviewer" {
+		t.Fatalf("recorded recipient provenance unavailable: %+v", view.SubmissionRecipient)
+	}
+	_, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
+	if !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("original recipient allowed to review: %v", err)
+	}
+	// The captured principal remains the original recipient even if a later
+	// administrative correction changes the recipient record.
+	store.recipients["distribution"][0].safe.PrincipalID = "another-person"
+	store.recipients["distribution"][0].safe.ContactLabel = "Changed name"
+	updated, err := s.GetResponseAssessment(ctx, "tenant", "entity", "reviewer", "response")
+	if err != nil || updated.SubmissionRecipient == nil || updated.SubmissionRecipient.Label != "Ada Okafor" {
+		t.Fatalf("original recipient label changed: %+v %v", updated.SubmissionRecipient, err)
+	}
+	_, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
+	if !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("changed recipient record erased the conflict: %v", err)
 	}
 }
 

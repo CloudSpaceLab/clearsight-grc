@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/apiquestion"
 	"log/slog"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
@@ -95,6 +96,8 @@ type serviceSet struct {
 	ThirdPartyActivationRepo       thirdparty.ActivationRepository
 	ThirdPartyAssessmentSetup      *thirdparty.AssessmentProvisioner
 	SourceCatalog                  *sourceaccess.CatalogService
+	QuestionTestAudit              sourceaccess.QuestionTestAudit
+	QuestionDrafts                 apiquestion.GuardedStore
 	DocumentImports                *documentimport.Service
 	RegisterMigrations             registermigration.Repository
 	Coverage                       *documentcoverage.Service

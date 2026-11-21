@@ -13,6 +13,7 @@ import (
 )
 
 func (a *API) reviewDocumentProposalHandoff(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.documentImportService(w)
 	if !ok {
 		return
@@ -89,10 +90,11 @@ func (a *API) reviewDocumentProposalHandoff(w http.ResponseWriter, r *http.Reque
 		writeDocumentHandoffError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, a.withDocumentHandoffRoutes(r, actor, value))
+	httpx.WriteJSON(w, http.StatusOK, documentImportResponse(a.withDocumentHandoffRoutes(r, actor, value)))
 }
 
 func (a *API) authorizeDocumentProposalHandoff(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.documentImportService(w)
 	if !ok {
 		return
@@ -186,7 +188,7 @@ func (a *API) authorizeDocumentProposalHandoff(w http.ResponseWriter, r *http.Re
 		writeDocumentHandoffError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, a.withDocumentHandoffRoutes(r, actor, value))
+	httpx.WriteJSON(w, http.StatusOK, documentImportResponse(a.withDocumentHandoffRoutes(r, actor, value)))
 }
 
 func validateDocumentHandoffApproval(proposal *documentimport.Proposal, actorID, note string) error {

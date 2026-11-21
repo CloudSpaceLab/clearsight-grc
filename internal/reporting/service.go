@@ -115,6 +115,7 @@ type CreateRunInput struct {
 
 	DefinitionID              string              `json:"definition_id"`
 	ExpectedDefinitionVersion int                 `json:"expected_definition_version"`
+	IdempotencyKey            string              `json:"idempotency_key,omitempty"`
 	Parameters                ReportRunParameters `json:"parameters,omitempty"`
 	// RequestedByRef is accepted for wire compatibility but always overwritten
 	// from the verified actor.
@@ -231,9 +232,12 @@ func (s *Service) MatterBoardBriefAvailability(ctx context.Context, scope Report
 }
 
 func (s *Service) ListDefinitions(ctx context.Context, scope ReportScope, includeRetired bool) ([]ReportDefinition, error) {
-	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	actor, verifiedScope, err := s.scopedActor(ctx, scope)
 	if err != nil {
 		return nil, err
+	}
+	if !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
+		return nil, ErrPrivacyReadForbidden
 	}
 	if s.repo == nil {
 		return nil, ErrInvalid
@@ -242,9 +246,12 @@ func (s *Service) ListDefinitions(ctx context.Context, scope ReportScope, includ
 }
 
 func (s *Service) GetDefinition(ctx context.Context, scope ReportScope, id string) (ReportDefinition, error) {
-	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	actor, verifiedScope, err := s.scopedActor(ctx, scope)
 	if err != nil {
 		return ReportDefinition{}, err
+	}
+	if !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
+		return ReportDefinition{}, ErrPrivacyReadForbidden
 	}
 	if s.repo == nil || strings.TrimSpace(id) == "" {
 		return ReportDefinition{}, ErrInvalid
@@ -253,9 +260,12 @@ func (s *Service) GetDefinition(ctx context.Context, scope ReportScope, id strin
 }
 
 func (s *Service) GetDefinitionHistory(ctx context.Context, scope ReportScope, id string) ([]ReportDefinitionRevision, error) {
-	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	actor, verifiedScope, err := s.scopedActor(ctx, scope)
 	if err != nil {
 		return nil, err
+	}
+	if !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
+		return nil, ErrPrivacyReadForbidden
 	}
 	if s.repo == nil || strings.TrimSpace(id) == "" {
 		return nil, ErrInvalid
@@ -264,9 +274,12 @@ func (s *Service) GetDefinitionHistory(ctx context.Context, scope ReportScope, i
 }
 
 func (s *Service) ListRuns(ctx context.Context, scope ReportScope, definitionID string, limit int) ([]ReportRun, error) {
-	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	actor, verifiedScope, err := s.scopedActor(ctx, scope)
 	if err != nil {
 		return nil, err
+	}
+	if !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
+		return nil, ErrPrivacyReadForbidden
 	}
 	if s.repo == nil {
 		return nil, ErrInvalid
@@ -275,9 +288,12 @@ func (s *Service) ListRuns(ctx context.Context, scope ReportScope, definitionID 
 }
 
 func (s *Service) ListRunHistory(ctx context.Context, scope ReportScope, definitionID, cursor string, limit int) (RunHistoryPage, error) {
-	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	actor, verifiedScope, err := s.scopedActor(ctx, scope)
 	if err != nil {
 		return RunHistoryPage{}, err
+	}
+	if !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
+		return RunHistoryPage{}, ErrPrivacyReadForbidden
 	}
 	if s.repo == nil {
 		return RunHistoryPage{}, ErrInvalid
@@ -290,9 +306,12 @@ func (s *Service) ListRunHistory(ctx context.Context, scope ReportScope, definit
 }
 
 func (s *Service) GetRun(ctx context.Context, scope ReportScope, id string) (ReportRun, error) {
-	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	actor, verifiedScope, err := s.scopedActor(ctx, scope)
 	if err != nil {
 		return ReportRun{}, err
+	}
+	if !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
+		return ReportRun{}, ErrPrivacyReadForbidden
 	}
 	if s.repo == nil || strings.TrimSpace(id) == "" {
 		return ReportRun{}, ErrInvalid
@@ -449,12 +468,52 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 	if s.repo == nil || s.objects == nil || definitionID == "" || input.ExpectedDefinitionVersion <= 0 {
 		return ReportRun{}, ErrInvalid
 	}
+	parameters, err := NormalizeReportRunParameters(input.Parameters)
+	if err != nil {
+		return ReportRun{}, err
+	}
+	key := strings.ToLower(strings.TrimSpace(input.IdempotencyKey))
+	var receipts runReceiptRepository
+	var fingerprint string
+	if key != "" {
+		if !isUUID(key) {
+			return ReportRun{}, ErrInvalid
+		}
+		payload, err := json.Marshal(struct {
+			DefinitionID string              `json:"definition_id"`
+			Version      int                 `json:"version"`
+			Parameters   ReportRunParameters `json:"parameters"`
+		}{definitionID, input.ExpectedDefinitionVersion, parameters})
+		if err != nil {
+			return ReportRun{}, ErrInvalid
+		}
+		sum := sha256.Sum256(payload)
+		fingerprint = hex.EncodeToString(sum[:])
+		var ok bool
+		receipts, ok = s.repo.(runReceiptRepository)
+		if !ok {
+			return ReportRun{}, ErrInvalid
+		}
+		existing, err := receipts.FindRunReceipt(ctx, scope, actor.PrincipalID, key, fingerprint)
+		if err == nil {
+			if isPrivacyDataset(existing.Dataset) && !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
+				return ReportRun{}, ErrPrivacyReadForbidden
+			}
+			return existing, nil
+		}
+		if !errors.Is(err, ErrNotFound) {
+			return ReportRun{}, err
+		}
+	}
 	definition, err := s.repo.GetDefinition(ctx, scope, definitionID)
 	if err != nil {
 		return ReportRun{}, err
 	}
 	if definition.TenantID != scope.TenantID || definition.LegalEntityID != scope.LegalEntityID {
 		return ReportRun{}, ErrNotFound
+	}
+	if isPrivacyDataset(definition.Dataset) && !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
+		return ReportRun{}, ErrPrivacyReadForbidden
 	}
 	if input.ExpectedDefinitionVersion != definition.CurrentVersion || definition.StoredChecksum == "" || definition.StoredChecksum != definition.Checksum() {
 		return ReportRun{}, ErrConflict
@@ -468,10 +527,6 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 		return ReportRun{}, err
 	}
 	filter, err := normalizedStoredFilter(definition.Dataset, definition.Filter)
-	if err != nil {
-		return ReportRun{}, err
-	}
-	parameters, err := NormalizeReportRunParameters(input.Parameters)
 	if err != nil {
 		return ReportRun{}, err
 	}
@@ -495,6 +550,9 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 		RequestedByRef: actor.PrincipalID, AsOf: now, SourceBoundary: boundary,
 		Filter: filter, Parameters: parameters, Dataset: definition.Dataset, Format: definition.Format, Status: RunQueued,
 		CreatedAt: now, ExpiresAt: now.Add(ReportRunRetention),
+	}
+	if receipts != nil {
+		return receipts.CreateRunOnce(ctx, scope, run, key, fingerprint)
 	}
 	return s.repo.CreateRun(ctx, scope, run)
 }
@@ -723,6 +781,9 @@ func (s *Service) Open(ctx context.Context, scope ReportScope, runID string) (Re
 	if run.TenantID != verifiedScope.TenantID || run.LegalEntityID != verifiedScope.LegalEntityID {
 		return ReportRun{}, nil, ErrNotFound
 	}
+	if isPrivacyDataset(run.Dataset) && !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
+		return ReportRun{}, nil, ErrPrivacyReadForbidden
+	}
 	if !identity.HasPermission(actor, identity.PermissionReportDownload) &&
 		strings.TrimSpace(run.RequestedByRef) != actor.PrincipalID {
 		return ReportRun{}, nil, ErrReportDownloadForbidden
@@ -756,6 +817,10 @@ func (s *Service) Open(ctx context.Context, scope ReportScope, runID string) (Re
 		return ReportRun{}, nil, err
 	}
 	return run, io.NopCloser(bytes.NewReader(data)), nil
+}
+
+func isPrivacyDataset(dataset ReportDataset) bool {
+	return dataset == DatasetProcessingActivities || dataset == DatasetProcessingActivityExceptions
 }
 
 func (s *Service) completeRun(ctx context.Context, scope ReportScope, run ReportRun) (ReportRun, error) {

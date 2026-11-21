@@ -82,13 +82,20 @@ func (r *PostgresCatalogRepository) ConnectionRevision(ctx context.Context, tena
 	if version < 1 {
 		return ConnectionRevision{}, ErrCatalogInvalid
 	}
-	return scanConnectionRevision(r.pool.QueryRow(ctx, `
-		SELECT `+connectionRevisionColumns+`
+	query := `
+		SELECT ` + connectionRevisionColumns + `
 		  FROM source_connections sc
 		  JOIN tenants t ON t.id=sc.tenant_id
 		 WHERE (t.id::text=$1 OR t.slug=$1)
 		   AND sc.connection_id=$2::uuid
-		   AND sc.version=$3`, tenantID, connectionID, version))
+		   AND sc.version=$3`
+	if tx, ok := CatalogProofTransaction(ctx); ok {
+		if tx == nil {
+			return ConnectionRevision{}, ErrCatalogStorage
+		}
+		return scanConnectionRevision(tx.QueryRow(ctx, query+` FOR SHARE OF sc`, tenantID, connectionID, version))
+	}
+	return scanConnectionRevision(r.pool.QueryRow(ctx, query, tenantID, connectionID, version))
 }
 
 func (r *PostgresCatalogRepository) CurrentConnection(ctx context.Context, tenantID, connectionID string) (ConnectionRevision, error) {

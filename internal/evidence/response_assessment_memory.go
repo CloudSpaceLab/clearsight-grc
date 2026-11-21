@@ -41,6 +41,11 @@ func (s *MemoryDistributionStore) assessmentMaterialLocked(ctx context.Context, 
 				return assessmentMaterial{}, ErrNotFound
 			}
 			m := assessmentMaterial{Summary: completedResponseSummary(d, revision), Revision: cloneResponseRevision(revision), Request: request, Submission: submission}
+			_, err = s.submittedRecipient(d, revision, submission.RequestID)
+			if err != nil {
+				return assessmentMaterial{}, err
+			}
+			m.SubmittedRecipientPrincipalID = revision.SubmittedRecipientPrincipalID
 			if d.Status == DistributionRevoked || d.Status == DistributionSuperseded {
 				m.Revision.Current = false
 				m.Summary.Current = false
@@ -56,6 +61,20 @@ func (s *MemoryDistributionStore) assessmentMaterialLocked(ctx context.Context, 
 		}
 	}
 	return assessmentMaterial{}, ErrNotFound
+}
+
+// Caller holds the distribution lock. Legacy revisions have no recorded route.
+func (s *MemoryDistributionStore) submittedRecipient(d FormDistribution, revision ResponseRevision, requestID string) (DistributionRecipient, error) {
+	if revision.SubmittedRecipientID == "" {
+		return DistributionRecipient{}, nil
+	}
+	for _, entry := range s.recipients[d.ID] {
+		r := entry.safe
+		if r.ID == revision.SubmittedRecipientID && r.TenantID == d.TenantID && r.LegalEntityID == d.LegalEntityID && r.DistributionID == d.ID && r.RequestID == requestID && r.Role == RecipientTo {
+			return r, nil
+		}
+	}
+	return DistributionRecipient{}, ErrNotFound
 }
 func (s *MemoryDistributionStore) ReadResponseAssessment(ctx context.Context, tenant, entity, principal, response string, authorize assessmentReadAuthorizer) (assessmentMaterial, error) {
 	s.mu.RLock()

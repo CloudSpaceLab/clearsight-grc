@@ -1,5 +1,33 @@
 # ClearSight interface contract
 
+## 21 November 2026 UI reference update
+
+The user selected `clearsight-v2.15/` as the design and interaction reference for the continuing clean UI rewrite. This supersedes the earlier v2.10 and v2.9 layout references where they differ. Subsequent user instructions remain authoritative, including meaningful percentages with verified denominators, clear risk urgency colors, concise business copy, a previewable Documents workspace, named independent response review, and live API questions with test mode and an adoption-specific manual option. Use the existing backend and verified actor, scope and authority. The reference's synthetic records and browser-local state do not establish production data or authorization. The rewrite and production cutover remain incomplete pending the applicable visual, workflow, backend and operational acceptance evidence.
+
+The fresh runtime's primary action uses the `--v-button-primary-background`, `--v-button-primary-text` and `--v-button-height` component tokens, mapped through semantic roles to the existing primitive values. These tokens occupy explicitly ordered primitive, semantic and component cascade sublayers. This incremental component migration retains its previous light appearance and 44px minimum height; feature styles, the full cascade, theme and shared-component contract below remain incomplete.
+
+`web/ui-contract-v210.json` records only the currently checked panel, action, field, status and sheet token consumers. `scripts/current-ui-migration.nodecheck.mjs` checks this bounded coverage, token sublayer order, and prevents feature styles from redefining token names; it rejects missing coverage or broken token use. Feature rules remain unlayered, and existing `!important` rules are not covered by that guard. A green check does not certify the full cascade, other controls, feature palettes, dark theme or complete component migration. The retired component migration manifest remains historical and is not a runtime acceptance record.
+
+The shared search, table and panel secondary actions use `--v-button-secondary-*`, `--v-button-height` and `--v-button-radius` component tokens. The current light appearance is preserved; other action styles and dark-theme mappings remain to be migrated.
+
+The fresh runtime's focused sheet uses `--v-sheet-*` component tokens for surface, text, border, backdrop, close target and sticky-header stacking. These map to the current semantic and primitive roles. Native modal dialogs supply top-layer stacking and background isolation. The narrow Forms question outline uses this sheet; the desktop outline remains visible. The component does not establish the remaining full theme or component migration.
+
+Shared `.v-panel` and `.v-metric` surfaces use `--v-panel-*` component tokens mapped through semantic roles to the existing light surface, border, radius and shadow primitives. Other feature palettes and dark-theme support are not yet migrated.
+
+Shared status badges use `--v-status-*` component tokens mapped through semantic and primitive roles for neutral and high-priority states. The existing light colors are unchanged; dark-theme support and the remaining status variants are not yet migrated. Browser evidence and limitations are recorded in the [status token brief](docs/design/2026-11-21-v215-status-tokens.md).
+
+Search and vendor-intake fields in the fresh shell use `--v-field-border`, `--v-field-background`, `--v-field-height` and `--v-field-radius`, mapped through semantic roles to existing light values. Vendor-intake fields also use `--v-field-text`; search retains the browser's default text color. Other form fields and dark-theme support remain outside this incremental migration.
+
+## 20 November 2026 clean UI restart
+
+The user directed a complete restart using `clearsight-v2.10/`, without the previous React pages or stylesheet stack. `web/src/main.tsx` now mounts the new `web/src/v210/` application and its independent stylesheet; the evidence entry mounts the same application. Existing API clients and backend authorization remain in use. The previous CSS files have been removed from `web/src`; remaining old component files are disconnected from the application entry points and are not the design or implementation source for new screens.
+
+The fresh shell, Home, Programs, Forms, Documents and vendor screens are partial work. Forms now support basic draft creation, limited revision editing and authorized lifecycle transitions, alongside scoped submitted-response review. Documents has a submitted-file inventory and detail; vendors have relationship intake, assessment and recovery views. Rich form authoring and named assignments, comprehensive document management, the complete vendor onboarding journey and other specialist workflows remain incomplete. No production cutover is authorized by this partial implementation. Sample browser data are isolated from production. Responsive sample renders do not establish full-screen, authorization or live-backend acceptance.
+
+## 20 November 2026 UI reference update
+
+The user selected `clearsight-v2.10/` as the layout and interaction authority for the UI rewrite, superseding v2.9 and the October HTML where they differ. Earlier source and evidence remain historical and immutable. Preserve the security, data, accessibility, copy and visual-proof requirements below. Prototype records, local identity and browser state are not production facts or authorization. Work remains **partial V2 layout integration** until the complete screen and authorized backend result are reviewed.
+
 This is the fast, implementation-ready design contract for people and coding agents. Canonical product and safety semantics remain in `docs/`; this file defines how those semantics should appear and behave in the interface.
 
 ## Approved October HTML cutover — visual acceptance
@@ -45,12 +73,20 @@ Use restrained institutional futurism:
 
 - deep, low-noise dark surfaces and a clear neutral light equivalent;
 - fine borders and subtle depth;
-- cyan for navigation and active information;
+- blue for navigation, primary actions and active information, using the shared blue primitives and theme mappings;
 - violet for governance/configuration context;
 - amber for pending review or attention;
 - green for a supported current state;
 - coral for blocking gaps or failed outcomes;
 - premium vector illustrations only for orientation, education, onboarding and genuine empty states.
+
+The approved light reference uses a vivid blue action. The production light action
+uses `blue-700` with white text and on secondary surfaces for at least 4.5:1 contrast;
+blue-700 also owns interactive text and information status. Dark mode uses blue-400 on dark
+surfaces with blue-300 for hover and focus. Legacy `--cyan` and
+`--cs-accent-cyan` names resolve to the same theme accent during migration.
+Light primary and strong text use the approved Framework reference's ink
+(`#132547`) and navy (`#0a1d43`); muted text retains its accessible theme value.
 
 Avoid decorative gradients, glass, glow or illustration where they compete with status, evidence or decisions.
 
@@ -91,7 +127,7 @@ Migrated product screens import these closed contracts from `components/ui`. Fea
 | `FormField` | Shared label, required marker, guidance and validation anatomy. |
 | `TextField` | Text, search, email, URL, telephone, numeric, date, time and local date-time values; numeric minimum, maximum and step constraints; disabled, read-only, invalid and loading states. |
 | `SearchField` | Compact, visibly recognizable search for one named record population; labelled, loading and disabled states. |
-| `SelectableRecord` | One record in a bounded master list with visible title, metadata, optional supporting detail and accessible selected state. Optional `variant="list"` provides a continuous list-row treatment and selected indicator owned by the shared component; the default `card` treatment is unchanged. Feature CSS may arrange row geometry without overriding shared paint or interaction states. |
+| `SelectableRecord` | One record in a bounded master list with visible title, metadata, optional supporting detail and accessible selected state. `variant="list"` provides a continuous list-row treatment; `variant="surface"` uses the primary surface for discrete cards. Both retain shared selected, hover and focus states; the default `card` treatment is unchanged. Feature CSS may arrange row geometry without overriding shared paint or interaction states. |
 | `CheckboxField` | Selected, unselected and indeterminate choices; visible or visually hidden labels; optional guidance and disabled state. |
 | `TextArea` | Multi-line responses with bounded length; disabled, read-only, invalid and loading states. |
 | `SelectField` | One selection from a bounded list with themed listbox keyboard behavior and a non-modal fixed overlay root outside sticky workspace layouts. The bounded listbox owns option scrolling. If focusing its initial selected option causes incidental document positioning, the field restores the pre-open position without closing. An unchanged scroll queued before opening is ignored only during that event's dispatch, including native listener microtask checkpoints; a later user page scroll still dismisses the list. Explicit keyboard and outside interaction dismiss during positioning; the trigger toggles its own menu. Opening never resizes or locks the document container, and dialogs remain the dismissal boundary for their own lists. |
@@ -439,3 +475,9 @@ The rail is 228px above 1024px, 72px from 561–1024px and 56px at 560px or belo
 ## Approved October 2026 source UI cutover
 
 The approved reference archive is indexed in [`docs/design/references/clearsight-2026-10/README.md`](docs/design/references/clearsight-2026-10/README.md), with an inspected [`implementation mapping`](docs/design/references/clearsight-2026-10/IMPLEMENTATION-MAPPING.md) and the [dependency-ordered cutover plan](docs/superpowers/plans/2026-10-17-approved-ui-cutover.md). The [21 October navigation decision](docs/design/decisions/2026-10-21-v2-navigation-adaptation.md) now resolves the source sidebar variants and supersedes archived unified-specification §1 only where it prohibited adapting the global menu. Preserve authenticated routes and authority contracts. The source archive and illustrative HTML are not production state or API implementations. Keep #433 scoring and #437 framework publication/adoption ownership separate. Do not represent screenshots as operational acceptance. A named AI agent may document a scoped visual review with exact revision and evidence; backend and release acceptance require their own receipts. The [screen-by-screen cutover status](docs/design/references/clearsight-2026-10/CUTOVER-STATUS.md) records integrated slices, runtime owners, missing approved-design parity and the exact #462 release gates.
+
+## v2.10 shell token foundation — 21 November 2026
+
+The new shell starts its token migration in `web/src/v210/tokens.css`: primitive palette values feed semantic canvas, surface, text, border and focus aliases, which feed shell and focus component tokens. The shared shell consumes these aliases without changing the established colors. Feature-level tokens, dark-theme parity, document import and focused-sheet coverage remain incomplete; this foundation does not establish whole-screen acceptance.
+
+All seven current v2.10 register tables use the shared responsive table wrapper, whose cells permit long identifiers to wrap. At widths below 700px, the two-column replacement uses shrinkable columns. The shell retains a visible keyboard focus ring for buttons, links and form fields. Browser evidence must verify actual rendering and keyboard focus at supported widths; static contract checks supplement that evidence.

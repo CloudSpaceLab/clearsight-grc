@@ -9,6 +9,26 @@ import (
 	"time"
 )
 
+func TestMemoryCatalogReadsAuthoritativeSourceScope(t *testing.T) {
+	repo := NewMemoryCatalogRepository(nil)
+	repo.ConfigureSourceScopeLookup(func(_ context.Context, tenant, source string) (bool, error) {
+		return tenant == catalogTenantID && source == catalogSourceID, nil
+	})
+	value := catalogConnectionRevision(time.Now().UTC())
+	if _, err := repo.CreateConnectionRevision(context.Background(), value); err != nil {
+		t.Fatalf("existing source: %v", err)
+	}
+	wrong := catalogConnectionRevision(time.Now().UTC())
+	wrong.TenantID = "other-tenant"
+	if _, err := repo.CreateConnectionRevision(context.Background(), wrong); !errors.Is(err, ErrCatalogNotFound) {
+		t.Fatalf("cross-tenant source: %v", err)
+	}
+	repo.ConfigureSourceScopeLookup(func(context.Context, string, string) (bool, error) { return false, errors.New("lookup unavailable") })
+	if _, err := repo.CreateConnectionRevision(context.Background(), catalogConnectionRevision(time.Now().UTC())); err == nil {
+		t.Fatal("source lookup failure accepted")
+	}
+}
+
 const (
 	catalogTenantID     = "11111111-1111-7111-8111-111111111111"
 	catalogSourceID     = "12222222-2222-7222-8222-222222222222"

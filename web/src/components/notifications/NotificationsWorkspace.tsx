@@ -33,7 +33,6 @@ export function NotificationsWorkspace({ inbox, tab, onTab, legalEntityID, legal
       <div>
         <nav aria-label="Notification breadcrumb"><Button variant="quiet" size="compact" onPress={onOpenWork}>Work</Button><span aria-hidden="true">›</span><span>Notifications</span></nav>
         <h1>Notifications</h1>
-        <p>Updates delivered to you.</p>
       </div>
       <IconButton aria-label="Notification preferences" variant="quiet" onPress={() => onTab("preferences")}><NavigationIcon view="configure"/></IconButton>
       <svg className="notifications-workspace__waves" viewBox="0 0 720 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 145C150 145 220 25 334 79s180-66 294-21S691 103 720 38V150H0"/><path d="M0 146C152 130 184 111 292 29S480 155 589 61S687 113 720 100V150H0"/></svg>
@@ -110,12 +109,12 @@ function NotificationInboxView({ inbox, actorName, legalEntityName, onOpenWork, 
       <section ref={listRef} className="notification-inbox__list-panel" aria-label="Notification list" tabIndex={-1}>
         <div id="notification-filters" className="notification-inbox__filters" data-expanded={filtersOpen}>
           <SearchField label="Find in loaded notifications" value={query} onChange={setQuery} placeholder="Find a delivered update"/>
-          <p>Searches the notifications loaded below. Load more to include older updates.</p>
+          <p>Search covers loaded notifications. Load more to include older notifications.</p>
         </div>
         <div className="notification-inbox__list-heading"><div><h2>{inbox.filter === "unread" ? "Unread notifications" : "Your inbox"}</h2><p>Assignments, mentions and record updates.</p></div>{inbox.state === "live" && <StatusBadge tone="neutral">{shown.length} shown</StatusBadge>}</div>
         {inbox.state === "loading" && <div className="notification-inbox__loading" role="status" aria-busy="true">Loading notifications…</div>}
-        {inbox.state === "unavailable" && <EmptyState population="Your inbox" title="Notifications unavailable" description="Assigned work is unchanged. Retry this delivery view." role="alert" action={<Button onPress={inbox.refresh}>Retry notifications</Button>}/>}
-        {inbox.state === "live" && shown.length === 0 && <EmptyState population="Your inbox" title={normalizedQuery ? "No loaded notifications match" : inbox.filter === "unread" ? "No unread notifications loaded" : "No notifications loaded"} description={normalizedQuery ? "Try another phrase or load more notifications." : inbox.nextCursor ? "Load more to review older updates." : "New assignments and mentions will appear here."} action={normalizedQuery ? <Button onPress={() => setQuery("")}>Clear search</Button> : undefined}/>}
+        {inbox.state === "unavailable" && <EmptyState population="Your inbox" title="Notifications unavailable" description="Assigned work is unchanged. Retry notifications." role="alert" action={<Button onPress={inbox.refresh}>Retry notifications</Button>}/>}
+        {inbox.state === "live" && shown.length === 0 && <EmptyState population="Your inbox" title={normalizedQuery ? "No loaded notifications match" : inbox.filter === "unread" ? "No unread notifications loaded" : "No notifications loaded"} description={normalizedQuery ? "Try another phrase or load more notifications." : inbox.nextCursor ? "Load more to review older updates." : "No more notifications match the current filter."} action={normalizedQuery ? <Button onPress={() => setQuery("")}>Clear search</Button> : undefined}/>}
         {inbox.state === "live" && shown.length > 0 && <ul className="notification-inbox__list" aria-label="Notification items">
           {shown.map((item) => <li key={item.id} data-unread={!item.read_at || undefined}>
             <SelectableRecord variant="list" title={item.title} description={item.summary} metadata={kindLabel(item.kind)} isSelected={selected?.id === item.id}
@@ -139,11 +138,11 @@ function NotificationInboxView({ inbox, actorName, legalEntityName, onOpenWork, 
               <div><dt>Recipient</dt><dd>{actorName}</dd></div><div><dt>Legal entity</dt><dd>{legalEntityName}</dd></div>
               <div><dt>Record type</dt><dd>{subjectLabel(selected.subject_type)}</dd></div><div><dt>Record reference</dt><dd>{selected.subject_id || "Not recorded"}</dd></div>
             </dl>
-            <section className="notification-detail__action" aria-label="Current record"><h3>Current record</h3><p>Review the latest details and available actions in the record.</p><Button variant="primary" isDisabled={!safeNotificationPath(selected.action_path)} onPress={() => openRecord(selected)}>Open record</Button>{!safeNotificationPath(selected.action_path) && <p>The record cannot be opened from this notification.</p>}</section>
+            <section className="notification-detail__action" aria-label="Current record"><h3>Current record</h3><Button variant="primary" isDisabled={!safeNotificationPath(selected.action_path)} onPress={() => openRecord(selected)}>Open record</Button>{!safeNotificationPath(selected.action_path) && <p>The record cannot be opened from this notification.</p>}</section>
             <section className="notification-detail__history" aria-label="Notification history"><h3>Notification history</h3><ol><li><strong>Update recorded</strong><time dateTime={validTime(selected.occurred_at)}>{formatTime(selected.occurred_at)}</time></li>{selected.read_at && <li><strong>Marked as read</strong><time dateTime={validTime(selected.read_at)}>{formatTime(selected.read_at)}</time></li>}</ol></section>
           </div>
           <p className="notification-detail__footnote">Reading an update does not complete or approve the work.</p>
-        </> : <EmptyState population="Notification context" title="Select a notification" description="Choose an update to view its details and open the related record." compact/>}
+        </> : <EmptyState population="Notification context" title="Select a notification" description="Review a notification and its related record." compact/>}
       </aside>
     </div>
     {inbox.state === "live" && <p className="notification-inbox__as-of">Inbox checked {formatTime(inbox.asOf)}. Read status is separate from the current state of the work.</p>}
@@ -154,8 +153,8 @@ function NotificationSettings() {
   return <section className="notification-settings" aria-label="Notification preferences">
     <header><h2>Preferences</h2><p>Choose when to receive email updates.</p></header>
     <div className="notification-settings__columns">
-      <section className="notification-settings__in-app" aria-labelledby="notification-in-app-heading"><h3 id="notification-in-app-heading">In-app notifications</h3><p>Your inbox brings together updates delivered to your account.</p>
-        <dl><div><dt>Assignments and mentions</dt><dd>Shown when they are delivered to you.</dd></div><div><dt>Read status</dt><dd>Manage each update in your inbox.</dd></div><div><dt>Category preferences</dt><dd>Individual categories cannot be switched off here.</dd></div></dl>
+      <section className="notification-settings__in-app" aria-labelledby="notification-in-app-heading"><h3 id="notification-in-app-heading">In-app notifications</h3>
+        <dl><div><dt>Assignments and mentions</dt><dd>Delivered to your account.</dd></div><div><dt>Read status</dt><dd>Marking a notification as read does not complete the work.</dd></div><div><dt>Category preferences</dt><dd>Notification categories cannot be disabled.</dd></div></dl>
         <Notice tone="info">Critical emails continue during quiet hours and when the daily digest is off.</Notice>
       </section>
       <NotificationPreferences/>

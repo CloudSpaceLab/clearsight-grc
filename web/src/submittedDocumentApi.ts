@@ -17,6 +17,7 @@ export type DocumentOccurrence = {
 export type DocumentQuery = {
   file_kind?: FileKind; query?: string; form_template_id?: string; relationship_id?: string;
   response_revision_id?: string; current_only?: boolean; cursor?: string; limit?: number;
+  view?: "AWAITING_REVIEW" | "NEEDS_REFRESH" | "REVIEW_HISTORY";
 };
 export type DocumentPage = { items: DocumentOccurrence[]; next_cursor?: string };
 

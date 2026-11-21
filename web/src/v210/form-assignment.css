@@ -1,0 +1,10 @@
+.v-assignment-form { display: grid; gap: 16px; max-width: 760px; }
+.v-assignment-form label { display: grid; gap: 7px; color: #536c90; font-size: 12px; font-weight: 700; }
+.v-assignment-form input, .v-assignment-form select, .v-assignment-form textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #dce7f5; border-radius: 8px; color: #18335e; background: #fff; }
+.v-assignment-form textarea { min-height: 90px; }
+.v-assignment-form button { justify-self: start; min-height: 44px; padding: 0 16px; border: 1px solid #dce7f5; border-radius: 8px; color: #18335e; background: #fff; }
+.v-assignment-form button.v-primary { color: #fff; background: #246cf0; border-color: #246cf0; }
+.v-assignment-form button:disabled { opacity: .55; cursor: not-allowed; }
+.v-assignment-candidates { display: grid; gap: 6px; }
+.v-assignment-candidates button { width: 100%; text-align: left; }
+.v-assignment-existing { margin: 18px 0; }

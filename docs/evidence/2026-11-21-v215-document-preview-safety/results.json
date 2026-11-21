@@ -1,0 +1,26 @@
+{
+  "fixture": "SYNTHETIC_NOT_BACKEND_AUTHORIZATION",
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "imagePreview": true,
+      "unsupportedFallback": true,
+      "decodeError": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "imagePreview": true,
+      "unsupportedFallback": true,
+      "decodeError": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "imagePreview": true,
+      "unsupportedFallback": true,
+      "decodeError": true
+    }
+  ]
+}

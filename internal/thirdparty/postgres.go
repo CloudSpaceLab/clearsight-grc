@@ -4,6 +4,7 @@ package thirdparty
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -22,7 +23,11 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 }
 
 func (r *PostgresRepository) CreateRelationship(ctx context.Context, record CreateRecord) (Aggregate, error) {
-	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	level := pgx.Serializable
+	if record.IdempotencyKey != "" {
+		level = pgx.ReadCommitted
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: level})
 	if err != nil {
 		return Aggregate{}, fmt.Errorf("begin vendor relationship create: %w", err)
 	}
@@ -32,10 +37,35 @@ func (r *PostgresRepository) CreateRelationship(ctx context.Context, record Crea
 	if err != nil {
 		return Aggregate{}, err
 	}
+	if record.IdempotencyKey != "" {
+		lockKey := fmt.Sprintf("%q|%q|%q", tenantID, record.Relationship.LegalEntityID, record.IdempotencyKey)
+		if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, lockKey); err != nil {
+			return Aggregate{}, fmt.Errorf("lock vendor create key: %w", err)
+		}
+		var actor, digest, relationshipID string
+		var payload []byte
+		err = tx.QueryRow(ctx, `SELECT actor_id::text,payload_digest,relationship_id::text,result FROM third_party_relationship_create_receipts WHERE tenant_id=$1::uuid AND legal_entity_id::text=$2 AND idempotency_key=$3`, tenantID, record.Relationship.LegalEntityID, record.IdempotencyKey).Scan(&actor, &digest, &relationshipID, &payload)
+		if err == nil {
+			if actor != record.ActorID || digest != record.PayloadDigest {
+				return Aggregate{}, ErrIdempotencyConflict
+			}
+			return replayRelationshipReceipt(payload, Scope{TenantID: record.Vendor.TenantID, LegalEntityID: record.Relationship.LegalEntityID}, relationshipID)
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return Aggregate{}, fmt.Errorf("read vendor create receipt: %w", err)
+		}
+	}
 	vendorID := record.Vendor.ID
 	createdVendor := false
 	if record.ReuseVendor {
-		err = tx.QueryRow(ctx, `SELECT id::text FROM third_parties WHERE tenant_id=$1::uuid AND id::text=$2`, tenantID, record.Vendor.ID).Scan(&vendorID)
+		var relationshipVersion, vendorVersion int64
+		err = tx.QueryRow(ctx, `SELECT r.vendor_id::text,r.version,v.version FROM third_party_relationships r JOIN third_parties v ON v.tenant_id=r.tenant_id AND v.id=r.vendor_id WHERE r.tenant_id=$1::uuid AND r.legal_entity_id::text=$2 AND r.id::text=$3 FOR UPDATE OF r,v`, tenantID, record.Relationship.LegalEntityID, record.ExistingRelationshipID).Scan(&vendorID, &relationshipVersion, &vendorVersion)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Aggregate{}, ErrNotFound
+		}
+		if err == nil && (relationshipVersion != record.ExpectedExistingRelationshipVersion || vendorVersion != record.ExpectedVendorVersion) {
+			return Aggregate{}, ErrVersionConflict
+		}
 	} else if record.Vendor.SourceID != "" && record.Vendor.ExternalRef != "" {
 		err = tx.QueryRow(ctx, `
 			INSERT INTO third_parties(id,tenant_id,legal_name,trading_name,registration_ref,jurisdiction,source_id,external_ref,registered_address,website_domain,status,created_at,updated_at,version)
@@ -88,10 +118,34 @@ func (r *PostgresRepository) CreateRelationship(ctx context.Context, record Crea
 			return Aggregate{}, err
 		}
 	}
+	result := Aggregate{Vendor: record.Vendor, Relationship: record.Relationship}
+	if record.IdempotencyKey != "" {
+		payload, err := json.Marshal(result)
+		if err != nil {
+			return Aggregate{}, fmt.Errorf("encode vendor create receipt: %w", err)
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO third_party_relationship_create_receipts(tenant_id,legal_entity_id,actor_id,idempotency_key,payload_digest,relationship_id,result) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6::uuid,$7::jsonb)`, tenantID, record.Relationship.LegalEntityID, record.ActorID, record.IdempotencyKey, record.PayloadDigest, record.Relationship.ID, string(payload))
+		if err != nil {
+			return Aggregate{}, fmt.Errorf("store vendor create receipt: %w", err)
+		}
+	}
 	if err := r.commitThirdPartyEvents(ctx, tx, relationshipCommitProof(eventID, record.Relationship, "VendorRelationshipCreated")); err != nil {
 		return Aggregate{}, fmt.Errorf("commit vendor relationship create: %w", err)
 	}
-	return Aggregate{Vendor: record.Vendor, Relationship: record.Relationship}, nil
+	return result, nil
+}
+
+// The receipt was selected by the database's resolved tenant and entity. Its
+// original tenant spelling may differ from the verified scope used for retry.
+func replayRelationshipReceipt(payload []byte, scope Scope, relationshipID string) (Aggregate, error) {
+	var result Aggregate
+	if err := json.Unmarshal(payload, &result); err != nil {
+		return Aggregate{}, fmt.Errorf("decode vendor create receipt: %w", err)
+	}
+	if relationshipID == "" || result.Relationship.ID != relationshipID {
+		return Aggregate{}, ErrNotFound
+	}
+	return relationshipWithScope(result, scope)
 }
 
 func (r *PostgresRepository) UpdateRelationship(ctx context.Context, record UpdateRecord) (Aggregate, error) {
@@ -145,6 +199,10 @@ func (r *PostgresRepository) UpdateRelationship(ctx context.Context, record Upda
 	if err != nil {
 		return Aggregate{}, fmt.Errorf("load updated vendor relationship: %w", err)
 	}
+	stored, err = relationshipWithScope(stored, record.Scope)
+	if err != nil {
+		return Aggregate{}, err
+	}
 	if err := r.commitThirdPartyEvents(ctx, tx, relationshipCommitProof(eventID, record.Relationship, "VendorRelationshipUpdated")); err != nil {
 		return Aggregate{}, fmt.Errorf("commit vendor relationship update: %w", err)
 	}
@@ -161,7 +219,7 @@ func (r *PostgresRepository) GetRelationship(ctx context.Context, scope Scope, r
 	if err != nil {
 		return Aggregate{}, fmt.Errorf("get vendor relationship: %w", err)
 	}
-	return value, nil
+	return relationshipWithScope(value, scope)
 }
 
 func (r *PostgresRepository) ListRelationships(ctx context.Context, filter ListFilter) (RelationshipPage, error) {
@@ -198,6 +256,10 @@ func (r *PostgresRepository) ListRelationships(ctx context.Context, filter ListF
 		if scanErr != nil {
 			return RelationshipPage{}, scanErr
 		}
+		value, scanErr = relationshipWithScope(value, filter.Scope)
+		if scanErr != nil {
+			return RelationshipPage{}, scanErr
+		}
 		items = append(items, value)
 	}
 	if err := rows.Err(); err != nil {
@@ -210,6 +272,18 @@ func (r *PostgresRepository) ListRelationships(ctx context.Context, filter ListF
 		page.NextCursor = encodeCursor(last.UpdatedAt, last.ID)
 	}
 	return page, nil
+}
+
+// The SQL caller has already matched this row against the supplied tenant and
+// entity. Return the same scoped tenant identifier used by that caller,
+// whether it is a UUID or slug, without changing persisted records.
+func relationshipWithScope(value Aggregate, scope Scope) (Aggregate, error) {
+	if strings.TrimSpace(scope.TenantID) == "" || strings.TrimSpace(scope.LegalEntityID) == "" || value.Vendor.ID == "" || value.Relationship.ID == "" || value.Relationship.VendorID != value.Vendor.ID || value.Vendor.TenantID == "" || value.Relationship.TenantID != value.Vendor.TenantID || value.Relationship.LegalEntityID != scope.LegalEntityID {
+		return Aggregate{}, ErrNotFound
+	}
+	value.Vendor.TenantID = scope.TenantID
+	value.Relationship.TenantID = scope.TenantID
+	return value, nil
 }
 
 const relationshipSelect = `

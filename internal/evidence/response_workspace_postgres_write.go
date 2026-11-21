@@ -177,15 +177,15 @@ func insertPostgresResponseRevision(ctx context.Context, tx pgx.Tx, revision Res
 			id,tenant_id,legal_entity_id,distribution_id,workspace_id,submission_id,revision,supersedes_revision_id,
 			achieved_assurance,signoff_summary,compliance_score,scored_weight_coverage,state,critical_field_results,
 			scoring_policy_version,is_current,created_at,score_mode,score_direction,raw_score,adverse_score,concern_band,
-			score_state,score_result,score_profile_checksum,score_calculated_at
+			score_state,score_result,score_profile_checksum,score_calculated_at,submitted_recipient_id,submitted_recipient_principal_id,submitted_recipient_type,submitted_recipient_label
 		) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,$7,NULLIF($8,'')::uuid,
 			$9,$10::jsonb,$11,$12,$13,$14::jsonb,$15,true,$16,NULLIF($17,''),NULLIF($18,''),$19,$20,NULLIF($21,''),
-			$22,$23::jsonb,$24,$25)`,
+			$22,$23::jsonb,$24,$25,NULLIF($26,'')::uuid,NULLIF($27,'')::uuid,NULLIF($28,''),NULLIF($29,''))`,
 		revision.ID, revision.TenantID, revision.LegalEntityID, revision.DistributionID, revision.WorkspaceID,
 		revision.SubmissionID, revision.Revision, revision.SupersedesRevisionID, revision.AchievedAssurance,
 		string(signoffJSON), score, revision.ScoredWeightCoverage, revision.State, string(criticalJSON),
 		revision.ScoringPolicyVersion, revision.CreatedAt.UTC(), scoreMode, scoreDirection, rawScore, adverseScore, concernBand,
-		scoreState, scoreResult, scoreChecksum, scoreCalculatedAt); err != nil {
+		scoreState, scoreResult, scoreChecksum, scoreCalculatedAt, revision.SubmittedRecipientID, revision.SubmittedRecipientPrincipalID, revision.SubmittedRecipientType, revision.SubmittedRecipientLabel); err != nil {
 		return ErrWorkspaceUnavailable
 	}
 	return nil

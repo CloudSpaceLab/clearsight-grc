@@ -1,0 +1,64 @@
+{
+  "suite": "V2.9 actual-source operational workflows",
+  "browserLayoutValidated": false,
+  "results": [
+    {
+      "name": "New control has explicit hierarchy scope and remains visible in its scoped register",
+      "status": "PASS"
+    },
+    {
+      "name": "Control draft validates location, mapping and its captured source version",
+      "status": "PASS"
+    },
+    {
+      "name": "Control test submission locks sample facts and independent approval updates only control effectiveness",
+      "status": "PASS"
+    },
+    {
+      "name": "Invalid samples and missing exception disposition cannot become submitted tests",
+      "status": "PASS"
+    },
+    {
+      "name": "Control definition drift blocks stale approval; corrected test keeps old submission intact",
+      "status": "PASS"
+    },
+    {
+      "name": "RCSA draft saves across navigation without altering the effective residual rating",
+      "status": "PASS"
+    },
+    {
+      "name": "RCSA validates frozen membership, reviewer identity, submitted evidence and concurrent posture",
+      "status": "PASS"
+    },
+    {
+      "name": "Vendor periodic review retains lifecycle until independent decision and records next review",
+      "status": "PASS"
+    },
+    {
+      "name": "Vendor activation cannot bypass missing assurance and self-review cannot approve suspension",
+      "status": "PASS"
+    },
+    {
+      "name": "Vendor exit records data disposition and remains outside onboarding population",
+      "status": "PASS"
+    },
+    {
+      "name": "Risk context edit updates owner and statement while preserving effective ratings and scope",
+      "status": "PASS"
+    },
+    {
+      "name": "All completed workspaces render registered actions and usable missing-record states",
+      "status": "PASS"
+    },
+    {
+      "name": "Returned control tests stay actionable until an immutable correction is submitted",
+      "status": "PASS"
+    },
+    {
+      "name": "Returned vendor requests preserve owner work and resolve only on replacement submission",
+      "status": "PASS"
+    }
+  ],
+  "passed": 14,
+  "failed": 0
+}

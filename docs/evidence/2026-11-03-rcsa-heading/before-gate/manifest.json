@@ -1,0 +1,7 @@
+{
+  "generatedAt": "2026-11-03T19:50:18.392Z",
+  "baseURL": "http://127.0.0.1:4178",
+  "failure": "251-risk-loss-rcsa-light-390x844: RCSA heading and status filter must share the phone heading row without overlap",
+  "captures": [],
+  "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION"
+}

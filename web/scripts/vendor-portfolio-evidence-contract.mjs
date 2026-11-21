@@ -32,7 +32,7 @@ export function reviewVendorPortfolioCaptures(captures) {
     if (layout.headingText !== "Vendors" || !rect(layout.heading) || !rect(layout.title) || layout.titleContained !== true
       || !same(layout.localTabs, labels) || layout.selectedTab !== label || !rect(layout.tablist)
       || !layout.selectedPanelID || !same(layout.visiblePanelIDs, [layout.selectedPanelID]) || layout.selectedPanelControlsMatch !== true
-      || !["tabs", "select"].includes(layout.menuMode) || layout.menuMode === "select" && layout.compactValue !== label
+      || layout.menuMode !== "tabs"
       || !rect(layout.selectedTabBounds) || layout.selectedTabVisible !== true
       || layout.selectedTabBounds.x < layout.tablist.x - 1 || layout.selectedTabBounds.right > layout.tablist.right + 1
       || layout.heading.bottom > layout.tablist.y + 1 || layout.route !== scenario.route || layout.selectedRelationshipVisible !== false
@@ -89,7 +89,7 @@ export function reviewVendorPortfolioCaptures(captures) {
     const interaction = layout.interaction;
     if (scenario.verifyVendorPortfolioNavigation && (!same(interaction?.visited, labels) || interaction.baselineRestored !== true
       || interaction.keyboard?.complete !== true || !same(interaction.keyboard.options, labels)
-      || !same(interaction.keyboard.sequence, width > 760 ? [...labels.slice(1), labels[0]] : ["Register"]))) {
+      || !same(interaction.keyboard.sequence, [...labels.slice(1), labels[0]]))) {
       failures.push(`${scenario.name}: five-menu keyboard navigation and return lack interaction proof`);
     }
     if (scenario.verifyVendorPortfolioNavigation && width === 1440 && (interaction?.exceptionReturn?.open !== true || interaction.exceptionReturn.rowVisible !== true

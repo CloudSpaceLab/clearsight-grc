@@ -78,7 +78,7 @@ type DocumentDetailBase = Omit<DocumentImportSummary,
   "sections_total" | "sections_omitted" | "proposals_total" | "proposals_omitted" | "content_truncated" | "processed_at">;
 
 export type DocumentImport = DocumentDetailBase & {
-  storage_key: string;
+  storage_key?: string;
   extraction_method: string;
   parser_version?: string;
   adapter_version?: string;

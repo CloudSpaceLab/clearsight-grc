@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -20,6 +21,7 @@ var _ BatchResolver = (*postgresService)(nil)
 func NewPostgresService(pool *pgxpool.Pool) Service { return &postgresService{pool: pool} }
 
 type routeGroup struct {
+	SourceID      string
 	RuleID        string
 	PolicyVersion string
 	Strategy      string
@@ -81,6 +83,33 @@ type batchResolveRequest struct {
 }
 
 func (s *postgresService) ResolveMany(ctx context.Context, inputs []ResolveInput) ([]ResolveOutcome, error) {
+	outcomes, _, err := s.resolveMany(ctx, inputs, false)
+	return outcomes, err
+}
+
+func (s *postgresService) ResolveCurrent(ctx context.Context, input ResolveInput) (Resolution, time.Time, error) {
+	tx, ok := ctx.Value(transactionContextKey{}).(pgx.Tx)
+	if !ok || tx == nil {
+		return Resolution{}, time.Time{}, fmt.Errorf("current authority requires a transaction")
+	}
+	var isolation string
+	if err := tx.QueryRow(ctx, `SHOW transaction_isolation`).Scan(&isolation); err != nil || isolation != "read committed" {
+		return Resolution{}, time.Time{}, fmt.Errorf("current authority requires read committed isolation")
+	}
+	outcomes, at, err := s.resolveMany(ctx, []ResolveInput{input}, true)
+	if err != nil {
+		return Resolution{}, time.Time{}, err
+	}
+	if len(outcomes) != 1 || outcomes[0].Err != nil {
+		if len(outcomes) == 1 {
+			return Resolution{}, time.Time{}, outcomes[0].Err
+		}
+		return Resolution{}, time.Time{}, ErrNoRoute
+	}
+	return outcomes[0].Resolution, at, nil
+}
+
+func (s *postgresService) resolveMany(ctx context.Context, inputs []ResolveInput, current bool) ([]ResolveOutcome, time.Time, error) {
 	outcomes := make([]ResolveOutcome, len(inputs))
 	requests := make([]batchResolveRequest, 0, len(inputs))
 	for index, input := range inputs {
@@ -95,19 +124,20 @@ func (s *postgresService) ResolveMany(ctx context.Context, inputs []ResolveInput
 		outcomes[index].Err = ErrNoRoute
 	}
 	if len(requests) == 0 {
-		return outcomes, nil
+		return outcomes, time.Time{}, nil
 	}
 	encoded, err := json.Marshal(requests)
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
-	rows, err := s.queryer(ctx).Query(ctx, batchResolveSQL, string(encoded))
+	rows, err := s.queryer(ctx).Query(ctx, batchResolveSQL, string(encoded), current)
 	if err != nil {
-		return nil, fmt.Errorf("batch resolve authority: %w", err)
+		return nil, time.Time{}, fmt.Errorf("batch resolve authority: %w", err)
 	}
 	defer rows.Close()
 	type selectedRoute struct {
 		input         ResolveInput
+		sourceID      string
 		ruleID        string
 		policyVersion string
 		strategy      string
@@ -116,17 +146,18 @@ func (s *postgresService) ResolveMany(ctx context.Context, inputs []ResolveInput
 		candidates    []effectiveCandidate
 	}
 	selected := make(map[int]*selectedRoute, len(requests))
+	var evaluatedAt time.Time
 	for rows.Next() {
 		var index, priority int
-		var ruleID, policyVersion, strategy string
+		var sourceID, ruleID, policyVersion, strategy string
 		var ambiguous bool
 		var principalID, displayName, kind, role, originID, roleCode *string
-		if err := rows.Scan(&index, &ruleID, &policyVersion, &strategy, &priority, &ambiguous, &principalID, &displayName, &kind, &role, &originID, &roleCode); err != nil {
-			return nil, err
+		if err := rows.Scan(&evaluatedAt, &index, &sourceID, &ruleID, &policyVersion, &strategy, &priority, &ambiguous, &principalID, &displayName, &kind, &role, &originID, &roleCode); err != nil {
+			return nil, time.Time{}, err
 		}
 		route := selected[index]
 		if route == nil {
-			route = &selectedRoute{input: inputs[index], ruleID: ruleID, policyVersion: policyVersion, strategy: strategy, priority: priority, ambiguous: ambiguous}
+			route = &selectedRoute{input: inputs[index], sourceID: sourceID, ruleID: ruleID, policyVersion: policyVersion, strategy: strategy, priority: priority, ambiguous: ambiguous}
 			selected[index] = route
 		}
 		if principalID != nil && originID != nil {
@@ -134,7 +165,7 @@ func (s *postgresService) ResolveMany(ctx context.Context, inputs []ResolveInput
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
 	for index, route := range selected {
 		if route.ambiguous {
@@ -149,13 +180,22 @@ func (s *postgresService) ResolveMany(ctx context.Context, inputs []ResolveInput
 		if len(principals) > 1 {
 			strategy = "CANDIDATE_SET"
 		}
+		sourceType, sourceID := routeSource(route.sourceID)
 		outcomes[index] = ResolveOutcome{Resolution: Resolution{
 			Principal: principals[0], CandidatePrincipals: principals, EffectiveOrigins: uniqueEffectiveOrigins(route.candidates),
 			Strategy: strategy, RuleID: route.ruleID, PolicyVersion: route.policyVersion,
+			SourceType: sourceType, SourceID: sourceID,
 			Explanation: resolutionExplanation(principals[0], principals, strategy, route.input),
 		}}
 	}
-	return outcomes, nil
+	return outcomes, evaluatedAt.UTC(), nil
+}
+
+func routeSource(value string) (string, string) {
+	if id, ok := strings.CutPrefix(value, "assignment:"); ok {
+		return "ASSIGNMENT", id
+	}
+	return "POLICY", value
 }
 
 func dereference(value *string) string {
@@ -165,10 +205,10 @@ func dereference(value *string) string {
 	return *value
 }
 
-const batchResolveSQL = `
+var batchResolveSQL = `
 WITH RECURSIVE requests AS (
 	SELECT request_index,tenant_id,legal_entity_id,object_type,object_id,responsibility,
-	       COALESCE(decision_type,'') AS decision_type,materiality,at,
+	       COALESCE(decision_type,'') AS decision_type,materiality,CASE WHEN $2::boolean THEN statement_timestamp() ELSE at END AS at,
 	       t.id AS tenant_uuid
 	FROM jsonb_to_recordset($1::jsonb) AS x(
 		request_index integer,tenant_id text,legal_entity_id text,object_type text,object_id text,
@@ -176,7 +216,7 @@ WITH RECURSIVE requests AS (
 	)
 	JOIN tenants t ON t.id::text=x.tenant_id OR t.slug=x.tenant_id
 ), route_defs AS (
-	SELECT r.request_index,ear.source_rule_id AS rule_id,ear.policy_version,ear.priority,
+	SELECT r.request_index,ear.source_policy_id::text AS source_id,ear.source_rule_id AS rule_id,ear.policy_version,ear.priority,
 	       (CASE WHEN ear.legal_entity_ref <> '*' THEN 8 ELSE 0 END +
 	        CASE WHEN ear.object_type <> '*' THEN 4 ELSE 0 END +
 	        CASE WHEN ear.object_id <> '*' THEN 2 ELSE 0 END +
@@ -195,7 +235,7 @@ WITH RECURSIVE requests AS (
 	  AND ear.min_materiality <= r.materiality
 	  AND ear.valid_from <= r.at AND (ear.valid_until IS NULL OR r.at < ear.valid_until)
 	UNION ALL
-	SELECT r.request_index,'assignment:' || ra.id::text,ra.policy_version,ra.priority,
+	SELECT r.request_index,'assignment:' || ra.id::text,'assignment:' || ra.id::text,ra.policy_version,ra.priority,
 	       (CASE WHEN ra.legal_entity_id IS NOT NULL THEN 8 ELSE 0 END + 4 +
 	        CASE WHEN ra.object_id IS NOT NULL THEN 2 ELSE 0 END +
 	        CASE WHEN COALESCE(ra.decision_type,'') <> '' THEN 1 ELSE 0 END),
@@ -248,19 +288,19 @@ WITH RECURSIVE requests AS (
 		  AND ((rd.selector_kind='ROLE' AND (rt.code=rd.selector_ref OR rt.id::text=rd.selector_ref)) OR
 		       (rd.selector_kind='ROLE_ID' AND rt.id::text=rd.selector_ref))
 		  AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)
-		  AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id'=le.id::text)
+		  AND (jsonb_typeof(prb.scope)='object' AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id' IN ('*',le.id::text)))
 		  AND rt.valid_from <= r.at AND (rt.valid_until IS NULL OR r.at < rt.valid_until)
 		  AND prb.valid_from <= r.at AND (prb.valid_until IS NULL OR r.at < prb.valid_until)
 		  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
 		  AND p.status='ACTIVE' AND p.valid_from <= r.at AND (p.valid_until IS NULL OR r.at < p.valid_until)
 	) p ON true
 ), route_groups AS (
-	SELECT request_index,rule_id,policy_version,resolution_strategy,priority,specificity,
+	SELECT request_index,source_id,rule_id,policy_version,resolution_strategy,priority,specificity,
 	       array_agg(DISTINCT id ORDER BY id) AS candidate_ids
 	FROM resolved
-	GROUP BY request_index,rule_id,policy_version,resolution_strategy,priority,specificity
+	GROUP BY request_index,source_id,rule_id,policy_version,resolution_strategy,priority,specificity
 ), ranked_routes AS (
-	SELECT g.*,row_number() OVER (PARTITION BY request_index ORDER BY priority DESC,specificity DESC,rule_id) AS route_number
+	SELECT g.*,row_number() OVER (PARTITION BY request_index ORDER BY priority DESC,specificity DESC,rule_id,source_id) AS route_number
 	FROM route_groups g
 ), selected AS (
 	SELECT g.*,
@@ -271,7 +311,7 @@ WITH RECURSIVE requests AS (
 ), seed AS (
 	SELECT s.request_index,s.rule_id,s.policy_version,s.resolution_strategy,s.priority,s.ambiguous,
 	       rc.id::uuid AS origin_id,rc.id::uuid AS principal_id,rc.role AS seed_role,rc.role_code AS seed_role_code,ARRAY[rc.id::uuid] AS path,0 AS depth
-	FROM selected s JOIN resolved rc ON rc.request_index=s.request_index AND rc.rule_id=s.rule_id AND rc.policy_version=s.policy_version
+	FROM selected s JOIN resolved rc ON rc.request_index=s.request_index AND rc.source_id=s.source_id AND rc.rule_id=s.rule_id AND rc.policy_version=s.policy_version AND rc.priority=s.priority AND rc.specificity=s.specificity AND rc.resolution_strategy=s.resolution_strategy
 ), chain(request_index,rule_id,policy_version,resolution_strategy,priority,ambiguous,origin_id,principal_id,seed_role,seed_role_code,path,depth) AS (
 	SELECT request_index,rule_id,policy_version,resolution_strategy,priority,ambiguous,origin_id,principal_id,seed_role,seed_role_code,path,depth FROM seed
 	UNION ALL
@@ -285,9 +325,7 @@ WITH RECURSIVE requests AS (
 		SELECT 1 FROM legal_entities le WHERE le.id=d.legal_entity_id AND le.tenant_id=d.tenant_id
 		AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)
 	  )
-	  AND (NOT (d.scope ? 'object_type') OR upper(d.scope->>'object_type') IN ('*',upper(r.object_type)))
-	  AND (NOT (d.scope ? 'object_id') OR d.scope->>'object_id' IN ('*',r.object_id))
-	  AND (NOT (d.scope ? 'decision_type') OR upper(d.scope->>'decision_type') IN ('*',upper(r.decision_type)))
+	  ` + delegationTargetScopeSQL("r.object_type", "r.object_id", "r.decision_type", "r.materiality") + `
 ), applicable_grants AS (
 	SELECT r.request_index,ag.* FROM requests r JOIN authority_grants ag ON ag.tenant_id=r.tenant_uuid
 	WHERE (ag.legal_entity_id IS NULL OR EXISTS (
@@ -300,13 +338,18 @@ WITH RECURSIVE requests AS (
 	UNION
 	SELECT g.request_index,g.id,op.occupant_principal_id FROM applicable_grants g
 	JOIN requests r USING (request_index) JOIN org_positions op ON op.id=g.position_id
-	WHERE g.position_id IS NOT NULL AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
+	WHERE g.position_id IS NOT NULL AND op.tenant_id=r.tenant_uuid
+	  AND (op.legal_entity_id IS NULL OR EXISTS (SELECT 1 FROM legal_entities le WHERE le.id=op.legal_entity_id AND le.tenant_id=r.tenant_uuid AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)))
+	  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
 	UNION
 	SELECT g.request_index,g.id,op.occupant_principal_id FROM applicable_grants g
 	JOIN requests r USING (request_index)
-	JOIN position_role_bindings prb ON prb.role_template_id=g.role_template_id
-	JOIN org_positions op ON op.id=prb.position_id
+	JOIN position_role_bindings prb ON prb.role_template_id=g.role_template_id AND prb.tenant_id=r.tenant_uuid
+	JOIN org_positions op ON op.id=prb.position_id AND op.tenant_id=r.tenant_uuid
+	JOIN legal_entities le ON le.id=op.legal_entity_id AND le.tenant_id=r.tenant_uuid
 	WHERE g.role_template_id IS NOT NULL
+	  AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)
+	  AND (jsonb_typeof(prb.scope)='object' AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id' IN ('*',le.id::text)))
 	  AND prb.valid_from <= r.at AND (prb.valid_until IS NULL OR r.at < prb.valid_until)
 	  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
 ), blocked AS (
@@ -328,12 +371,11 @@ WITH RECURSIVE requests AS (
 	  AND (NOT EXISTS (SELECT 1 FROM applicable_grants ag WHERE ag.request_index=c.request_index)
 	       OR EXISTS (SELECT 1 FROM applicable_grants ag JOIN granted g ON g.request_index=ag.request_index AND g.grant_id=ag.id
 	                  WHERE ag.request_index=c.request_index
-	                    AND COALESCE(NULLIF(ag.limits->>'min_materiality','')::integer,0) <= r.materiality
-	                    AND COALESCE(NULLIF(ag.limits->>'max_materiality','')::integer,5) >= r.materiality
+	                    ` + authorityGrantLimitsSQL("ag", "r.materiality") + `
 	                    AND g.principal_id IN (c.principal_id,c.origin_id)))
 	  AND NOT EXISTS (SELECT 1 FROM blocked b WHERE b.request_index=c.request_index AND b.principal_id=c.principal_id)
 )
-SELECT s.request_index,s.rule_id,s.policy_version,s.resolution_strategy,s.priority,s.ambiguous,
+SELECT statement_timestamp(),s.request_index,s.source_id,s.rule_id,s.policy_version,s.resolution_strategy,s.priority,s.ambiguous,
 	   p.id::text,p.display_name,p.kind,CASE WHEN e.principal_id=e.origin_id THEN e.seed_role ELSE '' END AS role,e.origin_id::text,e.seed_role_code
 FROM selected s
 LEFT JOIN effective e ON e.request_index=s.request_index
@@ -395,6 +437,7 @@ func (s *postgresService) Simulate(ctx context.Context, input ResolveInput) (Sim
 		PolicyVersion:       top.PolicyVersion,
 		Explanation:         resolutionExplanation(principals[0], principals, strategy, input),
 	}
+	selected.SourceType, selected.SourceID = routeSource(top.SourceID)
 	candidates := make([]Candidate, 0, len(principals))
 	for _, principal := range principals {
 		candidates = append(candidates, Candidate{Principal: principal, RuleID: top.RuleID, Priority: top.Priority, Eligible: true, Reason: "eligible after current delegation, grant and segregation checks"})
@@ -406,6 +449,7 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 	rows, err := s.queryer(ctx).Query(ctx, `
 		WITH route_defs AS (
 			SELECT
+				ear.source_policy_id::text AS source_id,
 				ear.source_rule_id AS rule_id,
 				ear.policy_version,
 				ear.legal_entity_ref,
@@ -439,6 +483,7 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 			  AND (ear.valid_until IS NULL OR $8 < ear.valid_until)
 			UNION ALL
 			SELECT
+				'assignment:' || ra.id::text,
 				'assignment:' || ra.id::text,
 				ra.policy_version,
 				COALESCE(le.code,'*'),
@@ -510,14 +555,14 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 				  AND rt.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 				  AND ((rd.selector_kind='ROLE' AND (rt.code=rd.selector_ref OR rt.id::text=rd.selector_ref)) OR (rd.selector_kind='ROLE_ID' AND rt.id::text=rd.selector_ref))
 				  AND (le.id::text=$2 OR le.code=$2)
-				  AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id'=le.id::text)
+				  AND (jsonb_typeof(prb.scope)='object' AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id' IN ('*',le.id::text)))
 				  AND rt.valid_from <= $8 AND (rt.valid_until IS NULL OR $8 < rt.valid_until)
 				  AND prb.valid_from <= $8 AND (prb.valid_until IS NULL OR $8 < prb.valid_until)
 				  AND op.valid_from <= $8 AND (op.valid_until IS NULL OR $8 < op.valid_until)
 				  AND p.status='ACTIVE' AND p.valid_from <= $8 AND (p.valid_until IS NULL OR $8 < p.valid_until)
 			) p ON true
 		)
-		SELECT rule_id,policy_version,resolution_strategy,priority,specificity,id,display_name,kind,role,role_code
+		SELECT source_id,rule_id,policy_version,resolution_strategy,priority,specificity,id,display_name,kind,role,role_code
 		FROM resolved
 		ORDER BY priority DESC,specificity DESC,rule_id,id`, input.TenantID, input.LegalEntityID, input.ObjectType, input.ObjectID, string(input.Responsibility), input.DecisionType, input.Materiality, input.At)
 	if err != nil {
@@ -528,15 +573,15 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 	groupsByKey := map[string]*routeGroup{}
 	order := []string{}
 	for rows.Next() {
-		var ruleID, policyVersion, strategy, id, displayName, kind, role, roleCode string
+		var sourceID, ruleID, policyVersion, strategy, id, displayName, kind, role, roleCode string
 		var priority, specificity int
-		if err := rows.Scan(&ruleID, &policyVersion, &strategy, &priority, &specificity, &id, &displayName, &kind, &role, &roleCode); err != nil {
+		if err := rows.Scan(&sourceID, &ruleID, &policyVersion, &strategy, &priority, &specificity, &id, &displayName, &kind, &role, &roleCode); err != nil {
 			return nil, err
 		}
-		key := ruleID + "\x00" + policyVersion
+		key := sourceID + "\x00" + ruleID + "\x00" + policyVersion + "\x00" + strategy + fmt.Sprintf("\x00%d\x00%d", priority, specificity)
 		group := groupsByKey[key]
 		if group == nil {
-			group = &routeGroup{RuleID: ruleID, PolicyVersion: policyVersion, Strategy: strategy, Priority: priority, Specificity: specificity}
+			group = &routeGroup{SourceID: sourceID, RuleID: ruleID, PolicyVersion: policyVersion, Strategy: strategy, Priority: priority, Specificity: specificity}
 			groupsByKey[key] = group
 			order = append(order, key)
 		}
@@ -558,7 +603,10 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 		if result[i].Specificity != result[j].Specificity {
 			return result[i].Specificity > result[j].Specificity
 		}
-		return result[i].RuleID < result[j].RuleID
+		if result[i].RuleID != result[j].RuleID {
+			return result[i].RuleID < result[j].RuleID
+		}
+		return result[i].SourceID < result[j].SourceID
 	})
 	return result, nil
 }
@@ -602,15 +650,13 @@ func (s *postgresService) expandDelegations(ctx context.Context, input ResolveIn
 				SELECT le.id FROM legal_entities le
 				WHERE le.tenant_id=d.tenant_id AND (le.id::text=$5 OR le.code=$5)
 			  )
-			  AND (NOT (d.scope ? 'object_type') OR upper(d.scope->>'object_type') IN ('*',upper($6)))
-			  AND (NOT (d.scope ? 'object_id') OR d.scope->>'object_id' IN ('*',$7))
-			  AND (NOT (d.scope ? 'decision_type') OR upper(d.scope->>'decision_type') IN ('*',upper($8)))
+			  `+delegationTargetScopeSQL("$6", "$7", "$8", "$9")+`
 		)
 		SELECT DISTINCT c.origin_id::text,p.id::text,p.display_name,p.kind,''
 		FROM chain c
 		JOIN principals p ON p.id=c.principal_id
 		WHERE p.status='ACTIVE' AND p.valid_from <= $2 AND (p.valid_until IS NULL OR $2 < p.valid_until)
-		ORDER BY c.origin_id::text,p.id::text`, input.TenantID, input.At, string(encoded), string(input.Responsibility), input.LegalEntityID, input.ObjectType, input.ObjectID, input.DecisionType)
+		ORDER BY c.origin_id::text,p.id::text`, input.TenantID, input.At, string(encoded), string(input.Responsibility), input.LegalEntityID, input.ObjectType, input.ObjectID, input.DecisionType, input.Materiality)
 	if err != nil {
 		return nil, fmt.Errorf("expand active delegations: %w", err)
 	}
@@ -669,19 +715,23 @@ func (s *postgresService) applyGrantBoundary(ctx context.Context, input ResolveI
 			  ))
 			  AND (ag.decision_type='*' OR upper(ag.decision_type)=upper($3))
 			  AND ag.valid_from <= $4 AND (ag.valid_until IS NULL OR $4 < ag.valid_until)
-			  AND COALESCE(NULLIF(ag.limits->>'min_materiality','')::integer,0) <= $6
-			  AND COALESCE(NULLIF(ag.limits->>'max_materiality','')::integer,5) >= $6
+			  `+authorityGrantLimitsSQL("ag", "$6")+`
 		), granted AS (
 			SELECT g.principal_id AS id FROM grants g WHERE g.principal_id IS NOT NULL
 			UNION
 			SELECT op.occupant_principal_id FROM grants g JOIN org_positions op ON op.id=g.position_id
-			WHERE g.position_id IS NOT NULL AND op.valid_from <= $4 AND (op.valid_until IS NULL OR $4 < op.valid_until)
+			WHERE g.position_id IS NOT NULL AND op.tenant_id=g.tenant_id
+			  AND (op.legal_entity_id IS NULL OR EXISTS (SELECT 1 FROM legal_entities le WHERE le.id=op.legal_entity_id AND le.tenant_id=g.tenant_id AND (le.id::text=$2 OR le.code=$2)))
+			  AND op.valid_from <= $4 AND (op.valid_until IS NULL OR $4 < op.valid_until)
 			UNION
 			SELECT op.occupant_principal_id
 			FROM grants g
-			JOIN position_role_bindings prb ON prb.role_template_id=g.role_template_id
-			JOIN org_positions op ON op.id=prb.position_id
+			JOIN position_role_bindings prb ON prb.role_template_id=g.role_template_id AND prb.tenant_id=g.tenant_id
+			JOIN org_positions op ON op.id=prb.position_id AND op.tenant_id=g.tenant_id
+			JOIN legal_entities le ON le.id=op.legal_entity_id AND le.tenant_id=g.tenant_id
 			WHERE g.role_template_id IS NOT NULL
+			  AND (le.id::text=$2 OR le.code=$2)
+			  AND (jsonb_typeof(prb.scope)='object' AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id' IN ('*',le.id::text)))
 			  AND prb.valid_from <= $4 AND (prb.valid_until IS NULL OR $4 < prb.valid_until)
 			  AND op.valid_from <= $4 AND (op.valid_until IS NULL OR $4 < op.valid_until)
 		)

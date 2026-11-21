@@ -1,0 +1,80 @@
+{
+  "suite": "loss-reports-v2.9",
+  "validation": "Actual JavaScript sources with minimal DOM stubs; browser layout not tested",
+  "checks": [
+    {
+      "name": "Occurrence, recognition and reporting-month cohorts remain distinct",
+      "status": "PASS"
+    },
+    {
+      "name": "Mixed currencies, unaccepted records and pending corrections never pollute financial totals",
+      "status": "PASS"
+    },
+    {
+      "name": "Cash inflows and approved reversals use their own date window and preserve historical receipts",
+      "status": "PASS"
+    },
+    {
+      "name": "Age, concentration and date-basis charts reconcile including partial reporting-month windows",
+      "status": "PASS"
+    },
+    {
+      "name": "Source account classifications, loss groups and risk categories are not conflated",
+      "status": "PASS"
+    },
+    {
+      "name": "Recovery estimates and reporting discrepancies remain visible without changing booked balances",
+      "status": "PASS"
+    },
+    {
+      "name": "Repeated-period rows are flagged as candidates and never silently deduplicated",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit scopes remain precise, and invalid periods, dates or currencies fail closed",
+      "status": "PASS"
+    },
+    {
+      "name": "All reporting lenses and empty states render through the actual source functions",
+      "status": "PASS"
+    },
+    {
+      "name": "New board annexes are immutable and old report packs gain no live-data annex",
+      "status": "PASS"
+    },
+    {
+      "name": "Cohort and receipt exports preserve dates, separate currencies, original account fields and reversal identity",
+      "status": "PASS"
+    },
+    {
+      "name": "Near misses are not applicable to financial recognition and are not reported as missing dates",
+      "status": "PASS"
+    },
+    {
+      "name": "Combined management read models reconcile reviewed NGN totals and exclude foreign and unaccepted records",
+      "status": "PASS"
+    },
+    {
+      "name": "Loss trend and adjacent comparison offsets are days and partition every supported period exactly once",
+      "status": "PASS"
+    },
+    {
+      "name": "Risk monetary summaries use reviewed NGN while linked rows preserve state and original currencies",
+      "status": "PASS"
+    },
+    {
+      "name": "Copilot follows the visible loss currency, date basis, search and workflow filters with stable context hashes",
+      "status": "PASS"
+    },
+    {
+      "name": "Published annex explanations use captured figures and old packs gain no live financial context",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy detail entry points reach scoped workspaces and all new report controls remain wired",
+      "status": "PASS"
+    }
+  ],
+  "passed": 18,
+  "failed": 0
+}

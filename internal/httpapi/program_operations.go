@@ -449,6 +449,10 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 		Command: spec.Command, SubresourceID: spec.SubresourceID, Label: spec.Label,
 		Responsibility: string(spec.Responsibility), AllowedTargets: spec.AllowedTargets,
 	}
+	if spec.Command == "program.review.accept" {
+		operation.Reason = "Program review unavailable. Try again later."
+		return operation, true
+	}
 	requiresStoredPrincipal := programOperationRequiresStoredPrincipal(spec.Command)
 	if strings.TrimSpace(spec.AssignedPrincipalID) != "" {
 		operation.AssignedTo = a.assignedPrincipal(ctx, actor, authority.Resolution{}, spec.AssignedPrincipalID)

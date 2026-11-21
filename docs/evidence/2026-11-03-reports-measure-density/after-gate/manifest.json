@@ -1,0 +1,567 @@
+{
+  "generatedAt": "2026-11-03T19:21:06.687Z",
+  "baseURL": "http://127.0.0.1:4178",
+  "failure": "ENOSPC: no space left on device, write",
+  "captures": [
+    {
+      "name": "221-navigation-menu-light-mobile-390x844",
+      "route": "#reports",
+      "fixture": "report-overview-loaded",
+      "state": "navigation-menu-light-mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "reportsLayout": {
+        "kind": "library",
+        "recordCount": 2,
+        "selectedCount": 1,
+        "inspectorPlacement": "above"
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Reports"
+        ],
+        "activeLocation": [],
+        "railWidth": 56,
+        "railX": 0,
+        "labelMode": "icons",
+        "maxLabelLines": 0,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": true,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available",
+        "drawer": {
+          "labels": [
+            "Home",
+            "Frameworks",
+            "Programs",
+            "Forms",
+            "Vendors",
+            "Risk & Losses",
+            "Privacy",
+            "Work & Approvals",
+            "Reports"
+          ],
+          "riskChildren": [
+            "Risks",
+            "RCSA",
+            "Key indicators",
+            "Loss events"
+          ],
+          "activePage": [
+            "Reports"
+          ],
+          "settingsPresent": true,
+          "minTargetWidth": 44,
+          "minTargetHeight": 44,
+          "labelsVisible": true,
+          "maxLabelLines": 1,
+          "currentPageBounds": {
+            "top": 657.140625,
+            "bottom": 701.140625,
+            "clipTop": 93.140625,
+            "clipBottom": 711.140625
+          },
+          "currentPageVisible": true,
+          "dialogWidth": 390,
+          "contentWidth": 390,
+          "navigationWidth": 350,
+          "expectedNavigationWidth": 350,
+          "contentFillsDialog": true,
+          "navigationFillsContent": true,
+          "targetsContained": true,
+          "bounded": true,
+          "focusContained": true,
+          "riskExpandedByKeyboard": true,
+          "dismissalRestoredFocus": true
+        }
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1325,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Open navigation"
+      }
+    },
+    {
+      "name": "221-navigation-menu-dark-mobile-390x844",
+      "route": "#reports",
+      "fixture": "report-overview-loaded",
+      "state": "navigation-menu-dark-mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "reportsLayout": {
+        "kind": "library",
+        "recordCount": 2,
+        "selectedCount": 1,
+        "inspectorPlacement": "above"
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Reports"
+        ],
+        "activeLocation": [],
+        "railWidth": 56,
+        "railX": 0,
+        "labelMode": "icons",
+        "maxLabelLines": 0,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": true,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available",
+        "drawer": {
+          "labels": [
+            "Home",
+            "Frameworks",
+            "Programs",
+            "Forms",
+            "Vendors",
+            "Risk & Losses",
+            "Privacy",
+            "Work & Approvals",
+            "Reports"
+          ],
+          "riskChildren": [
+            "Risks",
+            "RCSA",
+            "Key indicators",
+            "Loss events"
+          ],
+          "activePage": [
+            "Reports"
+          ],
+          "settingsPresent": true,
+          "minTargetWidth": 44,
+          "minTargetHeight": 44,
+          "labelsVisible": true,
+          "maxLabelLines": 1,
+          "currentPageBounds": {
+            "top": 657.140625,
+            "bottom": 701.140625,
+            "clipTop": 93.140625,
+            "clipBottom": 711.140625
+          },
+          "currentPageVisible": true,
+          "dialogWidth": 390,
+          "contentWidth": 390,
+          "navigationWidth": 350,
+          "expectedNavigationWidth": 350,
+          "contentFillsDialog": true,
+          "navigationFillsContent": true,
+          "targetsContained": true,
+          "bounded": true,
+          "focusContained": true,
+          "riskExpandedByKeyboard": true,
+          "dismissalRestoredFocus": true
+        }
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1325,
+        "scrollY": 0,
+        "theme": "dark",
+        "density": "comfortable",
+        "activeElement": "Open navigation"
+      }
+    },
+    {
+      "name": "219-report-source-light-1440x900",
+      "route": "#reports",
+      "fixture": "report-definitions",
+      "state": "report-source-desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "reportsLayout": {
+        "kind": "library",
+        "recordCount": 2,
+        "selectedCount": 1,
+        "inspectorPlacement": "beside"
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Reports"
+        ],
+        "activeLocation": [],
+        "railWidth": 228,
+        "railX": 0,
+        "labelMode": "expanded",
+        "maxLabelLines": 1,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": false,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 946,
+        "scrollY": 46,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Close"
+      }
+    },
+    {
+      "name": "220-report-source-dark-mobile-390x844",
+      "route": "#reports",
+      "fixture": "report-definitions",
+      "state": "report-source-mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "reportsLayout": {
+        "kind": "library",
+        "recordCount": 2,
+        "selectedCount": 1,
+        "inspectorPlacement": "above"
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Reports"
+        ],
+        "activeLocation": [],
+        "railWidth": 56,
+        "railX": 0,
+        "labelMode": "icons",
+        "maxLabelLines": 0,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": true,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1325,
+        "scrollY": 481,
+        "theme": "dark",
+        "density": "comfortable",
+        "activeElement": "Close"
+      }
+    },
+    {
+      "name": "140-report-library-light-1440x900",
+      "route": "#reports",
+      "fixture": "report-definitions",
+      "state": "report-library",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "reportsLayout": {
+        "kind": "library",
+        "recordCount": 2,
+        "selectedCount": 1,
+        "inspectorPlacement": "beside"
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Reports"
+        ],
+        "activeLocation": [],
+        "railWidth": 228,
+        "railX": 0,
+        "labelMode": "expanded",
+        "maxLabelLines": 1,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": false,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 946,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Reports"
+      }
+    },
+    {
+      "name": "140a-report-overview-light-1440x900",
+      "route": "#reports",
+      "fixture": "report-overview-loaded",
+      "state": "report-overview-desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "reportsLayout": {
+        "kind": "overview",
+        "metricColumns": 4,
+        "railPlacement": "beside",
+        "maxMetricHeight": 125,
+        "maxLabelLines": 1,
+        "minMetricValueFontSize": 28,
+        "minRecentActionCellWidth": 90.0625,
+        "minRecentActionButtonWidth": 66.0625,
+        "minRecentActionButtonHeight": 44,
+        "embeddedPanels": 2,
+        "riskValue": "4",
+        "riskQuality": "current",
+        "lossAvailable": true,
+        "organizationScopeID": null
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Reports"
+        ],
+        "activeLocation": [],
+        "railWidth": 228,
+        "railX": 0,
+        "labelMode": "expanded",
+        "maxLabelLines": 1,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": false,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available",
+        "keyboard": {
+          "focusVisible": true,
+          "directDestination": "Frameworks",
+          "browserBack": "Reports",
+          "riskDestination": "Loss events",
+          "primaryCurrent": "Risk & Losses",
+          "childCurrent": "location",
+          "compactDrawer": false,
+          "baselineRestored": true
+        }
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1425,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "ClearSightGovernance, risk & complianceHomeFrameworksProgramsFormsVendorsRisk & "
+      }
+    }
+  ]
+}

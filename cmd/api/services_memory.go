@@ -98,7 +98,11 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	if err != nil {
 		return serviceSet{}, err
 	}
-	distributionService := evidence.NewDistributionService(distributionStore).WithAssessmentAuthorizer(formAssessmentAuthorizer(authorityService)).WithResponseDiscoveryAuthorizer(formResponseDiscoveryAuthorizer(authorityService))
+	if distributionAccess != nil {
+		distributionAccess.WithInternalWorkspaceAuthorizer(internalFormResponseAuthorizer(authorityService))
+	}
+	distributionService := evidence.NewDistributionService(distributionStore).WithAssessmentAuthorizer(formAssessmentAuthorizer(authorityService)).WithResponseDiscoveryAuthorizer(formResponseDiscoveryAuthorizer(authorityService)).WithResponseReviewAuthorizer(formResponseReviewAuthorizer(authorityService))
+	distributionService.ConfigureDemoResponseReviewDecisions(cfg.DemoMode && !strings.EqualFold(strings.TrimSpace(cfg.Environment), "production"))
 	evidence.ConfigureDemoSamplePreview(evidenceService, distributionService, cfg.DemoMode)
 	distributionService.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
 	distributionService.ConfigureVendorProgress(distributionAccessStore)
@@ -207,7 +211,12 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	}
 	oversightService := oversight.NewService(oversightRepo)
 
+	var questionTestAudit sourceaccess.QuestionTestAudit
+	if !strings.EqualFold(cfg.Environment, "production") {
+		questionTestAudit = sourceaccess.NewMemoryQuestionTestAudit()
+	}
 	return serviceSet{
+		QuestionTestAudit:  questionTestAudit,
 		RegisterMigrations: registermigration.NewMemoryRepository(continuityRepo, thirdPartyRepo),
 		Mode:               "memory", Authority: authorityService, Governance: governance.NewService(governance.NewMemoryRepository()),
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,

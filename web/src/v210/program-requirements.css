@@ -1,0 +1,23 @@
+.v-program-requirement-list { list-style: none; margin: 16px 0 0; padding: 0; }
+.v-program-requirement-list li { padding: 16px 0; border-top: 1px solid #e5edf7; }
+.v-program-requirement-list p { color: #627b9f; font-size: 13px; }
+.v-program-requirement-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.v-program-requirement-actions button, .v-program-requirements p button { min-height: 44px; padding: 0 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-program-requirement-actions button.v-primary { background: #246cf0; color: #fff; border-color: #246cf0; }
+.v-program-requirement-actions button:disabled { opacity: .55; cursor: not-allowed; }
+.v-program-requirement-form { border-top: 1px solid #e5edf7; margin-top: 16px; }
+.v-program-requirement-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.v-program-requirement-form label { display: grid; gap: 6px; margin-bottom: 14px; color: #536c90; font-size: 12px; font-weight: 700; }
+.v-program-requirement-form input, .v-program-requirement-form select, .v-program-requirement-form textarea { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-program-requirement-form textarea { min-height: 80px; }
+.v-program-applicability { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.v-framework-mappings { margin-top: 18px; border-top: 1px solid #e5edf7; }
+.v-framework-mappings label { display: grid; gap: 6px; margin: 12px 0; color: #536c90; font-size: 12px; font-weight: 700; }
+.v-framework-mappings select, .v-framework-mappings textarea { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-framework-mappings textarea { min-height: 80px; }
+.v-framework-mappings ul { padding-left: 18px; }
+.v-framework-mappings li { margin: 12px 0; overflow-wrap: anywhere; }
+.v-framework-mappings li > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.v-framework-mappings button { min-height: 44px; margin: 4px 8px 4px 0; padding: 0 12px; border: 1px solid #dce7f5; border-radius: 8px; }
+.v-framework-mappings button:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 700px) { .v-program-applicability { grid-template-columns: minmax(0, 1fr); } }

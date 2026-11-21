@@ -1,0 +1,73 @@
+{
+  "kind": "Node domain-model checks; browser DOM mocked",
+  "checks": [
+    {
+      "test": "Inbox derives records and builds its complete list/detail views",
+      "status": "PASS"
+    },
+    {
+      "test": "Repeated monitoring deduplicates stable events and retains read receipts",
+      "status": "PASS"
+    },
+    {
+      "test": "Recipients have isolated personal history on shared events",
+      "status": "PASS"
+    },
+    {
+      "test": "Scope filters both notification text and direct detail access",
+      "status": "PASS"
+    },
+    {
+      "test": "Invalid stored scope does not widen to bank-wide notifications",
+      "status": "PASS"
+    },
+    {
+      "test": "Snoozes use time and resume without modifying the source",
+      "status": "PASS"
+    },
+    {
+      "test": "Future optional preferences do not suppress critical events or existing history",
+      "status": "PASS"
+    },
+    {
+      "test": "Source references are exact; mismatched route IDs are rejected",
+      "status": "PASS"
+    },
+    {
+      "test": "Acknowledgement is distinct from resolution; completion is source-owned",
+      "status": "PASS"
+    },
+    {
+      "test": "Program activity creates a notification linked to the actual program",
+      "status": "PASS"
+    },
+    {
+      "test": "Notification titles, bodies and thread content are escaped in HTML",
+      "status": "PASS"
+    },
+    {
+      "test": "Integrated source modules build board, governance and KRI views without conflicts",
+      "status": "PASS"
+    },
+    {
+      "test": "Lowercase priorities retain their meaning across KRI and board events",
+      "status": "PASS"
+    },
+    {
+      "test": "Actual KRI submission emits a revision-bound approval and review resolves it",
+      "status": "PASS"
+    },
+    {
+      "test": "Accepted KRI exception remains open until its own remediation task is completed",
+      "status": "PASS"
+    },
+    {
+      "test": "Changes-requested KRI notification resolves when a correction is resubmitted",
+      "status": "PASS"
+    },
+    {
+      "test": "Board-style work notification links to the actual task and its completion",
+      "status": "PASS"
+    }
+  ]
+}

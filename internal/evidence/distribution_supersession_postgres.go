@@ -117,7 +117,7 @@ func loadPostgresSupersessionWorkspace(ctx context.Context, tx pgx.Tx, workspace
 			return ResponseWorkspaceView{}, err
 		}
 		var patch postgresWorkspaceEditPatch
-		if err := json.Unmarshal(patchJSON, &patch); err != nil || patch.FieldID == "" || resultVersion != baseVersion+1 || !validPersistedWorkspaceEditOrigin(patch) || !validAccessAssurance(patch.Assurance) {
+		if err := json.Unmarshal(patchJSON, &patch); err != nil || patch.FieldID == "" || resultVersion != baseVersion+1 || !validPersistedWorkspaceEditOrigin(patch) || !validWorkspaceAssurance(patch.Assurance) {
 			return ResponseWorkspaceView{}, fmt.Errorf("%w: invalid persisted workspace edit", ErrWorkspaceUnavailable)
 		}
 		applyWorkspaceEdit(view.Answers, FieldEdit{FieldID: patch.FieldID, Value: patch.Value})
@@ -367,7 +367,7 @@ func appendPostgresSupersessionEvent(ctx context.Context, tx pgx.Tx, distributio
 }
 
 func validPersistedWorkspaceEditOrigin(patch postgresWorkspaceEditPatch) bool {
-	return (patch.SessionID != "" && patch.RouteID != "") || patch.CarriedFromDistributionID != ""
+	return validWorkspaceEditOrigin(patch.Origin, patch.PrincipalID, patch.SessionID, patch.RouteID, patch.CarriedFromDistributionID, patch.Assurance)
 }
 
 var _ distributionSupersessionStore = (*PostgresDistributionStore)(nil)

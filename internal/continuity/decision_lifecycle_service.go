@@ -20,7 +20,7 @@ func (s *Service) RecordDecisionLifecycle(ctx context.Context, input AddDecision
 	if decisionType == "" || strings.TrimSpace(input.Rationale) == "" {
 		return MatterAggregate{}, fmt.Errorf("type and rationale are required")
 	}
-	if err := ValidateDecisionLifecycle(aggregate.Decisions, decisionType, input.Status); err != nil {
+	if _, err := DecisionAuthorityRequirement(aggregate, decisionType, input.Status); err != nil {
 		return MatterAggregate{}, err
 	}
 	actorID := strings.TrimSpace(input.AuthorityPrincipalID)

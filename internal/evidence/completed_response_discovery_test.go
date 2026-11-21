@@ -29,6 +29,12 @@ func TestRoutedReviewerDiscoversOnlyPermittedSubmittedVendorResponses(t *testing
 		store.requestDistribution[req.ID] = d.ID
 		revision := completedRevision("response"+key, "bank", "entity", d.ID, req.UpdatedAt, 80, formcontract.ConcernHigh)
 		revision.SubmissionID = sub.ID
+		if i == 2 {
+			revision.SubmittedRecipientID = "recipient2"
+			revision.SubmittedRecipientType = RecipientExternalAudience
+			revision.SubmittedRecipientLabel = "Vendor security lead"
+			store.recipients[d.ID] = []memoryDistributionRecipient{{safe: DistributionRecipient{ID: "recipient2", TenantID: "bank", LegalEntityID: "entity", DistributionID: d.ID, RequestID: req.ID, Role: RecipientTo, Type: RecipientExternalAudience}}}
+		}
 		store.responseRevisions[d.ID] = []ResponseRevision{revision}
 	}
 	repo.requests["pending"] = Request{ID: "pending", TenantID: "bank", LegalEntityID: "entity", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "rel", FormTemplateID: "form", Status: RequestInProgress, UpdatedAt: now.Add(time.Hour)}
@@ -45,8 +51,14 @@ func TestRoutedReviewerDiscoversOnlyPermittedSubmittedVendorResponses(t *testing
 	if err != nil || len(first.Items) != 1 || first.Items[0].ID != "response2" || first.NextCursor == "" {
 		t.Fatalf("first=%+v err=%v", first, err)
 	}
+	if first.Items[0].SubmittedBy != "supplier" {
+		t.Fatalf("submitted person lost from authorized list: %+v", first.Items[0])
+	}
+	if first.Items[0].SubmissionRecipient == nil || first.Items[0].SubmissionRecipient.Label != "Vendor security lead" {
+		t.Fatalf("recorded recipient missing from list: %+v", first.Items[0])
+	}
 	q.Cursor = first.NextCursor
-	if _, _, err := service.GetCompletedResponse(ctx, "bank", "entity", "reviewer", "response2"); err != nil {
+	if detail, _, err := service.GetCompletedResponse(ctx, "bank", "entity", "reviewer", "response2"); err != nil || detail.SubmittedBy != "supplier" {
 		t.Fatalf("permitted reviewer exact read failed: %v", err)
 	}
 	second, err := service.ListCompletedResponses(ctx, q)
@@ -68,6 +80,19 @@ func TestRoutedReviewerDiscoversOnlyPermittedSubmittedVendorResponses(t *testing
 	if err != nil || summaries[0].SubmittedForms != 3 || summaries[0].OutstandingForms != 1 {
 		t.Fatalf("owner counts=%+v err=%v", summaries, err)
 	}
+	assigned := repo.requests["req2"]
+	assigned.Recipient = Recipient{Type: RecipientInternalPrincipal, PrincipalID: "reviewer", State: RecipientStateAssigned}
+	repo.requests["req2"] = assigned
+	submitted := repo.submissions["sub2"]
+	submitted.SubmittedBy = ""
+	repo.submissions["sub2"] = submitted
+	q.Cursor = ""
+	conflicted, err := service.ListCompletedResponses(ctx, q)
+	if err != nil || len(conflicted.Items) != 1 || conflicted.Items[0].ID != "response1" || conflicted.NextCursor != "" {
+		t.Fatalf("assigned respondent discovered their own link response: %+v %v", conflicted, err)
+	}
+	assigned.Recipient = Recipient{}
+	repo.requests["req2"] = assigned
 	sub := repo.submissions["sub2"]
 	sub.SubmittedBy = "reviewer"
 	repo.submissions["sub2"] = sub
@@ -89,5 +114,41 @@ func TestRoutedReviewerDiscoversOnlyPermittedSubmittedVendorResponses(t *testing
 	first, err = service.ListCompletedResponses(ctx, q)
 	if err != nil || len(first.Items) != 0 {
 		t.Fatalf("revoked=%+v err=%v", first, err)
+	}
+}
+
+func TestResponseReviewerDiscoversUnscoredVendorResponseWithoutRubric(t *testing.T) {
+	now := time.Now().UTC()
+	repo := NewMemoryRepositoryWithRecipientCandidates(nil, nil, []RecipientCandidate{{PrincipalID: "owner", TenantID: "bank", Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"VENDOR_RELATIONSHIP:rel": true}}})
+	store := NewMemoryDistributionStore(repo, nil, nil)
+	req := Request{ID: "request", TenantID: "bank", LegalEntityID: "entity", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "rel", FormTemplateID: "form", FormTemplateVersion: 1, Status: RequestSubmitted, Fields: []Field{{ID: "answer", Label: "Answer", Type: "short_text"}}, ScoringMode: formcontract.ScoringNone}
+	repo.requests[req.ID] = req
+	repo.submissions["submission"] = Submission{ID: "submission", TenantID: "bank", RequestID: req.ID, SubmittedBy: "supplier", Answers: formcontract.TextAnswers(map[string]string{"answer": "Supplied"}), SubmittedAt: now}
+	d := FormDistribution{ID: "distribution", TenantID: "bank", LegalEntityID: "entity", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "rel", FormTemplateID: "form", FormTemplateVersion: 1, Status: DistributionCompleted}
+	store.distributions[d.ID] = d
+	store.requestDistribution[req.ID] = d.ID
+	rev := completedRevision("response", "bank", "entity", d.ID, now, 0, formcontract.ConcernLow)
+	rev.SubmissionID = "submission"
+	rev.Score = &ResponseScoreResult{State: ResponseScoreNotConfigured}
+	store.responseRevisions[d.ID] = []ResponseRevision{rev}
+	revoked := false
+	service := NewDistributionService(store).WithResponseReviewAuthorizer(func(_ context.Context, actor identity.Actor, response CompletedResponseSummary) (string, error) {
+		if !revoked && actor.PrincipalID == "reviewer" && response.ID == "response" {
+			return "policy:route", nil
+		}
+		return "", ErrAssessmentForbidden
+	})
+	ctx := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "reviewer", ExpiresAt: now.Add(time.Hour)})
+	query := CompletedResponseQuery{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "reviewer", CurrentOnly: true, Limit: 10}
+	page, err := service.ListCompletedResponses(ctx, query)
+	if err != nil || len(page.Items) != 1 || page.Items[0].ID != rev.ID {
+		t.Fatalf("response discovery=%+v err=%v", page, err)
+	}
+	if _, err := service.GetCompletedResponseAnswers(ctx, "bank", "entity", "reviewer", rev.ID); err != nil {
+		t.Fatalf("reviewer answer read: %v", err)
+	}
+	revoked = true
+	if _, _, err := service.GetCompletedResponse(ctx, "bank", "entity", "reviewer", rev.ID); err == nil {
+		t.Fatal("revoked route retained access")
 	}
 }

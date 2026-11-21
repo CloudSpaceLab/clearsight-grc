@@ -97,6 +97,13 @@ func (a *API) createVendorRelationship(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Check the vendor fields and submit one JSON object.")
 		return
 	}
+	// Guarded reuse and keyed recovery remain unavailable until authority
+	// revocation is synchronized with this command's transaction.
+	if request.ExistingRelationshipID != "" || strings.TrimSpace(r.Header.Get("Idempotency-Key")) != "" {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "vendor_create_recovery_unavailable", "Vendor creation is unavailable. No change was made.")
+		return
+	}
+	request.CreateRelationshipInput.IdempotencyKey = r.Header.Get("Idempotency-Key")
 	value, err := service.CreateRelationship(r.Context(), actor, request.CreateRelationshipInput)
 	if err != nil {
 		writeThirdPartyError(w, err)
@@ -130,6 +137,8 @@ func (a *API) updateVendorRelationship(w http.ResponseWriter, r *http.Request) {
 
 func writeThirdPartyError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, thirdparty.ErrIdempotencyConflict):
+		httpx.WriteError(w, http.StatusConflict, "vendor_create_key_conflict", "The request key was already used. Check the vendor relationship before retrying.")
 	case errors.Is(err, thirdparty.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "vendor_not_found", "This vendor relationship was not found in your current legal-entity scope.")
 	case errors.Is(err, thirdparty.ErrVersionConflict):

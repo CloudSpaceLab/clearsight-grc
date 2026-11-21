@@ -78,6 +78,8 @@ type Resolution struct {
 	Strategy            string            `json:"strategy,omitempty"`
 	RuleID              string            `json:"rule_id"`
 	PolicyVersion       string            `json:"policy_version"`
+	SourceType          string            `json:"source_type,omitempty"`
+	SourceID            string            `json:"source_id,omitempty"`
 	Explanation         string            `json:"explanation"`
 }
 

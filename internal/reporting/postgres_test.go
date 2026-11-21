@@ -591,7 +591,7 @@ func newReportingPostgresFixture(t *testing.T) *reportingPostgresFixture {
 			t.Fatal(err)
 		}
 	}
-	execFixture(`INSERT INTO tenants(id,slug,name) VALUES($1,$2,$3)`, fixture.tenantID, "report-repo-"+fixture.tenantID[:8], "Reporting Repository Test")
+	execFixture(`INSERT INTO tenants(id,slug,name) VALUES($1,$2,$3)`, fixture.tenantID, "report-repo-"+fixture.tenantID, "Reporting Repository Test")
 	execFixture(`INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1,$2,'ENTITY-A','Entity A','NG')`, fixture.entityAID, fixture.tenantID)
 	execFixture(`INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1,$2,'ENTITY-B','Entity B','NG')`, fixture.entityBID, fixture.tenantID)
 	for _, principal := range []struct{ id, ref, name string }{

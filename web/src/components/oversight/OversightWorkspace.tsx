@@ -4,7 +4,8 @@ import { homeMetricDetail, homeMetricFilter, homeMetricMeta, homeMetricQuality, 
 import { loadOversight, type OversightSnapshot } from "../../oversightApi";
 import type { HomeTab } from "../../appRouting";
 import { reportingPeriodLabel, type ReportingPeriod, type ReportingPeriodQuery } from "../../reportingPeriod";
-import { Button, DataTable, EmptyState, MetricCard, Notice, Tabs } from "../ui";
+import { Button, DataTable, EmptyState, MetricCard, Notice, StatusBadge, Tabs } from "../ui";
+import { matterPriorityLabel } from "../../matterPresentation";
 import type { AttentionItem } from "../../types";
 import { OversightPeriodPicker } from "./OversightPeriodPicker";
 import { DomainPostureSummary } from "./DomainPostureSummary";
@@ -13,6 +14,7 @@ import { RiskMovement } from "./RiskMovement";
 import { OrganizationLossSummary } from "./OrganizationLossSummary";
 import { LossMovement } from "./LossMovement";
 import { MetricMemberDrill } from "./MetricMemberDrill";
+import { OverviewRecords } from "./OverviewRecords";
 import "../../oversight.css";
 
 type DetailView = "pressure" | "outlook" | "performance";
@@ -27,7 +29,9 @@ type OversightWorkspaceProps = {
   organizationScopeName?: string;
   onOpenMatter: (id: string) => void;
   onOpenProgram?: (id: string) => void;
+  onOpenPrograms?: () => void;
   onOpenRisk?: (id: string) => void;
+  onOpenRisks?: () => void;
   onOpenLoss?: (id: string) => void;
   onOrganizationScopeChange?: (scopeID: string) => void;
   loadSnapshot?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<OversightSnapshot>;
@@ -54,7 +58,9 @@ export function OversightWorkspace({
   organizationScopeName,
   onOpenMatter,
   onOpenProgram,
+  onOpenPrograms,
   onOpenRisk,
+  onOpenRisks,
   onOpenLoss,
   onOrganizationScopeChange,
   loadSnapshot = loadOversight,
@@ -321,12 +327,20 @@ export function OversightWorkspace({
     : metrics
       ? { reporting_period: metrics.reporting_period, freshness: metrics.freshness, generated_at: metrics.generated_at }
       : undefined;
+  const freshnessDetails = snapshot && <details className="oversight-data-freshness">
+    <summary>Data freshness</summary>
+    <div>
+      <p>Updated {formatDateTime(snapshot.generated_at)}.</p>
+      <p>{historyQualityLabel(snapshot)}</p>
+      <dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl>
+    </div>
+  </details>;
 
   return <section className="oversight-workspace">
     <header className="oversight-header">
       <div>
         <span className="eyebrow">{organizationName} · {legalEntityName}{organizationScopeName ? ` · ${organizationScopeName}` : ""}</span>
-        <h1>Enterprise Control Tower</h1>
+        <h1>Overview</h1>
         <p>{selectedHomeTab === "oversight" ? periodSource ? controlTowerSummary(periodSource.reporting_period) : "Risk, compliance and action" : homeTabDescription(selectedHomeTab, organizationScopeName)}</p>
       </div>
       {selectedHomeTab !== "my-work" && periodSource && <div className="oversight-header__actions">
@@ -338,7 +352,8 @@ export function OversightWorkspace({
             start_date: periodSource.reporting_period.start_date,
             end_date: periodSource.reporting_period.end_date,
           })}
-        >Open in Insights</Button>}
+        >Risk insights</Button>}
+        {selectedHomeTab === "oversight" && onOpenWork && <Button variant="primary" size="compact" onPress={onOpenWork}>Review work</Button>}
         <OversightPeriodPicker
           period={periodSource.reporting_period}
           freshness={periodSource.freshness}
@@ -350,21 +365,10 @@ export function OversightWorkspace({
       </div>}
     </header>
 
-    {selectedHomeTab !== "my-work" && snapshot && <>
-      <div className="oversight-scope-line"><span>{coverage}</span></div>
-      <details className="oversight-data-freshness">
-        <summary>Data freshness</summary>
-        <div>
-          <p>Updated {formatDateTime(snapshot.generated_at)}.</p>
-          <p>{historyQualityLabel(snapshot)}</p>
-          <dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl>
-        </div>
-      </details>
-    </>}
-
     <div className="oversight-home-tabs">
-      <Tabs ariaLabel="Home views" compactLabel="Home view" items={homeIntentTabs} selectedKey={selectedHomeTab} onSelectionChange={selectHomeTab}>
+      <Tabs ariaLabel="Home views" items={homeIntentTabs} selectedKey={selectedHomeTab} onSelectionChange={selectHomeTab}>
         {(tab) => <div className="oversight-home-panel">
+          {tab !== "my-work" && snapshot && <div className="oversight-scope-line"><span>{coverage}</span></div>}
           {tab === "oversight" && <>
             {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading oversight…</p>}
             {state === "unavailable" && <><Notice tone="warning">Oversight information is unavailable.</Notice><div className="workspace-recovery-actions"><Button onPress={() => void load()}>Retry Home data</Button></div></>}
@@ -377,6 +381,11 @@ export function OversightWorkspace({
               onOpenRisk={onOpenRisk}
               onOpenLoss={onOpenLoss}
             />
+            <div className="oversight-overview-content">
+            <div className="overview-main"><OverviewRecords organizationScopeID={organizationScopeID} refreshToken={refreshToken} onOpenProgram={onOpenProgram} onOpenPrograms={onOpenPrograms} onOpenRisk={onOpenRisk} onOpenRisks={onOpenRisks}/></div>
+            {!organizationScopeID && onOpenTodayItem && <OverviewAssignedWork items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>}
+            <div className="oversight-overview-analysis">
+            {freshnessDetails}
             <section className="oversight-posture-analysis" aria-label="Risk and loss analysis">
               <Tabs ariaLabel="Posture comparison" compactLabel="Posture comparison" items={postureComparisonViews} selectedKey={postureLens} onSelectionChange={setPostureLens}>
                 {(selected) => selected === "risk"
@@ -389,6 +398,7 @@ export function OversightWorkspace({
                     <RiskMovement
                       bundle={domainMetrics}
                       organizationScopeID={organizationScopeID}
+                      period={periodSource?.reporting_period}
                     />
                   </div>
                   : <div className="oversight-loss-overview">
@@ -409,22 +419,25 @@ export function OversightWorkspace({
               {selected === "outlook" && <ResolutionOutlook snapshot={snapshot}/>}
               {selected === "performance" && <OperatingPerformance snapshot={snapshot}/>}
             </div>}</Tabs></div>}
+            </div>
+            </div>
           </>}
 
           {tab === "attention" && <>
             {headlineMetrics}
+            {freshnessDetails}
             {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading priority interventions…</p>}
             {state === "unavailable" && <Notice tone="warning">Priority intervention detail is unavailable. Headline metrics may still be current.</Notice>}
             {snapshot && <section id="oversight-attention" className="oversight-attention" aria-labelledby="oversight-attention-heading" tabIndex={-1}>
               <div className="section-header">
                 <div>
                   <span className="eyebrow">Attention</span>
-                  <h2 id="oversight-attention-heading">{selectedMetricFilter === "all" ? "Priority interventions" : metricFilterLabel(selectedMetricFilter)}</h2>
-                  <p>{selectedMetricFilter === "all" ? "Priority issues · View all in Work." : exactDrillActive ? "Records counted in this metric." : "Issues matching this measure."}</p>
+                  <h2 id="oversight-attention-heading">{selectedMetricFilter === "all" ? "Issues needing attention" : metricFilterLabel(selectedMetricFilter)}</h2>
+                  {selectedMetricFilter !== "all" && <p>{exactDrillActive ? "Records counted in this metric." : "Issues matching this measure."}</p>}
                 </div>
                 <div className="oversight-attention-actions">
                   <div className="oversight-inline-counts"><span>{snapshot.counts.due_soon} due soon</span><span>{snapshot.counts.unassigned} unassigned</span></div>
-                  {onOpenWork && <Button variant="secondary" size="compact" onPress={onOpenWork}>Open Work</Button>}
+                  {onOpenWork && <Button variant="secondary" size="compact" onPress={onOpenWork}>Review work</Button>}
                 </div>
               </div>
               {selectedMetricFilter !== "all" && exactDrillActive
@@ -445,7 +458,7 @@ export function OversightWorkspace({
                 : <>
                   {selectedMetricFilter !== "all" && <p className="oversight-result-count" aria-live="polite">{visibleInterventions.length} ranked {visibleInterventions.length === 1 ? "issue" : "issues"} shown for {metricFilterLabel(selectedMetricFilter).toLowerCase()}.</p>}
                   {visibleInterventions.length ? <div className="oversight-intervention-list">{visibleInterventions.map((item) => <article key={`${item.target_type}-${item.target_id}`}>
-                    <div className={`oversight-priority p${item.priority}`}><span>P{item.priority}</span></div>
+                    <div><StatusBadge tone={item.priority >= 5 ? "error" : item.priority === 4 ? "warning" : "neutral"}>{matterPriorityLabel(item.priority)}</StatusBadge></div>
                     <div><div className="oversight-intervention-title"><strong>{item.title}</strong><span>{humanize(item.category)}</span></div><p>{item.reason}</p><small>{item.owner_name || "No owner recorded"}{item.due_at ? ` · Due ${formatDate(item.due_at)}` : " · No due date recorded"} · {humanize(item.state)}</small></div>
                     <div className="oversight-action"><Button size="compact" onPress={() => onOpenMatter(item.target_id)} aria-label={`Review ${item.title}`}>{item.next_action}</Button></div>
                   </article>)}</div> : state === "live" && <EmptyState population={organizationScopeID ? `${snapshot.coverage.population} attributed issues in ${organizationScopeName || "this scope"}` : `${snapshot.coverage.population} issues checked in ${legalEntityName}`} title={selectedMetricFilter === "all" ? "No issue meets the current intervention criteria" : "No ranked intervention matches this measure"} description="Check data freshness and coverage."/>}
@@ -502,10 +515,21 @@ function HomeMetricStrip({ metrics, state, selected, onSelect }: { metrics: Home
   </div>;
 }
 
+function OverviewAssignedWork({ items, state, onOpenItem }: { items: AttentionItem[]; state: TodayState; onOpenItem: (item: AttentionItem) => void }) {
+  return <section className="oversight-today overview-assigned" aria-labelledby="overview-assigned-heading">
+    <h2 id="overview-assigned-heading">Assigned work</h2>
+    {state === "loading" ? <p className="oversight-today-status" aria-live="polite" aria-busy="true">Loading assigned work…</p>
+      : state === "unavailable" ? <p className="oversight-today-status">Assigned work is unavailable.</p>
+      : items.length ? <div className="oversight-today-list">{items.slice(0, 3).map((item) => <button type="button" className="oversight-today-item" key={item.id} onClick={() => onOpenItem(item)} aria-label={`Open ${item.title}`}>
+        <span className="oversight-today-item__main"><strong>{item.title}</strong><small>{item.why_now}</small></span><span className="oversight-today-item__meta"><span>{item.owner}</span><time>{formatTodayDue(item.due_at)}</time></span>
+      </button>)}</div> : <p className="oversight-today-status">No assigned work or permitted operational exceptions are open for you.</p>}
+  </section>;
+}
+
 function OversightToday({ items, state, onOpenItem, onOpenWork }: { items: AttentionItem[]; state: TodayState; onOpenItem?: (item: AttentionItem) => void; onOpenWork?: () => void }) {
   const visible = items.slice(0, 8);
   return <section className="oversight-today" aria-labelledby="oversight-today-heading">
-    <div className="section-header"><div><span className="eyebrow">My work</span><h2 id="oversight-today-heading">Your assigned work</h2><p>Assigned decisions, evidence and exceptions requiring your action.</p></div>{onOpenWork && <Button variant="secondary" size="compact" onPress={onOpenWork}>Open Work</Button>}</div>
+    <div className="section-header"><div><span className="eyebrow">My work</span><h2 id="oversight-today-heading">Your assigned work</h2><p>Assigned decisions, evidence and exceptions requiring your action.</p></div>{onOpenWork && <Button variant="secondary" size="compact" onPress={onOpenWork}>Review work</Button>}</div>
     {state === "loading" ? <p className="oversight-today-status" aria-live="polite" aria-busy="true">Loading assigned work…</p> : state === "unavailable" ? <p className="oversight-today-status">Assigned work is unavailable. Refresh before relying on the current queue.</p> : visible.length ? <div className="oversight-today-list">{visible.map((item) => <button type="button" className="oversight-today-item" key={item.id} onClick={() => onOpenItem?.(item)} disabled={!onOpenItem} aria-label={`Open ${item.title}`}>
       <span className="oversight-today-item__main"><strong>{item.title}</strong><small>{item.why_now}</small></span><span className="oversight-today-item__meta"><span>{item.owner}</span><time>{formatTodayDue(item.due_at)}</time></span>
     </button>)}</div> : <p className="oversight-today-status">No assigned work or permitted operational exceptions are open for you.</p>}

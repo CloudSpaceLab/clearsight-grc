@@ -1,0 +1,7 @@
+# Form question outline: focused sheet
+
+Reference: `clearsight-v2.15/form-builder.html`, SHA-256 `42366de035b8b78af9ae96fabd91aa9d6e04b2805a1df4f47426527a686dc0fc`. At 760px and below the question outline opens in a native modal sheet; wider views retain the sticky outline. Closing restores the trigger, choosing a question focuses that question, and resizing to desktop closes the sheet and focuses the workspace. The browser modal top layer isolates the background; the sticky header uses the documented sheet layer and a 44px close target. No form data, authority or API contract changes.
+
+The earlier form authoring screenshots in `docs/evidence/2026-11-21-v215-form-authoring/` are the before baseline. The synthetic after fixture in `docs/evidence/2026-11-21-v215-focused-sheet/` covers 1440, 768 and 390 pixels; at 390 it exercises actual modal state, focus, Escape, selecting a question, an outside competing fixed layer, a competing sticky child and target size. All three widths have no horizontal overflow. This is incremental source guidance and browser evidence, not whole-screen, screen-reader, dark-theme or live-backend acceptance.
+
+The same browser check exercises the ordered primitive, semantic and component token overrides against the real primary button and verifies the original color returns when overrides are removed. It also checks the shared panel's actual light background, border and radius, and applies and removes a semantic border override. This does not establish token or dark-theme coverage for other component families.

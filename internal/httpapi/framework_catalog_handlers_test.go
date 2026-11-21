@@ -18,6 +18,15 @@ type testFrameworkEditionReader struct {
 	items []frameworkcatalog.Edition
 }
 
+type paginatedFrameworkReader struct{ testFrameworkEditionReader }
+
+func (reader paginatedFrameworkReader) ListClauses(_ context.Context, editionID, after string, limit int) ([]frameworkcatalog.Clause, error) {
+	if editionID != "edition-1" || after != "" || limit != 2 {
+		return nil, frameworkcatalog.ErrInvalidPublication
+	}
+	return []frameworkcatalog.Clause{{ID: "private-a", Code: "A", Title: "Access", SourceAnchor: "Section 1"}, {ID: "private-b", Code: "B", Title: "Review", SourceAnchor: "Section 2"}}, nil
+}
+
 func (reader testFrameworkEditionReader) ListEditions(_ context.Context, jurisdiction, cursor string, limit int) ([]frameworkcatalog.Edition, error) {
 	if jurisdiction != "GLOBAL" || cursor != "" || limit != 100 {
 		return nil, frameworkcatalog.ErrInvalidPublication
@@ -83,5 +92,62 @@ func TestFrameworkEditionCatalogueReadRequiresExactLegalEntity(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestFrameworkClauseCatalogueRequiresScopedIdentityAndValidFilters(t *testing.T) {
+	items := []frameworkcatalog.Edition{{ID: "edition-1", PublisherCode: "EXAMPLE", FrameworkCode: "SECURITY", EditionCode: "2026"}}
+	for _, tt := range []struct {
+		name, entity, path string
+		status             int
+	}{
+		{"scoped", "bank-ng", "/api/v1/framework-catalog/editions/edition-1/clauses?limit=100", http.StatusOK},
+		{"unscoped", "*", "/api/v1/framework-catalog/editions/edition-1/clauses?limit=100", http.StatusForbidden},
+		{"invalid limit", "bank-ng", "/api/v1/framework-catalog/editions/edition-1/clauses?limit=101", http.StatusBadRequest},
+		{"invalid cursor", "bank-ng", "/api/v1/framework-catalog/editions/edition-1/clauses?after_code=%20A", http.StatusBadRequest},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			h := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner", tt.entity), FrameworkCatalog: testFrameworkEditionReader{items: items}})
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tt.path, nil))
+			if rec.Code != tt.status {
+				t.Fatalf("status=%d want %d body=%s", rec.Code, tt.status, rec.Body.String())
+			}
+			if tt.status == http.StatusOK {
+				var got struct {
+					EditionID string                    `json:"edition_id"`
+					Items     []frameworkcatalog.Clause `json:"items"`
+				}
+				if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+					t.Fatal(err)
+				}
+				if got.EditionID != "edition-1" || len(got.Items) != 1 || got.Items[0].Code != "A" {
+					t.Fatalf("unexpected clauses: %+v", got)
+				}
+			}
+		})
+	}
+}
+
+func TestFrameworkClauseCatalogueUsesBoundedCursorAndOnlyPublishedMetadata(t *testing.T) {
+	reader := paginatedFrameworkReader{testFrameworkEditionReader{items: []frameworkcatalog.Edition{{ID: "edition-1"}}}}
+	h := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner", "bank-ng"), FrameworkCatalog: reader})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/framework-catalog/editions/edition-1/clauses?limit=2", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	var got struct {
+		Items []map[string]any `json:"items"`
+		Next  string           `json:"next_after_code"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Items) != 2 || got.Next != "B" {
+		t.Fatalf("unexpected page: %+v", got)
+	}
+	if _, ok := got.Items[0]["id"]; ok {
+		t.Fatal("database identity exposed")
 	}
 }

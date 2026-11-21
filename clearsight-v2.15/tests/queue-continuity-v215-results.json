@@ -1,0 +1,32 @@
+{
+  "suite": "V2.15 inbox refinement and work queue continuity",
+  "browserLayoutValidated": false,
+  "passed": 6,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Filtered empty inbox explains hidden results and escapes active search context",
+      "status": "PASS"
+    },
+    {
+      "name": "Clear refinements retains mailbox, sorting, recipient, scope and receipts",
+      "status": "PASS"
+    },
+    {
+      "name": "Partial and empty selections expose correct native select-all state and prune stale IDs",
+      "status": "PASS"
+    },
+    {
+      "name": "Inbox refresh filters once and announces concise counts without announcing the entire list",
+      "status": "PASS"
+    },
+    {
+      "name": "Work detail round-trips exact queue filters through bounded same-workspace parameters",
+      "status": "PASS"
+    },
+    {
+      "name": "Malformed queue return data cannot change route, expand scope or expose unavailable actions",
+      "status": "PASS"
+    }
+  ]
+}

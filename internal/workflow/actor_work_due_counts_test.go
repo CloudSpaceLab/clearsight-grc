@@ -1,9 +1,71 @@
 package workflow
 
 import (
+	"context"
 	"testing"
 	"time"
 )
+
+type countSnapshotRepository struct {
+	*MemoryRepository
+	filter ListFilter
+	asOf   time.Time
+}
+
+func (r *countSnapshotRepository) CountActorWorkDue(_ context.Context, filter ListFilter) (ActorWorkDueCounts, error) {
+	r.filter = filter
+	return ActorWorkDueCounts{AsOf: r.asOf, Total: 1}, nil
+}
+
+func TestActorWorkCountsUseRepositorySnapshotWithoutUpdateFence(t *testing.T) {
+	repo := &countSnapshotRepository{MemoryRepository: NewMemoryRepository(nil), asOf: time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC)}
+	counts, err := NewService(repo).ReadActorWorkDueCounts(context.Background(), "bank", "entity", "actor")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if repo.filter.UpdatedThrough != nil {
+		t.Fatal("count must include every authorized row visible in the source snapshot")
+	}
+	if !counts.AsOf.Equal(repo.asOf) {
+		t.Fatalf("receipt must use repository snapshot time: got %v want %v", counts.AsOf, repo.asOf)
+	}
+}
+
+type waitingMemoryCountRepository struct {
+	*MemoryRepository
+	entered chan struct{}
+}
+
+func (r *waitingMemoryCountRepository) CountActorWorkDue(ctx context.Context, filter ListFilter) (ActorWorkDueCounts, error) {
+	close(r.entered)
+	return r.MemoryRepository.CountActorWorkDue(ctx, filter)
+}
+
+func TestActorWorkMemoryCountsSnapshotAfterConcurrentUpdate(t *testing.T) {
+	base := time.Now().UTC().Add(-time.Hour)
+	task := actorPageTestTask(1, base, base.Add(time.Hour))
+	repo := &waitingMemoryCountRepository{MemoryRepository: NewMemoryRepository([]Task{task}), entered: make(chan struct{})}
+	repo.mu.Lock()
+	result := make(chan ActorWorkDueCounts, 1)
+	errs := make(chan error, 1)
+	go func() {
+		counts, err := NewService(repo).ReadActorWorkDueCounts(context.Background(), "bank", "entity", "actor")
+		result <- counts
+		errs <- err
+	}()
+	<-repo.entered
+	changed := time.Now().UTC().Truncate(time.Microsecond)
+	task.UpdatedAt = changed
+	repo.tasks[task.ID] = task
+	repo.mu.Unlock()
+	counts := <-result
+	if err := <-errs; err != nil {
+		t.Fatal(err)
+	}
+	if counts.Total != 1 || counts.AsOf.Before(changed) {
+		t.Fatalf("updated task missing from memory snapshot: changed=%v counts=%+v", changed, counts)
+	}
+}
 
 func TestActorWorkDueCountsAreSourceCompleteBeyondFirstPage(t *testing.T) {
 	base := time.Now().UTC().Add(-2 * time.Hour)

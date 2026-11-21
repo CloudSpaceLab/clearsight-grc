@@ -1,0 +1,49 @@
+{
+  "runtime": "Node actual-source; browser shell stubbed",
+  "results": [
+    {
+      "name": "51 reference questions retain stable source columns and eight operational groups",
+      "status": "PASS"
+    },
+    {
+      "name": "Empty, zero, unavailable and not-applicable answers remain distinct",
+      "status": "PASS"
+    },
+    {
+      "name": "Currency, decimal hours, Boolean polarity and contextual answers keep their types",
+      "status": "PASS"
+    },
+    {
+      "name": "Inconsistent equipment and guard answers are blocked at submission",
+      "status": "PASS"
+    },
+    {
+      "name": "Conditional child drafts are preserved, never counted while inapplicable",
+      "status": "PASS"
+    },
+    {
+      "name": "Applicable replacement cannot be marked N/A; impossible action dates fail",
+      "status": "PASS"
+    },
+    {
+      "name": "Branch aggregation uses integer minor units, adverse counts and context counts",
+      "status": "PASS"
+    },
+    {
+      "name": "New cycles reject duplicate branch-months and preserve old metric snapshots",
+      "status": "PASS"
+    },
+    {
+      "name": "Reference source titles and input values are escaped in return HTML",
+      "status": "PASS"
+    },
+    {
+      "name": "The standalone route and every KRI section render through the complete module chain",
+      "status": "PASS"
+    },
+    {
+      "name": "Missing and outside-scope return IDs do not silently substitute a branch",
+      "status": "PASS"
+    }
+  ]
+}

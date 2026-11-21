@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
+
+var ErrSummaryUnavailable = errors.New("summary repository unavailable")
 
 // SummaryQuery describes a bounded, tenant-scoped operational list read.
 // Cursor values are opaque to clients and encode the last item from the
@@ -102,21 +105,9 @@ func (s *Service) ListProgramSummaries(ctx context.Context, tenant string, query
 	if summaries, ok := s.repo.(SummaryRepository); ok {
 		return summaries.ListProgramSummaries(ctx, tenant, query)
 	}
-	values, err := s.repo.ListPrograms(ctx, tenant, query.Limit)
-	if err != nil {
-		return ProgramSummaryPage{}, err
-	}
-	items := make([]ProgramSummary, 0, len(values))
-	organizationScopes := organizationScopeSet(query.OrganizationScopeIDs)
-	for _, value := range values {
-		if query.OrganizationScopeID != "" {
-			if _, ok := organizationScopes[value.Program.OrganizationScopeID]; !ok {
-				continue
-			}
-		}
-		items = append(items, summarizeProgram(value))
-	}
-	return ProgramSummaryPage{Items: items, GeneratedAt: s.now().UTC(), OrganizationScopeID: query.OrganizationScopeID}, nil
+	// A bounded command list cannot apply summary filters before pagination or
+	// calculate actor-visible summary state. Never return it as a summary page.
+	return ProgramSummaryPage{}, ErrSummaryUnavailable
 }
 
 func (s *Service) ListMatterSummaries(ctx context.Context, tenant string, query SummaryQuery) (MatterSummaryPage, error) {

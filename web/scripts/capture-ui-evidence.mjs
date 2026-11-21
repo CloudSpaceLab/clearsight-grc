@@ -21,8 +21,8 @@ const results = [];
 let failure = null;
 // The approved source destinations, with the existing authorized Work route
 // retained in the shared menu. Keep this evidence contract independent of App.
-const primaryNavigationLabels = ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Work & Approvals", "Reports"];
-const primaryNavigationHrefs = ["#oversight", "#programs/library", "#programs", "#forms", "#vendors", "#risks", "#ropa", "#work", "#reports"];
+const primaryNavigationLabels = ["Inbox", "Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Documents", "Work & Approvals", "Reports & Insights"];
+const primaryNavigationHrefs = ["#notifications", "#oversight", "#programs/library", "#programs", "#forms", "#vendors", "#risks", "#ropa", "#documents", "#work", "#reports"];
 const riskNavigationLabels = ["Risks", "RCSA", "Key indicators", "Loss events"];
 
 await mkdir(outputDir, { recursive: true });
@@ -36,6 +36,12 @@ const captures = [
   { name: "04-program-light-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "04-program-light-1280x800", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1280, height: 800 } },
   { name: "04-program-light-mobile-390x844", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true },
+  { name: "04-program-notices-light-mobile-390x844", route: "#programs/program-ndpa/overview", title: "Programs", fixture: "program-notices-unavailable", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "program-notices-unavailable" },
+  { name: "04-program-notices-dark-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", fixture: "program-notices-unavailable", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "program-notices-unavailable" },
+  ...["light", "dark"].flatMap((theme) => [1440, 1280, 1024, 768, 390].map((width) => ({
+    name: `04-program-composition-${theme}-${width}`, route: "#programs/program-ndpa/overview", title: "Programs", theme,
+    density: "comfortable", viewport: { width, height: width === 390 ? 844 : 900 }, state: "program-composition",
+  }))),
   ...frameworkEvidenceScenarios,
   { name: "150-work-queue-light-1440x900", route: "#work", title: "Work & approvals", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned to me", state: "work-assigned-desktop" },
   { name: "151-work-queue-dark-mobile-390x844", route: "#work", title: "Work & approvals", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Assigned to me", state: "work-assigned-mobile" },
@@ -64,8 +70,8 @@ const captures = [
   { name: "86-vendor-form-readiness-light-1440x900", route: "#vendors/register", title: "Vendors", fixture: "vendor-no-form", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-form-readiness", openFormReadiness: true },
   { name: "87-vendor-link-sheet-light-1440x900", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-link-focused-sheet", openVendorLink: true },
   { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
-  { name: "129-oversight-completeness-light-1440x900", route: "", title: "Enterprise Control Tower", fixture: "oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "oversight-completeness" },
-  { name: "130-oversight-completeness-dark-mobile-390x844", route: "", title: "Enterprise Control Tower", fixture: "oversight", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "oversight-completeness-mobile" },
+  { name: "129-oversight-completeness-light-1440x900", route: "", title: "Overview", fixture: "oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "oversight-completeness" },
+  { name: "130-oversight-completeness-dark-mobile-390x844", route: "", title: "Overview", fixture: "oversight", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "oversight-completeness-mobile" },
   { name: "131-ropa-register-light-1440x900", route: "#ropa", title: "Privacy & data", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-register" },
   // The register capture sits above the activity table, so the per-row control
   // that opens an activity's details is proved by a capture scrolled to the
@@ -120,6 +126,14 @@ const captures = [
   { name: "149-issue-workspace-activity-light-mobile-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, matterTab: "Activity", expectText: "Updates and history", scrollIntoViewText: "Updates and history", state: "issue-workspace-activity-mobile" },
 ];
 
+const assessmentCaptures = [
+  { name: "211-internal-assessment-light-1440x900", viewport: { width: 1440, height: 900 }, theme: "light" },
+  { name: "212-internal-assessment-dark-1280x800", viewport: { width: 1280, height: 800 }, theme: "dark" },
+  { name: "215-internal-assessment-light-1024x768", viewport: { width: 1024, height: 768 }, theme: "light" },
+  { name: "216-internal-assessment-dark-768x900", viewport: { width: 768, height: 900 }, theme: "dark" },
+  { name: "213-internal-assessment-light-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "light" },
+  { name: "214-internal-assessment-dark-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "dark" },
+];
 try {
   if (process.env.UI_EVIDENCE_SCOPE === "document-results") {
     await captureDocumentResultHandoffs();
@@ -138,6 +152,12 @@ try {
     for (const capture of captures.filter((item) => item.vendorPortfolioView && (process.env.UI_EVIDENCE_SCOPE !== "vendor-portfolio-states" || item.vendorPortfolioCheck))) await capturePage(capture);
   } else if (["vendor-relationship", "vendor-relationship-states"].includes(process.env.UI_EVIDENCE_SCOPE)) {
     for (const capture of captures.filter((item) => item.vendorRelationshipView && (process.env.UI_EVIDENCE_SCOPE !== "vendor-relationship-states" || item.vendorRelationshipCheck))) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "program-composition") {
+    for (const capture of captures.filter((item) => item.state === "program-composition")) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "program-notices") {
+    for (const capture of captures.filter((item) => item.state === "program-notices-unavailable")) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "framework") {
+    for (const capture of frameworkEvidenceScenarios) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "work") {
     for (const capture of captures.filter((item) => ["work-assigned-desktop", "work-assigned-mobile", "work-inspection-mobile"].includes(item.state))) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "reports") {
@@ -152,16 +172,11 @@ try {
     for (const capture of captures.filter((item) => item.route === "#reports" && !item.openReportOverview && !item.openReportExplore && !item.openReportBuilder)) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "navigation") {
     for (const capture of captures.filter((item) => isNavigationMatrixCapture(item) || item.openPrimaryNavigation || item.assertNoConfigureNav)) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "assessment") {
+    for (const scenario of assessmentCaptures) await captureInternalAssessment(scenario);
   } else {
   for (const capture of captures) await capturePage(capture);
-  for (const scenario of [
-    { name: "211-internal-assessment-light-1440x900", viewport: { width: 1440, height: 900 }, theme: "light" },
-    { name: "212-internal-assessment-dark-1280x800", viewport: { width: 1280, height: 800 }, theme: "dark" },
-    { name: "215-internal-assessment-light-1024x768", viewport: { width: 1024, height: 768 }, theme: "light" },
-    { name: "216-internal-assessment-dark-768x900", viewport: { width: 768, height: 900 }, theme: "dark" },
-    { name: "213-internal-assessment-light-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "light" },
-    { name: "214-internal-assessment-dark-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "dark" },
-  ]) await captureInternalAssessment(scenario);
+  for (const scenario of assessmentCaptures) await captureInternalAssessment(scenario);
   await captureApprovedVendorMeasures("217-vendor-approved-measures-light-1440x900", "light", { width: 1440, height: 900 });
   await captureApprovedVendorMeasures("218-vendor-approved-measures-dark-mobile-390x844", "dark", { width: 390, height: 844 });
   await captureRouting();
@@ -220,39 +235,23 @@ async function assertApprovedProgramHeading(page, mobile) {
 
 async function assertApprovedShell(page, width) {
   const navigation = page.locator(".app-shell > .sidebar");
-  const contextBar = page.locator(".app-shell > main > .context-bar");
+  const contextBar = page.locator(".app-shell > .context-bar");
   await contextBar.waitFor({ state: "visible" });
   const [navBox, barBox] = await Promise.all([navigation.boundingBox(), contextBar.boundingBox()]);
   if (!barBox) throw new Error("The authenticated context bar is missing");
-  if (width <= 1024) {
-    if (width <= 820) {
-      const expectedRail = width <= 560 ? 56 : 72;
-      const bottomNavigationVisible = await page.locator(".mobile-nav").isVisible().catch(() => false);
-      const brandVisible = await navigation.locator(".brand-mark").isVisible();
-      const mainBox = await page.locator(".app-shell > main").boundingBox();
-      if (!brandVisible || !navBox || !mainBox || Math.abs(navBox.width - expectedRail) > 1 ||
-          navBox.x !== 0 || bottomNavigationVisible ||
-          Math.abs(mainBox.x - navBox.width) > 2 ||
-          Math.abs(mainBox.width - (width - navBox.width)) > 2 ||
-          Math.abs(barBox.x - mainBox.x) > 2 ||
-          Math.abs(barBox.width - mainBox.width) > 2 ||
-          barBox.y > 2 || barBox.height < 56 || barBox.height > 95) {
-        throw new Error(`Approved compact shell requires a ${expectedRail}px left rail, aligned context bar and adjacent content`);
-      }
-    } else if (width === 1024 && (!navBox || Math.abs(navBox.width - 72) > 1)) {
-      throw new Error("Approved 1024px shell must retain compact navigation");
-    }
-    return;
-  }
+  const mainBox = await page.locator(".app-shell > main").boundingBox();
+  const expectedRail = width <= 560 ? 0 : width <= 1024 ? 72 : 228;
+  const brandVisible = await contextBar.locator(".brand-mark").isVisible();
+  const openerVisible = await page.getByRole("button", { name: "Open navigation" }).isVisible();
   const style = await contextBar.evaluate((node) => ({
     borderRadius: Number.parseFloat(getComputedStyle(node).borderTopLeftRadius),
     boxShadow: getComputedStyle(node).boxShadow,
   }));
-  if (!navBox || Math.abs(navBox.width - 228) > 1 ||
-      barBox.y > 2 || Math.abs(barBox.x - (navBox.x + navBox.width)) > 2 ||
-      barBox.height < 68 || barBox.height > 105 ||
+  if (!mainBox || !brandVisible || (expectedRail ? !navBox || Math.abs(navBox.width - expectedRail) > 1 || navBox.x !== 0 : navBox !== null) ||
+      Math.abs(mainBox.x - expectedRail) > 2 || barBox.y > 2 || barBox.x !== 0 || Math.abs(barBox.width - width) > 2 ||
+      mainBox.y < barBox.y + barBox.height - 1 || openerVisible !== (width <= 1024) || barBox.height < 56 || barBox.height > 105 ||
       style.borderRadius !== 0 || style.boxShadow !== "none") {
-    throw new Error("Desktop shell does not match approved full rail and flat top context bar");
+    throw new Error("The shared shell requires a full-width header and the expected navigation for this viewport");
   }
   const activeIdentity = contextBar.locator(".context-identity > strong");
   if (!(await activeIdentity.textContent())?.trim()) {
@@ -271,11 +270,13 @@ function expectedPrimaryDestination(hash, deniedSettings = false) {
   if (route.startsWith("#programs")) return "Programs";
   if (route.startsWith("#forms")) return "Forms";
   if (route.startsWith("#vendors")) return "Vendors";
-  if (route === "#insights" && new URLSearchParams(hash.split("?")[1]).get("view") === "risk-loss") return "Reports";
+  if (route === "#insights" && new URLSearchParams(hash.split("?")[1]).get("view") === "risk-loss") return "Reports & Insights";
   if (/^#(?:risks|rcsa|losses|insights)(?:\/|$)/.test(route)) return "Risk & Losses";
   if (route.startsWith("#ropa")) return "Privacy";
-  if (route.startsWith("#work") || route.startsWith("#notifications")) return "Work & Approvals";
-  if (route.startsWith("#reports")) return "Reports";
+  if (route.startsWith("#documents")) return "Documents";
+  if (route.startsWith("#notifications")) return "Inbox";
+  if (route.startsWith("#work")) return "Work & Approvals";
+  if (route.startsWith("#reports")) return "Reports & Insights";
   if (/^#(?:configure|imports)(?:\/|$)/.test(route)) return "Settings";
   if (!route || /^#(?:today|oversight)(?:\/|$)/.test(route)) return "Home";
   return null; // Contextual people and reference journeys have no invented owner.
@@ -287,6 +288,20 @@ async function assertPrimaryNavigation(page, capture) {
   const settingsCapabilityState = capture.fixture === "today-loading" ? "pending"
     : capture.assertNoConfigureNav ? "denied" : "available";
   if (settingsCapabilityState === "pending") await page.getByText("Loading assigned work…", { exact: true }).waitFor({ state: "visible" });
+  if (capture.viewport.width <= 560) {
+    const phoneRailHidden = !await page.locator(".sidebar.app-navigation").isVisible();
+    const opener = page.getByRole("button", { name: "Open navigation", exact: true });
+    const compactMenuAvailable = await opener.isVisible();
+    const phoneDrawer = await openAndVerifyNavigationDrawer(page, capture, false);
+    await page.keyboard.press("Escape");
+    await page.getByRole("dialog", { name: "Navigation", exact: true }).waitFor({ state: "hidden" });
+    phoneDrawer.dismissalRestoredFocus = await opener.evaluate((node) => node === document.activeElement);
+    if (!phoneRailHidden || !compactMenuAvailable || !phoneDrawer.dismissalRestoredFocus) throw new Error(`${capture.name}: phone navigation did not restore focus`);
+    return { mode: "drawer", phoneRailHidden, compactMenuAvailable, labels: phoneDrawer.labels, hrefs: phoneDrawer.hrefs,
+      activePage: phoneDrawer.activePage, settingsPresent: phoneDrawer.settingsPresent, phoneDrawer, settingsCapabilityState,
+      duplicateMobileNavigation: await page.locator(".mobile-nav:visible").count() > 0,
+      legacyPortfolioNavigation: await page.locator('[aria-label="Portfolio lenses"]').count() > 0 };
+  }
   const sidebar = page.getByRole("complementary", { name: "Primary navigation", exact: true });
   await sidebar.waitFor({ state: "visible" });
   const reading = await sidebar.evaluate((root) => {
@@ -311,7 +326,7 @@ async function assertPrimaryNavigation(page, capture) {
     const name = (node) => node.getAttribute("aria-label") ?? node.textContent.trim();
     const current = [...root.querySelectorAll('[aria-current="page"]')];
     const settings = root.querySelector('.sidebar-secondary a[href="#configure"]');
-    const opener = root.querySelector('button[aria-label="Open navigation"]');
+    const opener = document.querySelector('button[aria-label="Open navigation"]');
     const targets = [...primary, ...(settings ? [settings] : []), ...root.querySelectorAll("button")].filter(visible);
     const boxes = targets.map(rectangle);
     const labelBoxes = primary.map(labelRects);
@@ -331,7 +346,8 @@ async function assertPrimaryNavigation(page, capture) {
       targetsContained: boxes.every((box) => box.x >= rail.x - 1 && box.right <= rail.right + 1),
       primaryReachable: primary.every((node) => { const box = rectangle(node); return visible(node) && box.y >= -1 && box.bottom <= innerHeight + 1; }),
       settingsPresent: Boolean(settings), settingsFooter: Boolean(settings?.closest(".sidebar-secondary")),
-      footerReachable: !settings || (rectangle(settings).bottom <= innerHeight + 1 && rectangle(settings).y >= rectangle(primary.at(-1)).bottom - 1),
+      footerReachable: !settings || (rectangle(settings).bottom <= innerHeight + 1
+        && rectangle(settings).y >= rectangle(root.querySelector(".app-navigation__items")).bottom - 1),
       compactMenuAvailable: visible(opener),
       activeMarkerWidth: currentMarker ? parseFloat(currentMarker.width) || 0 : 0,
       activeMarkerHeight: currentMarker ? parseFloat(currentMarker.height) || 0 : 0,
@@ -378,6 +394,7 @@ async function openAndVerifyNavigationDrawer(page, capture, expandRisk, requireC
       throw new Error(`${capture.name}: risk sections did not expand with the keyboard`);
     }
   }
+  if (requireCurrentVisible && await dialog.locator('[aria-current="page"]').count()) await dialog.locator('[aria-current="page"]').scrollIntoViewIfNeeded();
   const reading = await dialog.evaluate((root) => {
     const primary = [...root.querySelectorAll("a[data-navigation-item]")];
     const name = (node) => node.getAttribute("aria-label") ?? node.textContent.trim();
@@ -407,7 +424,7 @@ async function openAndVerifyNavigationDrawer(page, capture, expandRisk, requireC
       labelLineCounts.push(new Set(textBoxes.map((box) => Math.round(box.top))).size);
       return textBoxes.length > 0 && textBoxes.every((box) => box.x >= outer.x - 1 && box.right <= outer.right + 1);
     });
-    return { labels: primary.map(name), riskChildren: [...root.querySelectorAll("a[data-navigation-child]")].filter((node) => node.getClientRects().length).map(name),
+    return { labels: primary.map(name), hrefs: primary.map((node) => node.getAttribute("href")), riskChildren: [...root.querySelectorAll("a[data-navigation-child]")].filter((node) => node.getClientRects().length).map(name),
       activePage: [...root.querySelectorAll('[aria-current="page"]')].map(name),
       settingsPresent: Boolean(root.querySelector('a[href="#configure"]')),
       minTargetWidth: Math.min(...boxes.map((box) => box.width)), minTargetHeight: Math.min(...boxes.map((box) => box.height)),
@@ -421,11 +438,12 @@ async function openAndVerifyNavigationDrawer(page, capture, expandRisk, requireC
       bounded: outer.height <= innerHeight + 1 && outer.width <= innerWidth + 1,
     };
   });
-  if (reading.labels.join("|") !== primaryNavigationLabels.join("|") || reading.activePage.length !== 1
-      || reading.activePage[0] !== expectedPrimaryDestination(new URL(page.url()).hash, capture.assertNoConfigureNav)
-      || reading.settingsPresent === Boolean(capture.assertNoConfigureNav)
+  const expectedActive = expectedPrimaryDestination(new URL(page.url()).hash, capture.assertNoConfigureNav);
+  const expectedSettings = !capture.assertNoConfigureNav && capture.fixture !== "today-loading";
+  if (reading.labels.join("|") !== primaryNavigationLabels.join("|") || reading.activePage.join("|") !== (expectedActive ?? "")
+      || reading.settingsPresent !== expectedSettings
       || (expandRisk && reading.riskChildren.join("|") !== riskNavigationLabels.join("|"))
-      || (requireCurrentVisible && !reading.currentPageVisible)
+      || (requireCurrentVisible && expectedActive && !reading.currentPageVisible)
       || !reading.labelsVisible || reading.maxLabelLines !== 1 || !reading.contentFillsDialog || !reading.navigationFillsContent
       || !reading.targetsContained || !reading.bounded || reading.minTargetWidth < 44 || reading.minTargetHeight < 44) {
     throw new Error(`${capture.name}: labelled compact Navigation failed: ${JSON.stringify(reading)}`);
@@ -435,27 +453,27 @@ async function openAndVerifyNavigationDrawer(page, capture, expandRisk, requireC
 }
 
 async function waitForNavigationViewport(page, capture, viewport, focusCurrent = false) {
-  const expected = { ...viewport, railWidth: viewport.width <= 560 ? 56 : viewport.width <= 1024 ? 72 : 228, focusCurrent };
+  const expected = { ...viewport, railWidth: viewport.width <= 560 ? 0 : viewport.width <= 1024 ? 72 : 228, focusCurrent };
   // The global reduced-motion duration can leave one frame at the old rail
   // width after the sheet closes. Poll the same geometry and focus contract;
   // a persistent wrong breakpoint must still fail within this bounded wait.
   await page.waitForFunction(({ width, height, railWidth, focusCurrent }) => {
     const shell = document.querySelector(".app-shell--navigation");
     const rail = shell?.querySelector(":scope > .sidebar.app-navigation");
-    const opener = rail?.querySelector('[aria-label="Open navigation"]');
+    const opener = shell?.querySelector('[aria-label="Open navigation"]');
     if (!shell || !rail || !opener || innerWidth !== width || innerHeight !== height) return false;
     const compact = width <= 1024;
     return matchMedia("(max-width: 1024px)").matches === compact
       && Math.abs(rail.getBoundingClientRect().width - railWidth) <= 1
-      && Math.abs(parseFloat(getComputedStyle(rail).inlineSize) - railWidth) <= 1
-      && Math.abs(parseFloat(getComputedStyle(shell).gridTemplateColumns) - railWidth) <= 1
+      && (width <= 560 ? getComputedStyle(rail).display === "none" : Math.abs(parseFloat(getComputedStyle(rail).inlineSize) - railWidth) <= 1
+        && Math.abs(parseFloat(getComputedStyle(shell).gridTemplateColumns) - railWidth) <= 1)
       && Boolean(opener.getClientRects().length) === compact
       && (!focusCurrent || document.activeElement === rail.querySelector('[aria-current="page"]'));
   }, expected, { timeout: 5000 }).catch(async (error) => {
     const geometry = await page.evaluate(() => {
       const shell = document.querySelector(".app-shell--navigation");
       const rail = shell?.querySelector(":scope > .sidebar.app-navigation");
-      const opener = rail?.querySelector('[aria-label="Open navigation"]');
+      const opener = shell?.querySelector('[aria-label="Open navigation"]');
       return { innerWidth, innerHeight, compact: matchMedia("(max-width: 1024px)").matches,
         railWidth: rail?.getBoundingClientRect().width,
         railInlineSize: rail ? getComputedStyle(rail).inlineSize : null,
@@ -469,7 +487,7 @@ async function waitForNavigationViewport(page, capture, viewport, focusCurrent =
 
 async function verifyNavigationResizeRecovery(page, capture) {
   const shortViewport = { width: 320, height: 568 };
-  const sidebar = page.getByRole("complementary", { name: "Primary navigation", exact: true });
+  const sidebar = page.locator(".sidebar.app-navigation");
   const focusedTargetReachable = (target) => target.evaluate((node) => {
     const box = node.getBoundingClientRect();
     const scrollport = node.closest(".app-navigation__items")?.getBoundingClientRect();
@@ -480,32 +498,19 @@ async function verifyNavigationResizeRecovery(page, capture) {
   try {
     await page.setViewportSize(shortViewport);
     await waitForNavigationViewport(page, capture, shortViewport);
-    await sidebar.getByRole("link", { name: "Home", exact: true }).focus();
-    for (const [index, label] of primaryNavigationLabels.entries()) {
-      if (index) await page.keyboard.press("Tab");
-      if (!await focusedTargetReachable(sidebar.getByRole("link", { name: label, exact: true }))) {
-        throw new Error(`${capture.name}: 320×568 rail keyboard scrolling did not reveal ${label}`);
-      }
-    }
-    await page.keyboard.press("Tab");
-    if (!await focusedTargetReachable(sidebar.getByRole("link", { name: "Settings", exact: true }))) {
-      throw new Error(`${capture.name}: 320×568 Settings footer is not reachable`);
-    }
-    const shortGeometry = await sidebar.evaluate((root) => ({
-      railWidth: root.getBoundingClientRect().width,
-      horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      primaryScrolls: root.querySelector(".app-navigation__items").scrollHeight > root.querySelector(".app-navigation__items").clientHeight,
-    }));
-    if (Math.abs(shortGeometry.railWidth - 56) > 1 || shortGeometry.horizontalOverflow > 1 || !shortGeometry.primaryScrolls) {
-      throw new Error(`${capture.name}: short-height rail geometry is invalid: ${JSON.stringify(shortGeometry)}`);
-    }
     // Short viewports prove every item through actual focus-driven scrolling;
     // canonical 844px sheets separately require the current item to be visible.
     await openAndVerifyNavigationDrawer(page, { ...capture, viewport: shortViewport }, true, false);
     const dialog = page.getByRole("dialog", { name: "Navigation", exact: true });
-    const shortMenuOrder = ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Hide risk sections",
-      ...riskNavigationLabels, "Privacy", "Work & Approvals", "Reports", "Settings"];
-    await dialog.getByRole("link", { name: "Home", exact: true }).focus();
+    const shortGeometry = await dialog.evaluate((root) => ({
+      railWidth: document.querySelector(".sidebar.app-navigation").getBoundingClientRect().width,
+      horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      primaryScrolls: root.querySelector(".app-navigation__items").scrollHeight > root.querySelector(".app-navigation__items").clientHeight,
+    }));
+    if (shortGeometry.railWidth !== 0 || shortGeometry.horizontalOverflow > 1 || !shortGeometry.primaryScrolls) throw new Error(`${capture.name}: short-height drawer geometry is invalid: ${JSON.stringify(shortGeometry)}`);
+    const shortMenuOrder = ["Inbox", "Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Hide risk sections",
+      ...riskNavigationLabels, "Privacy", "Documents", "Work & Approvals", "Reports & Insights", "Settings"];
+    await dialog.getByRole("link", { name: "Inbox", exact: true }).focus();
     for (const [index, label] of shortMenuOrder.entries()) {
       if (index) await page.keyboard.press("Tab");
       const target = dialog.getByRole(label === "Hide risk sections" ? "button" : "link", { name: label, exact: true });
@@ -517,9 +522,9 @@ async function verifyNavigationResizeRecovery(page, capture) {
     const desktopRecovery = await sidebar.evaluate((root) => ({
       railWidth: root.getBoundingClientRect().width,
       activeFocus: document.activeElement?.getAttribute("aria-label"),
-      openerHidden: !root.querySelector('[aria-label="Open navigation"]').getClientRects().length,
+      openerHidden: !document.querySelector('[aria-label="Open navigation"]').getClientRects().length,
     }));
-    if (Math.abs(desktopRecovery.railWidth - 228) > 1 || desktopRecovery.activeFocus !== "Reports" || !desktopRecovery.openerHidden) {
+    if (Math.abs(desktopRecovery.railWidth - 228) > 1 || desktopRecovery.activeFocus !== "Reports & Insights" || !desktopRecovery.openerHidden) {
       throw new Error(`${capture.name}: widening an open Navigation did not restore the desktop route: ${JSON.stringify(desktopRecovery)}`);
     }
     await page.setViewportSize({ width: 1024, height: 768 });
@@ -527,7 +532,7 @@ async function verifyNavigationResizeRecovery(page, capture) {
     await openAndVerifyNavigationDrawer(page, { ...capture, viewport: { width: 1024, height: 768 } }, false, false);
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "hidden" });
-    const compactRecovery = await sidebar.getByRole("button", { name: "Open navigation", exact: true }).evaluate((node) => document.activeElement === node);
+    const compactRecovery = await page.getByRole("button", { name: "Open navigation", exact: true }).evaluate((node) => document.activeElement === node);
     if (!compactRecovery) throw new Error(`${capture.name}: Navigation did not recover keyboard focus after returning to tablet width`);
     return { viewport: shortViewport, primaryKeyboardReachable: true, expandedRiskKeyboardReachable: true, footerReachable: true,
       ...shortGeometry, desktopRecovery, compactRecovery };
@@ -540,7 +545,7 @@ async function verifyNavigationResizeRecovery(page, capture) {
 async function verifyPrimaryNavigationKeyboard(page, capture) {
   const originalURL = page.url();
   const compact = capture.viewport.width <= 1024;
-  const sidebar = page.getByRole("complementary", { name: "Primary navigation", exact: true });
+  const sidebar = page.locator(".sidebar.app-navigation");
   let navigation = sidebar;
   if (compact) {
     await openAndVerifyNavigationDrawer(page, capture, false);
@@ -556,12 +561,11 @@ async function verifyPrimaryNavigationKeyboard(page, capture) {
   if (!focusVisible) throw new Error(`${capture.name}: primary link Tab order or visible focus is missing`);
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => location.hash === "#programs/library");
-  await sidebar.getByRole("link", { name: "Frameworks", exact: true }).waitFor({ state: "visible" });
-  if (await sidebar.getByRole("link", { name: "Frameworks", exact: true }).getAttribute("aria-current") !== "page") throw new Error(`${capture.name}: Frameworks did not become the current direct destination`);
+  await page.waitForFunction(() => document.querySelector('[data-navigation-item="frameworks"]')?.getAttribute("aria-current") === "page");
   if (compact && await page.getByRole("dialog", { name: "Navigation", exact: true }).count()) throw new Error(`${capture.name}: selecting a compact destination did not close Navigation`);
   await page.goBack();
   await page.waitForFunction(() => location.hash === "#reports");
-  if (await sidebar.getByRole("link", { name: "Reports", exact: true }).getAttribute("aria-current") !== "page") throw new Error(`${capture.name}: browser Back did not restore the active Reports menu`);
+  if (await sidebar.locator('[data-navigation-item="reports"]').getAttribute("aria-current") !== "page") throw new Error(`${capture.name}: browser Back did not restore the active Reports menu`);
   if (compact) {
     await openAndVerifyNavigationDrawer(page, capture, false);
     navigation = page.getByRole("dialog", { name: "Navigation", exact: true });
@@ -575,8 +579,8 @@ async function verifyPrimaryNavigationKeyboard(page, capture) {
   }
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => location.hash === "#losses");
-  if (await sidebar.getByRole("link", { name: "Risk & Losses", exact: true }).getAttribute("aria-current") !== "page"
-      || await sidebar.getByRole("link", { name: "Loss events", exact: true, includeHidden: true }).getAttribute("aria-current") !== "location") {
+  if (await sidebar.locator('[data-navigation-item="risk"]').getAttribute("aria-current") !== "page"
+      || await sidebar.locator('[data-navigation-child="losses"]').getAttribute("aria-current") !== "location") {
     throw new Error(`${capture.name}: risk-family navigation lost its current parent or exact child`);
   }
   await page.goto(originalURL, { waitUntil: "networkidle" });
@@ -593,12 +597,12 @@ async function verifyPrimaryNavigationKeyboard(page, capture) {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     window.scrollTo(0, 0);
   });
-  const baselineRestored = await sidebar.getByRole("link", { name: "Reports", exact: true }).getAttribute("aria-current") === "page"
-    && await sidebar.getByRole("button", { name: "Show risk sections", exact: true, includeHidden: true }).getAttribute("aria-expanded") === "false"
+  const baselineRestored = await sidebar.locator('[data-navigation-item="reports"]').getAttribute("aria-current") === "page"
+    && await sidebar.locator('button[aria-label="Show risk sections"]').getAttribute("aria-expanded") === "false"
     && await page.getByRole("dialog", { name: "Navigation", exact: true }).count() === 0
     && !await sidebar.evaluate((node) => node.contains(document.activeElement));
   if (!baselineRestored) throw new Error(`${capture.name}: keyboard verification did not restore the closed Reports baseline`);
-  return { focusVisible, directDestination: "Frameworks", browserBack: "Reports", riskDestination: "Loss events", primaryCurrent: "Risk & Losses", childCurrent: "location", compactDrawer: compact, baselineRestored, resizeRecovery };
+  return { focusVisible, directDestination: "Frameworks", browserBack: "Reports & Insights", riskDestination: "Loss events", primaryCurrent: "Risk & Losses", childCurrent: "location", compactDrawer: compact, baselineRestored, resizeRecovery };
 }
 
 async function capturePage(capture) {
@@ -646,6 +650,9 @@ async function capturePage(capture) {
          "09-today-dark-tablet-1024x768"].includes(capture.name)) {
       await assertApprovedShell(page, capture.viewport.width);
     }
+    if ((capture.state === "program-composition" || capture.state === "framework-library-tablet") && capture.viewport.width === 1024) {
+      await assertApprovedShell(page, capture.viewport.width);
+    }
     const contextSwitcher = page.locator(".context-bar .context-scope-control");
     if (await contextSwitcher.count()) {
       if (!await page.locator(".context-bar > .context-scope > .context-scope-control").count()) {
@@ -666,6 +673,52 @@ async function capturePage(capture) {
       if (!Number.isFinite(fontSize) || (desktop ? fontSize < 35 || fontSize > 39 : fontSize < 27 || fontSize > 31)) {
         throw new Error(`Framework Library title uses ${fontSize}px instead of the approved ${desktop ? "desktop" : "mobile"} heading scale`);
       }
+    }
+    if (capture.state === "program-composition") {
+      const result = await page.locator(".program-overview-composition").evaluate((root) => {
+        const bounds = (selector) => {
+          const box = root.querySelector(selector)?.getBoundingClientRect();
+          return box ? { x: box.x, y: box.y, width: box.width, height: box.height } : null;
+        };
+        return { main: bounds(".program-overview-main"), rail: bounds(".program-overview-rail"),
+          attention: bounds(".program-overview-attention"), setup: bounds(".program-overview-setup"),
+          position: bounds(".program-current-position"), nextAction: bounds(".program-dominant-next .primary-button"),
+          stacked: matchMedia("(max-width: 1170px)").matches,
+          paired: matchMedia("(min-width: 761px) and (max-width: 1170px)").matches,
+          overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 };
+      });
+      if (!result.main || !result.rail || !result.attention || !result.setup || result.overflow ||
+          (result.stacked ? result.rail.y < result.main.y + result.main.height - 2 : result.rail.x <= result.main.x + result.main.width - 2) ||
+          (result.paired && (Math.abs(result.attention.y - result.setup.y) > 2 || result.setup.x <= result.attention.x)) ||
+          (result.position && result.nextAction && (result.nextAction.x < result.position.x - 1 ||
+            result.nextAction.x + result.nextAction.width > result.position.x + result.position.width + 1))) {
+        throw new Error(`${capture.name}: Program overview does not match the source responsive main/attention layout: ${JSON.stringify(result)}`);
+      }
+      if (capture.viewport.width === 1024) {
+        const measures = await page.locator(".program-overview-metrics .cs-metric-card").evaluateAll((cards) => cards.map((card) => {
+          const label = card.querySelector(".cs-metric-card__label")?.getBoundingClientRect();
+          const quality = card.querySelector(".cs-metric-card__quality")?.getBoundingClientRect();
+          return { labelY: label?.y, labelRight: label?.right, qualityY: quality?.y, qualityLeft: quality?.left,
+            clipped: card.scrollWidth > card.clientWidth + 1 || card.scrollHeight > card.clientHeight + 1 };
+        }));
+        const coverage = await page.locator(".program-overview-coverage").boundingBox();
+        if (!coverage || coverage.y > 750 || measures.length !== 4 || measures.some((item) =>
+          item.clipped || item.labelY == null || item.qualityY == null || Math.abs(item.labelY - item.qualityY) > 2 ||
+          item.labelRight > item.qualityLeft + 1)) {
+          throw new Error(`${capture.name}: compact Program measures must retain readable quality and first-viewport coverage: ${JSON.stringify({ coverage, measures })}`);
+        }
+      }
+    }
+    if (capture.state === "program-notices-unavailable") {
+      for (const name of ["Retry assignments", "Retry review status"]) {
+        const action = page.getByRole("button", { name });
+        await action.waitFor({ state: "visible" });
+        const box = await action.boundingBox();
+        if (!box || box.width < 44 || box.height < 44) throw new Error(`${capture.name}: ${name} needs a 44px touch target`);
+      }
+      await page.getByText("Changes are disabled until assignments are confirmed.").waitFor({ state: "visible" });
+      await page.getByText("Changes are disabled until the review status can be checked.").waitFor({ state: "visible" });
+      await page.getByRole("tab", { name: "Overview" }).waitFor({ state: "visible" });
     }
     if (capture.name === "04-program-light-mobile-390x844") {
       await assertApprovedProgramHeading(page, true);
@@ -921,7 +974,32 @@ async function capturePage(capture) {
           filterBox.y + filterBox.height > resultHeadingBox.y + 14) {
         throw new Error(`${capture.name}: V2 must compose heading → local navigation → filters → reference editions`);
       }
+      if (capture.viewport.width > 900) {
+        const rightsBox = await rights.boundingBox();
+        const gap = rightsBox && rightsBox.x - (searchBox.x + searchBox.width);
+        if (gap == null || gap < 0 || gap > 20) {
+          throw new Error(`${capture.name}: the search and rights filters must form a compact row; gap=${gap}`);
+        }
+      }
+      if (capture.viewport.width >= 701 && capture.viewport.width <= 820) {
+        const jurisdiction = library.getByRole("button", { name: /^Jurisdiction:/ });
+        const [searchField, rightsField, jurisdictionField] = await Promise.all([
+          library.locator(".cs-search-field").boundingBox(), rights.boundingBox(), jurisdiction.boundingBox(),
+        ]);
+        if (!searchField || !rightsField || !jurisdictionField ||
+            rightsField.y < searchField.y + searchField.height - 2 ||
+            Math.abs(rightsField.y - jurisdictionField.y) > 2 ||
+            Math.abs(searchField.x + searchField.width - (jurisdictionField.x + jurisdictionField.width)) > 2) {
+          throw new Error(`${capture.name}: tablet Framework search must span the row above the two filters`);
+        }
+      }
       const inspect = page.getByRole("button", { name: "Inspect edition for Sample security reference 2026" });
+      await inspect.waitFor({ state: "visible" });
+      await search.fill("privacy");
+      if (await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)) {
+        throw new Error(`${capture.name}: active Framework filters cause horizontal overflow`);
+      }
+      await library.getByRole("button", { name: "Clear filters" }).click();
       await inspect.waitFor({ state: "visible" });
       const rowBox = await inspect.boundingBox();
       if (!rowBox || rowBox.height < 85 || rowBox.y < resultHeadingBox.y + resultHeadingBox.height - 3 ||
@@ -931,6 +1009,19 @@ async function capturePage(capture) {
       if (capture.viewport.width > 900) {
         const inspector = library.getByRole("complementary", { name: "Framework edition details" });
         const panel = await inspector.boundingBox();
+        if (capture.viewport.width >= 1280 && (!panel || Math.abs(panel.width - 340) > 1)) {
+          throw new Error(`${capture.name}: Framework edition inspector must match the 340px source column; width=${panel?.width}`);
+        }
+        const facts = await inspector.locator(".cs-program-standards__facts > div").evaluateAll((rows) => rows.map((row) => {
+          const label = row.querySelector("dt");
+          const value = row.querySelector("dd");
+          return { labelX: label?.getBoundingClientRect().x, valueX: value?.getBoundingClientRect().x,
+            align: value && getComputedStyle(value).textAlign };
+        }));
+        if (!facts.length || facts.some((fact) => fact.labelX == null || fact.valueX == null ||
+            Math.abs(fact.labelX - fact.valueX) > 1 || !["start", "left"].includes(fact.align))) {
+          throw new Error(`${capture.name}: edition fact values must align under their labels: ${JSON.stringify(facts)}`);
+        }
         if (!panel || panel.x < rowBox.x + rowBox.width - 6 || Math.abs(panel.y - resultHeadingBox.y) > 75 ||
             !(await inspector.getByRole("heading", { name: "Edition details" }).count()) ||
             !(await inspector.getByRole("heading", { name: "Use in a Program" }).count()) ||
@@ -1044,7 +1135,7 @@ async function capturePage(capture) {
     }
     if (capture.openVendorSetup) {
       await page.getByRole("button", { name: "Add vendor" }).click();
-      await page.getByRole("heading", { name: "Add a vendor and service" }).waitFor({ state: "visible" });
+      await page.getByRole("heading", { name: "Vendor details" }).waitFor({ state: "visible" });
       await page.getByLabel("Website").waitFor({ state: "visible" });
       await page.getByLabel("Registered address").waitFor({ state: "visible" });
     }
@@ -1185,6 +1276,7 @@ async function assertReportsOverviewLayout(page, capture) {
       const value = card.querySelector(".cs-metric-card__measure strong");
       const content = [...card.querySelectorAll(".cs-metric-card__label, .cs-metric-card__quality, .cs-metric-card__measure strong, .cs-metric-card__detail")];
       return { ...outer, label: label.textContent, value: value?.textContent,
+        labelBox: box(label), qualityBox: box(card.querySelector(".cs-metric-card__quality")),
         valueFontSize: value ? parseFloat(getComputedStyle(value).fontSize) : 0,
         quality: card.getAttribute("data-quality"), detail: card.querySelector(".cs-metric-card__detail")?.textContent,
         labelLines: new Set(textLines(label).map((line) => Math.round(line.y))).size,
@@ -1224,6 +1316,11 @@ async function assertReportsOverviewLayout(page, capture) {
   }
   if (layout.cards.some((card) => card.height > 190 || card.labelLines > 3 || !card.containsText)) {
     throw new Error(`${capture.name}: Reporting metric labels or values are wrapping excessively or leaving their cards: ${JSON.stringify(layout.cards)}`);
+  }
+  if (capture.viewport.width === 1280 && layout.cards.some((card) =>
+    !card.labelBox || !card.qualityBox || card.labelBox.right > card.qualityBox.x + 1
+      || Math.abs(card.labelBox.y - card.qualityBox.y) > 8 || card.height > 116)) {
+    throw new Error(`${capture.name}: Reporting measure quality must fit beside its label in the compact two-column layout: ${JSON.stringify(layout.cards)}`);
   }
   const minimumValueFontSize = capture.viewport.width <= 700 ? 22 : 28;
   if (layout.cards.some((card) => !(card.valueFontSize >= minimumValueFontSize))) {
@@ -1977,6 +2074,14 @@ async function captureInternalAssessment({ name, viewport, theme }) {
     const [viewsBox, completionBox] = await Promise.all([views.boundingBox(), completion.boundingBox()]);
     if (!viewsBox || !completionBox || viewsBox.y + viewsBox.height > completionBox.y + 3) {
       throw new Error(name + " must keep approved Assessment views above the completion strip");
+    }
+    const headingGeometry = await workspace.evaluate((node) => {
+      const header = node.querySelector(".internal-assessment-workspace__header");
+      const title = header?.querySelector("h1"), views = node.querySelector(".capture-wizard__views");
+      return header && title && views ? { gap: views.getBoundingClientRect().top - header.getBoundingClientRect().bottom, weight: Number(getComputedStyle(title).fontWeight) } : null;
+    });
+    if (!headingGeometry || headingGeometry.gap < 0 || headingGeometry.gap > 12 || headingGeometry.weight < 700) {
+      throw new Error(`${name} Assessment header and views are too separated or the title is too weak: ${JSON.stringify(headingGeometry)}`);
     }
     const rail = workspace.getByRole("navigation", { name: "Assessment sections" });
     const work = workspace.locator(".capture-wizard__main");

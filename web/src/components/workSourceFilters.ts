@@ -1,6 +1,6 @@
 import type { ActorWorkFilters } from "../api";
 import type { WorkDueWindow } from "./workQueuePresentation";
-import { validWorkTimestamp } from "./workSourceReceipt";
+import { validWorkTimestamp } from "../workSourceReceipt";
 
 const dayMs = 24 * 60 * 60 * 1000;
 

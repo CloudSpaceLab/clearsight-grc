@@ -91,6 +91,24 @@ func TestPostgresProgramSummaryHidesRestrictedMatterStateAndTiming(t *testing.T)
 	if gotB.OpenMatterCount != 1 || gotB.OverallState != StateAtRisk || !hasReasonCode(gotB.Reasons, "OPEN_MATTERS") {
 		t.Fatalf("authorized principal lost restricted Matter state: %#v", gotB)
 	}
+	for _, tc := range []struct {
+		name  string
+		ctx   context.Context
+		state string
+		want  int
+	}{
+		{"hidden issue does not change actor A filter", actorA, "AT_RISK", 0},
+		{"actor A sees current", actorA, "CURRENT", 1},
+		{"actor B sees risk", actorB, "AT_RISK", 1},
+		{"actor B does not see current", actorB, "CURRENT", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			filtered, err := repo.ListProgramSummaries(tc.ctx, tenantID, SummaryQuery{Limit: 10, OverallState: tc.state})
+			if err != nil || len(filtered.Items) != tc.want {
+				t.Fatalf("filtered summaries = %#v, err %v; want %d", filtered.Items, err, tc.want)
+			}
+		})
+	}
 	if gotA.ProjectionVersion < 1 || gotB.ProjectionVersion < 1 || gotA.ProjectionVersion == gotB.ProjectionVersion {
 		t.Fatalf("actor-safe projection versions are invalid: A=%d B=%d", gotA.ProjectionVersion, gotB.ProjectionVersion)
 	}

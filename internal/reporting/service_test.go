@@ -593,14 +593,14 @@ func TestOpenRunAllowsPrivilegedActorAndRequester(t *testing.T) {
 	_, _ = io.ReadAll(reader)
 	_ = reader.Close()
 
-	requester, requesterReader, err := service.Open(reportActorContextWithPermissions(testPerformerID), testScope(), run.ID)
+	requester, requesterReader, err := service.Open(reportActorContextWithPermissions(testPerformerID, identity.PermissionPrivacyRead), testScope(), run.ID)
 	if err != nil {
 		t.Fatalf("requester open without export permission: %v", err)
 	}
 	_, _ = io.ReadAll(requesterReader)
 	_ = requesterReader.Close()
 
-	_, _, err = service.Open(reportActorContextWithPermissions(testOtherActorID), testScope(), run.ID)
+	_, _, err = service.Open(reportActorContextWithPermissions(testOtherActorID, identity.PermissionPrivacyRead), testScope(), run.ID)
 	if !errors.Is(err, ErrReportDownloadForbidden) {
 		t.Fatalf("unrelated download error = %v, want ErrReportDownloadForbidden", err)
 	}
@@ -609,6 +609,57 @@ func TestOpenRunAllowsPrivilegedActorAndRequester(t *testing.T) {
 	}
 	if len(authorityChecker.inputs) != 0 {
 		t.Fatalf("report download used governance responsibility routing: %#v", authorityChecker.inputs)
+	}
+}
+
+func TestPrivacyReportRejectsRequesterAndDownloaderWithoutPrivacyPermission(t *testing.T) {
+	service, repository, objects, _ := newReportingServiceTest()
+	run := installReadyRun(t, repository, objects)
+	for _, actor := range []context.Context{reportActorContextWithPermissions(testPerformerID), reportActorContextWithPermissions(testOtherActorID, identity.PermissionReportDownload)} {
+		if _, reader, err := service.Open(actor, testScope(), run.ID); err == nil {
+			if reader != nil {
+				_ = reader.Close()
+			}
+			t.Fatal("privacy report opened without current privacy permission")
+		}
+	}
+	_, reader, err := service.Open(reportActorContextWithPermissions(testPerformerID, identity.PermissionPrivacyRead), testScope(), run.ID)
+	if err != nil {
+		t.Fatalf("authorized requester: %v", err)
+	}
+	_ = reader.Close()
+}
+
+func TestCreatePrivacyRunRequiresCurrentPrivacyPermission(t *testing.T) {
+	service, repository, _, _ := newReportingServiceTest()
+	definition := installActiveDefinition(repository)
+	_, err := service.CreateRun(reportActorContextWithPermissions(testPerformerID), CreateRunInput{Scope: testScope(), DefinitionID: definition.ID, ExpectedDefinitionVersion: definition.CurrentVersion})
+	if err == nil {
+		t.Fatal("privacy run created without current privacy permission")
+	}
+}
+
+type privacyReceiptTestRepository struct {
+	*serviceTestRepository
+	receipt ReportRun
+}
+
+func (r privacyReceiptTestRepository) FindRunReceipt(context.Context, ReportScope, string, string, string) (ReportRun, error) {
+	return r.receipt, nil
+}
+func (r privacyReceiptTestRepository) CreateRunOnce(context.Context, ReportScope, ReportRun, string, string) (ReportRun, error) {
+	return ReportRun{}, ErrInvalid
+}
+
+func TestPrivacyRunReceiptReplayRechecksRevokedPermission(t *testing.T) {
+	service, repository, _, _ := newReportingServiceTest()
+	service.repo = privacyReceiptTestRepository{serviceTestRepository: repository, receipt: ReportRun{ID: "receipt", Dataset: DatasetProcessingActivities}}
+	input := CreateRunInput{Scope: testScope(), DefinitionID: testDefinitionID, ExpectedDefinitionVersion: 1, IdempotencyKey: "00000000-0000-7000-8000-000000000555"}
+	if _, err := service.CreateRun(reportActorContextWithPermissions(testPerformerID, identity.PermissionPrivacyRead), input); err != nil {
+		t.Fatalf("authorized receipt: %v", err)
+	}
+	if _, err := service.CreateRun(reportActorContextWithPermissions(testPerformerID), input); !errors.Is(err, ErrPrivacyReadForbidden) {
+		t.Fatalf("revoked receipt error=%v", err)
 	}
 }
 
@@ -713,7 +764,7 @@ func newReportingServiceTest() (*Service, *serviceTestRepository, *serviceTestOb
 }
 
 func reportActorContext(principalID string) context.Context {
-	return reportActorContextWithPermissions(principalID, identity.PermissionReportDownload)
+	return reportActorContextWithPermissions(principalID, identity.PermissionReportDownload, identity.PermissionPrivacyRead)
 }
 
 func reportActorContextWithPermissions(principalID string, permissions ...string) context.Context {

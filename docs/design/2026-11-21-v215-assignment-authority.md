@@ -1,0 +1,5 @@
+# Assignment respondent lookup
+
+The isolated assignment component now requires a selected Program and a successful assignment-authority check before searching for a respondent. Changing the Program clears the selected respondent and invalidates any in-flight people search. During creation, target and response fields are locked; an outcome arriving after the form changes is ignored by the new form. Disabled search controls explain the condition and have a visible disabled state.
+
+Synthetic before-selection, allowed, creating and denied captures are in `docs/evidence/2026-11-21-v215-assignment-authority/` at 1440, 768 and 390 pixels. The browser check verifies authority, target locking and horizontal fit; the mobile before-selection, creating and denied states were inspected. The component remains unrouted. These fixture results do not demonstrate backend authorization, internal submission, independent review or permission to release the assignment workflow. The authority and transaction gates in `2026-11-20-internal-response-workspace-plan.md` remain open.

@@ -26,12 +26,17 @@ export function Tabs<T extends string>({ ariaLabel, compactLabel, variant = "und
     if (retainVisitedPanels && !visited.includes(selectedKey)) setVisited((current) => current.includes(selectedKey) ? current : [...current, selectedKey]);
   }, [retainVisitedPanels, selectedKey, visited]);
   const selectedTabFrame = useRef<{ view: Window; id: number } | null>(null);
+  const selectedTabObserver = useRef<{ list: HTMLElement; observer: ResizeObserver } | null>(null);
   const cancelSelectedTabReveal = useCallback(() => {
     if (!selectedTabFrame.current) return;
     selectedTabFrame.current.view.cancelAnimationFrame(selectedTabFrame.current.id);
     selectedTabFrame.current = null;
   }, []);
-  useEffect(() => cancelSelectedTabReveal, [cancelSelectedTabReveal]);
+  useEffect(() => () => {
+    cancelSelectedTabReveal();
+    selectedTabObserver.current?.observer.disconnect();
+    selectedTabObserver.current = null;
+  }, [cancelSelectedTabReveal]);
   const revealSelectedTab = useCallback((selected: HTMLDivElement | null) => {
     // A previous tab's ref can detach after the new selected tab attaches.
     // Replacement and component cleanup own cancellation, not that detach.
@@ -39,6 +44,16 @@ export function Tabs<T extends string>({ ariaLabel, compactLabel, variant = "und
     cancelSelectedTabReveal();
     const view = selected.ownerDocument.defaultView;
     if (!view) return;
+    const list = selected.closest<HTMLElement>('[role="tablist"]');
+    if (list && typeof ResizeObserver !== "undefined" && selectedTabObserver.current?.list !== list) {
+      selectedTabObserver.current?.observer.disconnect();
+      const observer = new ResizeObserver(() => {
+        const current = list.querySelector<HTMLDivElement>('[role="tab"][aria-selected="true"]');
+        if (current) revealSelectedTab(current);
+      });
+      observer.observe(list);
+      selectedTabObserver.current = { list, observer };
+    }
     // React Aria may mount a contextual trigger after the parent's layout
     // effects. Reveal it from its own ref without moving the page vertically.
     const id = view.requestAnimationFrame(() => {

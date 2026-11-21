@@ -155,7 +155,7 @@ func TestRiskHTTPRejectsCrossEntityReadAsNotFound(t *testing.T) {
 	}
 	handler := New(Dependencies{
 		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity: identity.NewDevelopmentAuthenticator("bank", "owner-b", "entity-b"),
+		Identity: identity.NewDevelopmentAuthenticator("bank", "owner-b", "entity-b", "CRO"),
 		Risk:     service,
 	})
 	response := httptest.NewRecorder()
@@ -181,7 +181,7 @@ func TestRiskHTTPListUsesVerifiedEntityAndBoundedFilters(t *testing.T) {
 	}
 	handler := New(Dependencies{
 		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity: identity.NewDevelopmentAuthenticator("bank", "reader-a", "entity-a"),
+		Identity: identity.NewDevelopmentAuthenticator("bank", "reader-a", "entity-a", "CRO"),
 		Risk:     service,
 	})
 	response := httptest.NewRecorder()
@@ -201,6 +201,45 @@ func TestRiskHTTPListUsesVerifiedEntityAndBoundedFilters(t *testing.T) {
 	handler.ServeHTTP(invalid, httptest.NewRequest(http.MethodGet, "/api/v1/risks?limit=500", nil))
 	if invalid.Code != http.StatusBadRequest {
 		t.Fatalf("invalid limit status=%d body=%s", invalid.Code, invalid.Body.String())
+	}
+}
+
+func TestRiskReadsRequireGlobalOversightPermission(t *testing.T) {
+	service := risk.NewService(risk.NewMemoryRepository())
+	value, err := service.Create(t.Context(), risk.CreateInput{TenantID: "bank", LegalEntityID: "entity-a", OrganizationScopeID: "restricted-unit", Code: "RISK-PRIVATE", Name: "Scoped risk", Statement: "A scoped risk exists.", Impact: "Material impact."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name   string
+		roles  []string
+		status int
+	}{
+		{"no oversight", nil, http.StatusForbidden},
+		{"global oversight", []string{"CRO"}, http.StatusOK},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			h := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "reader", "entity-a", test.roles...), Risk: service})
+			for _, path := range []string{"/api/v1/risks", "/api/v1/risks/" + value.ID} {
+				rec := httptest.NewRecorder()
+				h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+				if rec.Code != test.status {
+					t.Fatalf("%s status=%d want %d body=%s", path, rec.Code, test.status, rec.Body.String())
+				}
+				if test.status == http.StatusForbidden && strings.Contains(rec.Body.String(), "Scoped risk") {
+					t.Fatalf("risk leaked: %s", rec.Body.String())
+				}
+			}
+		})
+	}
+	departmentOnly := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reader", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour), DepartmentGrants: []identity.DepartmentGrant{{Path: []string{"BANK", "RISK"}, PermissionCodes: []string{identity.PermissionOversightRead}}}}
+	h := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: staticIdentityAuthenticator{actor: departmentOnly}, Risk: service})
+	for _, path := range []string{"/api/v1/risks", "/api/v1/risks/" + value.ID} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("department-only %s status=%d body=%s", path, rec.Code, rec.Body.String())
+		}
 	}
 }
 
@@ -232,7 +271,7 @@ func TestRiskHTTPOrganizationScopeIncludesAuthorizedDescendants(t *testing.T) {
 	sibling := runtimecontext.ScopeNode{ID: "scope-finance", Name: "Finance", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "FINANCE"}, Filterable: true}
 	handler := New(Dependencies{
 		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity: identity.NewDevelopmentAuthenticator("bank", "reader-a", "entity-a"),
+		Identity: identity.NewDevelopmentAuthenticator("bank", "reader-a", "entity-a", "CRO"),
 		Risk:     service,
 		RuntimeContext: scopeContextResolverStub{
 			hierarchy: runtimecontext.ScopeHierarchy{State: runtimecontext.HierarchyComplete, Current: entity, LegalEntities: []runtimecontext.ScopeNode{entity}, OrganizationScopes: []runtimecontext.ScopeNode{parent, child, sibling}},

@@ -73,21 +73,23 @@ type CompletedResponseQuery struct {
 }
 
 type CompletedResponseSummary struct {
-	BankAssessment      *ResponseAssessmentSummary `json:"bank_assessment,omitempty"`
-	ID                  string                     `json:"id"`
-	TenantID            string                     `json:"tenant_id"`
-	LegalEntityID       string                     `json:"legal_entity_id"`
-	DistributionID      string                     `json:"distribution_id"`
-	FormTemplateID      string                     `json:"form_template_id"`
-	FormTemplateVersion int64                      `json:"form_template_version"`
-	Title               string                     `json:"title"`
-	SubjectType         string                     `json:"subject_type"`
-	SubjectID           string                     `json:"subject_id"`
-	Revision            int64                      `json:"revision"`
-	Current             bool                       `json:"current"`
-	State               ResponseRevisionState      `json:"state"`
-	Score               *ResponseScoreResult       `json:"score"`
-	CompletedAt         time.Time                  `json:"completed_at"`
+	SubmittedBy         string                       `json:"submitted_by,omitempty"`
+	SubmissionRecipient *ResponseSubmissionRecipient `json:"submission_recipient,omitempty"`
+	BankAssessment      *ResponseAssessmentSummary   `json:"bank_assessment,omitempty"`
+	ID                  string                       `json:"id"`
+	TenantID            string                       `json:"tenant_id"`
+	LegalEntityID       string                       `json:"legal_entity_id"`
+	DistributionID      string                       `json:"distribution_id"`
+	FormTemplateID      string                       `json:"form_template_id"`
+	FormTemplateVersion int64                        `json:"form_template_version"`
+	Title               string                       `json:"title"`
+	SubjectType         string                       `json:"subject_type"`
+	SubjectID           string                       `json:"subject_id"`
+	Revision            int64                        `json:"revision"`
+	Current             bool                         `json:"current"`
+	State               ResponseRevisionState        `json:"state"`
+	Score               *ResponseScoreResult         `json:"score"`
+	CompletedAt         time.Time                    `json:"completed_at"`
 }
 
 type CompletedResponsePage struct {
@@ -226,7 +228,7 @@ func completedResponseSummary(distribution FormDistribution, revision ResponseRe
 		DistributionID: revision.DistributionID, FormTemplateID: distribution.FormTemplateID,
 		FormTemplateVersion: distribution.FormTemplateVersion, Title: distribution.Title,
 		SubjectType: distribution.SubjectType, SubjectID: distribution.SubjectID, Revision: revision.Revision,
-		Current: currentCompletedResponse(distribution, revision), State: revision.State, Score: cloneResponseRevision(revision).Score, CompletedAt: revision.CreatedAt.UTC(),
+		Current: currentCompletedResponse(distribution, revision), State: revision.State, Score: cloneResponseRevision(revision).Score, CompletedAt: revision.CreatedAt.UTC(), SubmissionRecipient: responseSubmissionRecipient(revision),
 	}
 }
 

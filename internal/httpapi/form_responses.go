@@ -43,8 +43,17 @@ func (a *API) listCompletedFormResponses(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	items := make([]map[string]any, 0, len(page.Items))
+	ids := make([]string, 0, len(page.Items))
 	for _, value := range page.Items {
-		items = append(items, completedResponseSummaryJSON(value))
+		ids = append(ids, value.SubmittedBy)
+	}
+	labels := a.exactAssessmentLabels(r.Context(), actor, legalEntityID, ids)
+	for _, value := range page.Items {
+		item := completedResponseSummaryJSON(value)
+		if label := labels[value.SubmittedBy]; label != "" {
+			item["submitted_by_display_name"] = label
+		}
+		items = append(items, item)
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": items, "next_cursor": page.NextCursor})
 }
@@ -82,7 +91,11 @@ func (a *API) getCompletedFormResponse(w http.ResponseWriter, r *http.Request) {
 		writeDocumentError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"response": completedResponseSummaryJSON(summary), "revision": responseRevisionJSON(revision), "submission_id": answers.SubmissionID, "answers": answers.Answers, "documents": documents.Items, "documents_next_cursor": documents.NextCursor})
+	response := completedResponseSummaryJSON(summary)
+	if label := a.exactAssessmentLabels(r.Context(), actor, legalEntityID, []string{summary.SubmittedBy})[summary.SubmittedBy]; label != "" {
+		response["submitted_by_display_name"] = label
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"response": response, "revision": responseRevisionJSON(revision), "submission_id": answers.SubmissionID, "answers": answers.Answers, "documents": documents.Items, "documents_next_cursor": documents.NextCursor})
 }
 
 func completedResponseQueryFromRequest(r *http.Request) (evidence.CompletedResponseQuery, error) {
@@ -181,7 +194,9 @@ func completedResponseSummaryJSON(value evidence.CompletedResponseSummary) map[s
 		"form_template_id": value.FormTemplateID, "form_template_version": value.FormTemplateVersion,
 		"title": value.Title, "subject_type": value.SubjectType, "subject_id": value.SubjectID,
 		"revision": value.Revision, "current": value.Current, "state": value.State,
-		"score": responseScoreJSON(value.Score, false), "completed_at": value.CompletedAt,
+		"submitted_by":         value.SubmittedBy,
+		"submission_recipient": value.SubmissionRecipient,
+		"score":                responseScoreJSON(value.Score, false), "completed_at": value.CompletedAt,
 	}
 }
 

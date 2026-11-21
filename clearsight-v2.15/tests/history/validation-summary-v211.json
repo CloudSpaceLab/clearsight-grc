@@ -1,0 +1,180 @@
+{
+  "release": "2.11",
+  "date": "2026-11-21",
+  "scenarioAsOf": "2026-11-13",
+  "runtime": "Actual application JavaScript; Node with substituted browser/DOM shell",
+  "modelWorkflowChecks": {
+    "passed": 281,
+    "failed": 0,
+    "suites": [
+      {
+        "suite": "Branch KRI source model",
+        "script": "kri_v28_checks.js",
+        "results": "kri-v28-results.json",
+        "passed": 11,
+        "failed": 0
+      },
+      {
+        "suite": "KRI review and action history",
+        "script": "kri_review_v28_checks.js",
+        "results": "kri-review-v28-results.json",
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "suite": "Roles, access and escalation model",
+        "script": "governance_v28_checks.js",
+        "results": "governance-v28-results.json",
+        "passed": 14,
+        "failed": 0
+      },
+      {
+        "suite": "Detailed Inbox model",
+        "script": "inbox_v28_model_checks.js",
+        "results": "inbox-v28-model-results.json",
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "suite": "Board report models",
+        "script": "board_reports_v28_model_checks.js",
+        "results": "board-reports-v28-model-results.json",
+        "passed": 11,
+        "failed": 0
+      },
+      {
+        "suite": "Loss capture and worksheet import",
+        "script": "loss_v29_checks.js",
+        "results": "loss-v29-results.json",
+        "passed": 12,
+        "failed": 0
+      },
+      {
+        "suite": "Independent loss edge review",
+        "script": "loss_edge_review_v29_checks.js",
+        "results": "loss-edge-review-v29-results.json",
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "suite": "Controls, RCSA, vendor lifecycle and risk editing",
+        "script": "workflow_v29_checks.js",
+        "results": "workflow-v29-results.json",
+        "passed": 14,
+        "failed": 0
+      },
+      {
+        "suite": "Forms, Documents, privacy, Work and source handoffs",
+        "script": "flow_v29_checks.js",
+        "results": "flow-v29-results.json",
+        "passed": 25,
+        "failed": 0
+      },
+      {
+        "suite": "Loss reporting and captured context",
+        "script": "loss_reports_v29_checks.js",
+        "results": "loss-reports-v29-results.json",
+        "passed": 18,
+        "failed": 0
+      },
+      {
+        "suite": "Named assessment identity, history and review",
+        "script": "assessment_v210_checks.js",
+        "results": "assessment-v210-results.json",
+        "passed": 22,
+        "failed": 0
+      },
+      {
+        "suite": "Unified Documents and contextual decisions",
+        "script": "documents_v210_checks.js",
+        "results": "documents-v210-results.json",
+        "passed": 12,
+        "failed": 0
+      },
+      {
+        "suite": "Vendor intake through reviewed activation",
+        "script": "vendor_onboarding_v210_checks.js",
+        "results": "vendor-onboarding-v210-results.json",
+        "passed": 15,
+        "failed": 0
+      },
+      {
+        "suite": "Independent V2.10 crossflow/reporting under V2.11",
+        "script": "v210_crossflow_checks.js",
+        "results": "v210-crossflow-results.json",
+        "passed": 16,
+        "failed": 0
+      },
+      {
+        "suite": "Shared save, recovery, search and correction interactions",
+        "script": "interaction_core_v211_checks.js",
+        "results": "interaction-core-v211-results.json",
+        "passed": 15,
+        "failed": 0
+      },
+      {
+        "suite": "Assurance, Documents and vendor interactions",
+        "script": "assurance_interactions_v211_checks.js",
+        "results": "assurance-interactions-v211-results.json",
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "suite": "Governance, queues and file approval interactions",
+        "script": "governance_interactions_v211_checks.js",
+        "results": "governance-interactions-v211-results.json",
+        "passed": 19,
+        "failed": 0
+      },
+      {
+        "suite": "KRI, loss, RCSA, control and report interactions",
+        "script": "operations_interactions_v211_checks.js",
+        "results": "operations-interactions-v211-results.json",
+        "passed": 16,
+        "failed": 0
+      },
+      {
+        "suite": "Privacy and local monitoring interactions",
+        "script": "privacy_interactions_v211_checks.js",
+        "results": "privacy-interactions-v211-results.json",
+        "passed": 10,
+        "failed": 0
+      }
+    ]
+  },
+  "routeActionChecks": {
+    "passed": 102,
+    "failed": 0,
+    "entryRoutes": 75,
+    "reportPerspectives": 10,
+    "additionalInteractionViews": 17
+  },
+  "compilation": {
+    "javascriptModules": 31,
+    "standaloneScriptBlocks": 2,
+    "status": "PASS"
+  },
+  "build": {
+    "entryPoints": 75,
+    "linkedAssetReferences": 4200,
+    "standaloneBytes": 1674305,
+    "externalStandaloneJsCss": false,
+    "defaultRoute": "work"
+  },
+  "browserValidation": {
+    "status": "BLOCKED",
+    "limitations": [
+      "Previously observed Chromium process/socket restrictions",
+      "Previously observed cloud-browser local-file navigation policy; not retried or bypassed"
+    ],
+    "notClaimed": [
+      "Rendered visual/mobile layout",
+      "Native dialog/history/focus/inert behavior",
+      "Screen-reader and keyboard usability",
+      "Browser file storage",
+      "Browser downloads",
+      "Print-to-PDF"
+    ]
+  },
+  "historicalArtifacts": "Earlier handoff docs, prior fixtures and browser screenshots/results remain historical. Current authoritative checks are the suites listed above."
+}

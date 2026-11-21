@@ -2,6 +2,10 @@ import { loadMatter, loadProgram } from "../../api";
 import { loadVendorRelationship } from "../../vendorApi";
 import type { CompletedResponseSummary } from "../../formsDistributionApi";
 
+export function responseSubmitter(response: CompletedResponseSummary): string {
+  return response.submitted_by_display_name?.trim() || (response.submitted_by?.trim() ? `Name unavailable (${response.submitted_by.trim()})` : "Submitter not recorded");
+}
+
 // Response review permission alone never grants access to the subject name.
 export async function responseSubjectName(response: CompletedResponseSummary): Promise<string | undefined> {
   try {

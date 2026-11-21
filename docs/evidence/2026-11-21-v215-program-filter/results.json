@@ -1,0 +1,23 @@
+{
+  "fixture": "SYNTHETIC_NOT_BACKEND_AUTHORIZATION",
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "server_filter": "EVIDENCE_INSUFFICIENT",
+      "loaded": 1
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "server_filter": "EVIDENCE_INSUFFICIENT",
+      "loaded": 1
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "server_filter": "EVIDENCE_INSUFFICIENT",
+      "loaded": 1
+    }
+  ]
+}

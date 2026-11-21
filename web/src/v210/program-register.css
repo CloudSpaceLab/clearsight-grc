@@ -1,0 +1,17 @@
+.v-program-search .v-program-filter-fields { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 220px) auto; align-items: end; gap: 8px; }
+.v-program-filter-fields .v-program-filter-field { display: grid; gap: 7px; min-width: 0; }
+.v-program-filter-fields .v-program-filter-field label { margin: 0; }
+.v-program-filter-fields .v-program-filter-field input, .v-program-filter-fields .v-program-filter-field select { width: 100%; min-width: 0; min-height: var(--v-field-height); padding: 0 12px; border: 1px solid var(--v-field-border); border-radius: var(--v-field-radius); background: var(--v-field-background); }
+.v-program-filter-fields .v-program-filter-field select { color: var(--v-field-text); }
+.v-program-filter-fields > button { justify-self: start; }
+.v-program-filter-note, .v-program-result-count { color: var(--v-status-text); font-size: 12px; }
+@media (max-width: 560px) { .v-program-search .v-program-filter-fields { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 701px) and (max-width: 900px) {
+  .v-program-search .v-program-filter-fields { grid-template-columns: minmax(0, 1fr); }
+  .v-program-register-table table, .v-program-register-table tbody, .v-program-register-table tr, .v-program-register-table td { display: block; }
+  .v-program-register-table thead { display: none; }
+  .v-program-register-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 14px 16px; border-bottom: 1px solid #e5edf7; gap: 8px; }
+  .v-program-register-table td { padding: 0; border: 0; }
+  .v-program-register-table td:first-child { grid-column: 1 / -1; }
+  .v-program-register-table .v-mobile-label { display: block; margin-bottom: 3px; color: #7389a9; font-size: 11px; }
+}

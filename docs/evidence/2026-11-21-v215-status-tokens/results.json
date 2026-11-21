@@ -1,0 +1,23 @@
+{
+  "evidence": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "defaultColorsPreserved": true,
+      "semanticOverride": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "defaultColorsPreserved": true,
+      "semanticOverride": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "defaultColorsPreserved": true,
+      "semanticOverride": true
+    }
+  ]
+}

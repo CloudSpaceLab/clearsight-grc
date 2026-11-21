@@ -1,0 +1,7 @@
+# Mobile navigation continuity
+
+The mobile navigation now opens as a labelled modal drawer. Its close control receives focus; Tab and Shift+Tab stay within the drawer; Escape and the backdrop close it and restore focus to the menu control after the header is active again. The main content, header and skip link are inert and background scrolling is locked while the drawer is open. Navigation moves focus to the destination main region, resizing to desktop unlocks and focuses the main region, and session expiry removes the trap and scroll lock.
+
+The interaction reference is `clearsight-v2.15/docs/NAVIGATION_CONTINUITY_V215.md` and the shell reference is `clearsight-v2.15/clearsight-v2-demo.html` (SHA-256 `20c3a2614f440c5ce86e0f545de997f15e742e1899084d85083643b32e592873`). No scope selector, search or notification is added without an authorized backend contract. This is a partial shell integration, not a full v2.15 layout cutover.
+
+Prior shell evidence is in `docs/evidence/2026-11-20-v29-shell-baseline/`. After-state screenshots and browser check results are in `docs/evidence/2026-11-21-v215-shell-navigation/`: 390, 768 and 1440 pixels; at 390, native keyboard focus containment, Escape, route focus and resize recovery were exercised. The evidence uses synthetic UI data and does not establish backend authorization, screen-reader acceptance, dark-mode coverage or complete responsive acceptance.

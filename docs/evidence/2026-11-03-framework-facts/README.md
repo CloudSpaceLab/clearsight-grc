@@ -1,0 +1,9 @@
+# Framework edition facts — partial V2 integration
+
+Source: [Framework Library HTML](../../design/references/clearsight-2026-10/source/clearsight-framework-designs/framework-library.html), SHA-256 `193d13b0cf87381f20b7d84c3d4c50c80b0e064274a623fa98257506df8284bf`. The [decision](../../design/2026-11-03-framework-facts.md) describes the correction. Reviewer: ChatGPT Codex `/root`, 3 November 2026, local uncommitted working tree; no immutable revision or production acceptance is asserted.
+
+The [source inspector](../2026-11-02-framework-alignment/source-1440.png) aligns fact values beneath their labels. The [previous runtime](../2026-11-03-framework-inspector/light-1440.png) right-aligned values because of a global definition-list rule; the [corrected runtime](light-1440.png) uses start alignment. The 390px [compact sheet](light-390.png) keeps paired labels and end-aligned values. Source and runtime editions differ; the source has no dark theme.
+
+The new desktop geometry assertion failed on the original runtime with `text-align: right` and passes in the [seven-scenario gate](gate/manifest.json), including selection and denied catalog. Additional captures cover 1440, 1280, 1024, 768 and 390px in light and dark themes. Keyboard selection worked at every width; Escape returned focus to the record in compact sheets. An injected long unbroken publisher value wrapped without fact-container or document overflow in all ten cases; it was not stored. Framework, navigation and copy tests passed 21 tests, 18 UI/source-integrity checks passed, and TypeScript and the evidence build passed.
+
+Desktop and compact-sheet WCAG A/AA automated scans reported no definite violations; `aria-prohibited-attr` and `color-contrast` were incomplete and require manual review. Synthetic fixtures do not establish live catalog authorization, backend result quality or whole-screen acceptance. The acceptance register remains 0/19 and production cutover remains blocked.

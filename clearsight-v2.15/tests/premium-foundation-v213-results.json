@@ -1,0 +1,39 @@
+{
+  "suite": "V2.13 display preference interactions",
+  "runtime": "Actual source with substituted browser/DOM shell",
+  "browserLayoutValidated": false,
+  "results": [
+    {
+      "name": "Missing or malformed display preferences fall back safely without mutating records",
+      "status": "PASS"
+    },
+    {
+      "name": "Changing appearance preserves the active route, unsaved form, modal and all domain state",
+      "status": "PASS"
+    },
+    {
+      "name": "Preferences survive reload and supported V2.12/V2.13/V2.14 state migrates without replacing its scope or drafts",
+      "status": "PASS"
+    },
+    {
+      "name": "Invalid preferences are rejected atomically before state or persisted records change",
+      "status": "PASS"
+    },
+    {
+      "name": "Existing theme action preserves density and does not rerender or reset ongoing work",
+      "status": "PASS"
+    },
+    {
+      "name": "Display command protects an existing dialog and its pending changes",
+      "status": "PASS"
+    },
+    {
+      "name": "Display form commits explicit selected values through the existing save callback",
+      "status": "PASS"
+    },
+    {
+      "name": "Applied appearance updates accessible chrome context and settings text in place",
+      "status": "PASS"
+    }
+  ]
+}

@@ -435,14 +435,17 @@ func (s *Service) DetermineApplicability(ctx context.Context, input DetermineApp
 	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	if strings.TrimSpace(input.RequirementID) == "" || strings.TrimSpace(input.Rationale) == "" || strings.TrimSpace(input.ApprovedBy) == "" {
-		return ProgramAggregate{}, fmt.Errorf("requirement_id, rationale and approved_by are required")
+	if strings.TrimSpace(input.RequirementID) == "" || strings.TrimSpace(input.ApprovedBy) == "" {
+		return ProgramAggregate{}, fmt.Errorf("requirement_id and approved_by are required")
 	}
 	if !containsRequirement(aggregate.Requirements, input.RequirementID) {
 		return ProgramAggregate{}, fmt.Errorf("requirement_id does not belong to this program")
 	}
 	if !validApplicability(input.Status) {
 		return ProgramAggregate{}, fmt.Errorf("unsupported applicability status")
+	}
+	if input.Status != ApplicabilityApplicable && strings.TrimSpace(input.Rationale) == "" {
+		return ProgramAggregate{}, fmt.Errorf("reason for the applicability decision is required")
 	}
 	scope, err := normalizedJSON(input.Scope, `{}`)
 	if err != nil {

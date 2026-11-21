@@ -1,0 +1,11 @@
+.v-risk-detail > .v-panel { margin-bottom: 16px; }
+.v-risk-detail dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 0; }
+.v-risk-detail dt { color: #627b9f; font-size: 12px; }
+.v-risk-detail dd { margin: 5px 0 0; overflow-wrap: anywhere; }
+.v-risk-appetite { display: inline-block; padding: 5px 8px; border-radius: 6px; background: #eef3fa; color: #536c90; font-size: 12px; }
+.v-risk-appetite--breached { color: #a5242c; background: #fff0ef; }
+.v-risk-appetite--approaching { color: #855500; background: #fff4d7; }
+.v-risk-appetite--within { color: #186642; background: #e9f7ef; }
+.v-risk-indicator--breach { color: #a5242c; background: #fff0ef; }
+.v-risk-indicator--watch { color: #855500; background: #fff4d7; }
+.v-risk-indicator--normal { color: #186642; background: #e9f7ef; }

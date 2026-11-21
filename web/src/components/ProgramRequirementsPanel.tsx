@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { addProgramRequirement, determineProgramApplicability, supersedeProgramRequirement } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
@@ -48,6 +48,16 @@ export function ProgramRequirementsPanel({ aggregate, operations, reviewAdoption
     if (requestedAdoptionID) void standardReview.load(requestedAdoptionID);
   }, [requestedAdoptionID, program.id, program.version, standardReview.load]);
   const [mode, setMode] = useState<Mode>(null);
+  const titleInput = useRef<HTMLInputElement>(null);
+  const applicabilityInput = useRef<HTMLSelectElement>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
+  const applicabilityButton = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (mode === "add" || mode === "replace") titleInput.current?.focus();
+    else if (mode === "applicability") applicabilityInput.current?.focus();
+    else { const restore = restoreFocus.current; restoreFocus.current = null; restore?.(); }
+  }, [mode]);
   const [selected, setSelected] = useState<Requirement | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -56,7 +66,7 @@ export function ProgramRequirementsPanel({ aggregate, operations, reviewAdoption
   const [actor, setActor] = useState(""); const [action, setAction] = useState(""); const [object, setObject] = useState("");
   const [effectiveFrom, setEffectiveFrom] = useState(today()); const [rationale, setRationale] = useState("");
   const [requirementID, setRequirementID] = useState(aggregate.requirements.find((value) => value.status === "APPROVED")?.id ?? "");
-  const [applicability, setApplicability] = useState("APPLICABLE"); const [scopeDescription, setScopeDescription] = useState("");
+  const [applicability, setApplicability] = useState(""); const [scopeDescription, setScopeDescription] = useState("");
 
   async function submitMapping(event: FormEvent) {
     event.preventDefault();
@@ -97,9 +107,9 @@ export function ProgramRequirementsPanel({ aggregate, operations, reviewAdoption
     } finally { setMappingBusy(false); }
   }
 
-  function beginAdd() { setMode("add"); setSelected(null); setCode(""); setTitle(""); setStatement(""); setSourceAnchor(""); setModality(""); setActor(""); setAction(""); setObject(""); setEffectiveFrom(today()); setRationale(""); setError(""); }
-  function beginReplace(requirement: Requirement) { setMode("replace"); setSelected(requirement); setCode(requirement.code); setTitle(requirement.title); setStatement(requirement.statement); setSourceAnchor(requirement.source_anchor ?? ""); setModality(requirement.modality ?? ""); setActor(requirement.actor ?? ""); setAction(requirement.action ?? ""); setObject(requirement.object ?? ""); setEffectiveFrom(today()); setRationale(""); setError(""); }
-  function beginApplicability() { setMode("applicability"); setRequirementID(aggregate.requirements.find((value) => value.status === "APPROVED")?.id ?? ""); setApplicability("APPLICABLE"); setScopeDescription(""); setRationale(""); setEffectiveFrom(today()); setError(""); }
+  function beginAdd() { restoreFocus.current = () => addButton.current?.focus(); setMode("add"); setSelected(null); setCode(""); setTitle(""); setStatement(""); setSourceAnchor(""); setModality(""); setActor(""); setAction(""); setObject(""); setEffectiveFrom(today()); setRationale(""); setError(""); }
+  function beginReplace(requirement: Requirement) { restoreFocus.current = () => { const card = document.getElementById(`program-requirement-${encodeURIComponent(requirement.id)}`); (card?.querySelector<HTMLButtonElement>("button") ?? card)?.focus(); }; setMode("replace"); setSelected(requirement); setCode(requirement.code); setTitle(requirement.title); setStatement(requirement.statement); setSourceAnchor(requirement.source_anchor ?? ""); setModality(requirement.modality ?? ""); setActor(requirement.actor ?? ""); setAction(requirement.action ?? ""); setObject(requirement.object ?? ""); setEffectiveFrom(today()); setRationale(""); setError(""); }
+  function beginApplicability() { restoreFocus.current = () => applicabilityButton.current?.focus(); setMode("applicability"); setRequirementID(aggregate.requirements.find((value) => value.status === "APPROVED")?.id ?? ""); setApplicability(""); setScopeDescription(""); setRationale(""); setEffectiveFrom(today()); setError(""); }
 
   async function saveRequirement(event: FormEvent) {
     event.preventDefault();
@@ -126,7 +136,7 @@ export function ProgramRequirementsPanel({ aggregate, operations, reviewAdoption
   }
 
   return <article className="program-record-panel program-requirements-panel" id="program-requirements-panel">
-    <div className="program-panel-heading"><div><span className="eyebrow">Requirements</span><h2>Obligations and applicability</h2></div><div className="program-panel-actions">{addOperation?.can_act && mode !== "add" && <button className="secondary-button" type="button" onClick={beginAdd}>Add requirement</button>}{applicabilityOperation?.can_act && aggregate.requirements.some((value) => value.status === "APPROVED") && mode !== "applicability" && <button className="secondary-button" type="button" onClick={beginApplicability}>Record applicability</button>}</div></div>
+    <div className="program-panel-heading"><div><span className="eyebrow">Requirements</span><h2>Obligations and applicability</h2></div>{mode === null && <div className="program-panel-actions">{addOperation?.can_act && <button ref={addButton} className="secondary-button" type="button" onClick={beginAdd}>Add requirement</button>}{applicabilityOperation?.can_act && aggregate.requirements.some((value) => value.status === "APPROVED") && <button ref={applicabilityButton} className="secondary-button" type="button" onClick={beginApplicability}>Record applicability</button>}</div>}</div>
     {activeStandards.length > 0 && <section className="program-record-subsection" aria-label="Standard clause review">
       <div className="program-panel-heading">
         <div><h3>Standard clauses</h3><p className="program-operation-reason">Suggested requirement matches require review.</p></div>
@@ -204,12 +214,13 @@ export function ProgramRequirementsPanel({ aggregate, operations, reviewAdoption
     <div className="program-requirement-list">{aggregate.requirements.length ? aggregate.requirements.map((requirement) => {
       const supersedeOperation = operations.find((operation) => operation.command === "program.requirement.supersede" && operation.subresource_id === requirement.id);
       const currentApplicability = [...aggregate.applicability].reverse().find((value) => value.requirement_id === requirement.id);
-      return <section className="program-requirement-card" key={requirement.id} id={`program-requirement-${encodeURIComponent(requirement.id)}`} tabIndex={-1} aria-label={`Requirement: ${requirement.title}`}><div><span>{requirement.code} · {label(requirement.status)}</span><h3>{requirement.title}</h3><p>{requirement.statement}</p>{requirement.source_anchor && <small>Source: {requirement.source_anchor}</small>}</div><dl><div><dt>Does this apply?</dt><dd>{currentApplicability ? label(currentApplicability.status) : "Not decided"}</dd></div><div><dt>Effective from</dt><dd>{requirement.effective_from?.slice(0, 10) ?? "Not recorded"}</dd></div></dl>{supersedeOperation?.can_act && <button className="text-button" type="button" onClick={() => beginReplace(requirement)}>Replace requirement</button>}</section>;
+      return <section className="program-requirement-card" key={requirement.id} id={`program-requirement-${encodeURIComponent(requirement.id)}`} tabIndex={-1} aria-label={`Requirement: ${requirement.title}`}><div><span>{requirement.code} · {label(requirement.status)}</span><h3>{requirement.title}</h3><p>{requirement.statement}</p>{requirement.source_anchor && <small>Source: {requirement.source_anchor}</small>}</div><dl><div><dt>Does this apply?</dt><dd>{currentApplicability ? label(currentApplicability.status) : "Not decided"}</dd></div><div><dt>Effective from</dt><dd>{requirement.effective_from?.slice(0, 10) ?? "Not recorded"}</dd></div></dl>{supersedeOperation?.can_act && mode === null && <button className="text-button" type="button" onClick={() => beginReplace(requirement)}>Edit requirement</button>}</section>;
     }) : <div className="program-empty-state"><strong>No requirements are recorded</strong><p>Add a source-anchored obligation before deciding whether it applies or defining its safeguards.</p></div>}</div>
     {(mode === "add" || mode === "replace") && <form className="program-operation-form" onSubmit={(event) => void saveRequirement(event)}>
+      {mode === "replace" && <p className="wide program-requirement-version-note">Saving creates a new requirement version.</p>}
       <label><span>Requirement code</span><input required value={code} onChange={(event) => setCode(event.target.value)}/></label>
-      <label><span>Requirement title</span><input required value={title} onChange={(event) => setTitle(event.target.value)}/></label>
-      <label className="wide"><span>{mode === "replace" ? "Replacement statement" : "Requirement statement"}</span><textarea required value={statement} onChange={(event) => setStatement(event.target.value)}/></label>
+      <label><span>Requirement title</span><input ref={titleInput} required value={title} onChange={(event) => setTitle(event.target.value)}/></label>
+      <label className="wide"><span>Requirement text</span><textarea required value={statement} onChange={(event) => setStatement(event.target.value)}/></label>
       <label className="wide"><span>{mode === "replace" ? "Replacement source and section" : "Official source and section"}</span><input required value={sourceAnchor} onChange={(event) => setSourceAnchor(event.target.value)}/></label>
       <label><span>Obligation strength</span><select required value={modality} onChange={(event) => setModality(event.target.value)}><option value="">Select the source's wording</option><option value="MUST">Must</option><option value="MUST_NOT">Must not</option><option value="SHOULD">Should</option><option value="MAY">May</option><option value="EXPECTED">Expected</option></select></label>
       <label><span>Effective from</span><input required type="date" value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)}/></label>
@@ -218,16 +229,18 @@ export function ProgramRequirementsPanel({ aggregate, operations, reviewAdoption
       <div className="wide"><TextField label="What does it apply to?" value={object} onChange={setObject} isRequired/></div>
       {mode === "replace" && <label className="wide"><span>Reason for replacing this requirement</span><textarea required value={rationale} onChange={(event) => setRationale(event.target.value)}/></label>}
       {error && <p className="program-form-error wide" role="alert">{error} <button className="text-button" type="button" onClick={onReload}>Reload Program</button></p>}
-      <div className="program-form-actions wide"><button className="primary-button" disabled={busy} type="submit">{busy ? "Saving…" : mode === "replace" ? "Save replacement requirement" : "Save requirement"}</button><button className="text-button" type="button" onClick={() => setMode(null)}>Cancel</button></div>
+      <div className="program-form-actions wide"><button className="primary-button" disabled={busy} type="submit">{busy ? "Saving…" : mode === "replace" ? "Save new version" : "Save requirement"}</button><button className="text-button" type="button" onClick={() => setMode(null)}>Cancel</button></div>
     </form>}
     {mode === "applicability" && <form className="program-operation-form" onSubmit={(event) => void saveApplicability(event)}>
-      <label className="wide"><span>Requirement</span><select required value={requirementID} onChange={(event) => setRequirementID(event.target.value)}>{aggregate.requirements.filter((value) => value.status === "APPROVED").map((requirement) => <option key={requirement.id} value={requirement.id}>{requirement.code} · {requirement.title}</option>)}</select></label>
-      <label><span>Does this apply?</span><select value={applicability} onChange={(event) => setApplicability(event.target.value)}><option value="APPLICABLE">Yes</option><option value="PARTIALLY_APPLICABLE">Partly</option><option value="NOT_APPLICABLE">No</option><option value="POTENTIALLY_APPLICABLE">Needs assessment</option><option value="APPLIES_LATER">Applies later</option></select></label>
+      <label className="wide"><span>Requirement</span><select required value={requirementID} onChange={(event) => { setRequirementID(event.target.value); setApplicability(""); setRationale(""); }} >{aggregate.requirements.filter((value) => value.status === "APPROVED").map((requirement) => <option key={requirement.id} value={requirement.id}>{requirement.code} · {requirement.title}</option>)}</select></label>
+      <div className="program-applicability-choice wide">
+        <label><span>Does this apply?</span><select ref={applicabilityInput} required value={applicability} onChange={(event) => { setApplicability(event.target.value); setRationale(""); }}><option value="">Select an answer</option><option value="APPLICABLE">Yes</option><option value="PARTIALLY_APPLICABLE">Partly</option><option value="NOT_APPLICABLE">Not applicable</option><option value="POTENTIALLY_APPLICABLE">Needs assessment</option><option value="APPLIES_LATER">Applies later</option></select></label>
+        {applicability && applicability !== "APPLICABLE" && <label><span>{applicability === "NOT_APPLICABLE" ? "Why is this not applicable?" : "Reason for decision"}</span><textarea required value={rationale} onChange={(event) => setRationale(event.target.value)}/></label>}
+      </div>
       <label><span>Effective from</span><input required type="date" value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)}/></label>
       <label className="wide"><span>Scope of this decision</span><textarea value={scopeDescription} onChange={(event) => setScopeDescription(event.target.value)}/></label>
-      <label className="wide"><span>Applicability rationale</span><textarea required value={rationale} onChange={(event) => setRationale(event.target.value)}/></label>
       {error && <p className="program-form-error wide" role="alert">{error}</p>}
-      <div className="program-form-actions wide"><button className="primary-button" disabled={busy || !requirementID} type="submit">{busy ? "Saving…" : "Save applicability decision"}</button><button className="text-button" type="button" onClick={() => setMode(null)}>Cancel</button></div>
+      <div className="program-form-actions wide"><button className="primary-button" disabled={busy || !requirementID || !applicability || (applicability !== "APPLICABLE" && !rationale.trim())} type="submit">{busy ? "Saving…" : "Save applicability decision"}</button><button className="text-button" type="button" onClick={() => setMode(null)}>Cancel</button></div>
     </form>}
     {!addOperation?.can_act && addOperation?.reason && <p className="program-operation-reason">{addOperation.reason}</p>}
   </article>;

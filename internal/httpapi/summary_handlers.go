@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -173,6 +174,10 @@ func (a *API) matterSummaryOrganizationScopeLabels(ctx context.Context, actor id
 }
 
 func writeSummaryError(w http.ResponseWriter, err error, fallback string) {
+	if errors.Is(err, continuity.ErrSummaryUnavailable) {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "summary_unavailable", fallback)
+		return
+	}
 	if strings.Contains(strings.ToLower(err.Error()), "invalid cursor") {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_cursor", "The page cursor is invalid or no longer usable. Reload the first page.")
 		return

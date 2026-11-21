@@ -62,6 +62,7 @@ export type SourceCheckConfig = {
   field: string;
   expected: string;
   operator: SourceOperator;
+  freshnessMinutes: number;
   measurement?: MonitoringMeasurementSpec;
 };
 
@@ -74,7 +75,7 @@ export function createSourceMonitoringCheck(programID: string, binding: SourceBi
       source_rules: [{ id: `${input.code}-RULE`, field: input.field, operator: input.operator, expected: input.expected, risk_points: 100, critical: true }],
       measurement: input.measurement,
       thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 },
-      freshness_minutes: 60, minimum_coverage: 1, failure_action: "RECOMMEND_MATTER",
+      freshness_minutes: input.freshnessMinutes, minimum_coverage: 1, failure_action: "RECOMMEND_MATTER",
     }),
   });
 }

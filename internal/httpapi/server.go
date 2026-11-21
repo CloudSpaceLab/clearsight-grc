@@ -11,6 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigateway"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/apiquestion"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -99,6 +100,8 @@ type Dependencies struct {
 		Maintain(context.Context, time.Time, int) (int, error)
 	}
 	SourceCatalog           *sourceaccess.CatalogService
+	QuestionTestAudit       sourceaccess.QuestionTestAudit
+	QuestionDrafts          apiquestion.Store
 	DocumentImports         *documentimport.Service
 	RegisterMigrations      *registermigration.Service
 	Coverage                *documentcoverage.Service
@@ -141,6 +144,9 @@ type Dependencies struct {
 type API struct{ deps Dependencies }
 
 func New(deps Dependencies) http.Handler {
+	if deps.Evidence != nil && deps.SourceCatalog != nil {
+		deps.SourceCatalog.ConfigureSourceScopeLookup(deps.Evidence.SourceScopeExists)
+	}
 	api := &API{deps: deps}
 	mux := http.NewServeMux()
 	api.registerFederationRoutes(mux)

@@ -67,9 +67,9 @@ test("a Reports screenshot cannot substitute for measured source-menu evidence",
 
 test("the menu receipt rejects undersized controls and wrapped primary labels", async () => {
   const navigation = {
-    labels: ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Work & Approvals", "Reports"],
-    hrefs: ["#oversight", "#programs/library", "#programs", "#forms", "#vendors", "#risks", "#ropa", "#work", "#reports"],
-    activePage: ["Reports"], railWidth: 228, railX: 0, labelMode: "expanded", maxLabelLines: 1, labelsContained: true,
+    labels: ["Inbox", "Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Documents", "Work & Approvals", "Reports & Insights"],
+    hrefs: ["#notifications", "#oversight", "#programs/library", "#programs", "#forms", "#vendors", "#risks", "#ropa", "#documents", "#work", "#reports"],
+    activePage: ["Reports & Insights"], railWidth: 228, railX: 0, labelMode: "expanded", maxLabelLines: 1, labelsContained: true,
     minTargetWidth: 44, minTargetHeight: 49, targetsContained: true, primaryReachable: true,
     settingsPresent: true, settingsFooter: true, footerReachable: true, compactMenuAvailable: false,
     duplicateMobileNavigation: false, legacyPortfolioNavigation: false,
@@ -83,10 +83,26 @@ test("the menu receipt rejects undersized controls and wrapped primary labels", 
   assert.ok((await review([{ ...capture, navigation: { ...navigation, maxLabelLines: 2 } }])).failures.includes(diagnostic));
 });
 
+test("phone navigation requires a hidden rail and an accessible, dismissible drawer", async () => {
+  const labels = ["Inbox", "Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Documents", "Work & Approvals", "Reports & Insights"];
+  const hrefs = ["#notifications", "#oversight", "#programs/library", "#programs", "#forms", "#vendors", "#risks", "#ropa", "#documents", "#work", "#reports"];
+  const navigation = { mode: "drawer", labels, hrefs, activePage: ["Reports & Insights"], phoneRailHidden: true,
+    compactMenuAvailable: true, settingsPresent: true, duplicateMobileNavigation: false, legacyPortfolioNavigation: false,
+    phoneDrawer: { labels, activePage: ["Reports & Insights"], settingsPresent: true, labelsVisible: true,
+      maxLabelLines: 1, targetsContained: true, bounded: true, currentPageVisible: true,
+      minTargetWidth: 44, minTargetHeight: 44, focusContained: true, dismissalRestoredFocus: true } };
+  const capture = { name: "140e-report-overview-light-390x844", route: "#reports", fixture: "report-overview-loaded",
+    state: "report-overview-mobile", theme: "light", viewport: { width: 390, height: 844 }, navigation };
+  const diagnostic = `${capture.name}: primary navigation source, permission or measured geometry evidence is missing or inconsistent`;
+  assert.ok(!(await review([capture])).failures.includes(diagnostic));
+  assert.ok((await review([{ ...capture, navigation: { ...navigation, phoneRailHidden: false } }])).failures.includes(diagnostic));
+  assert.ok((await review([{ ...capture, navigation: { ...navigation, phoneDrawer: { ...navigation.phoneDrawer, dismissalRestoredFocus: false } } }])).failures.includes(diagnostic));
+});
+
 test("compact Navigation cannot pass with a float-narrowed content column", async () => {
   const drawer = {
-    labels: ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Work & Approvals", "Reports"],
-    activePage: ["Reports"], settingsPresent: true,
+    labels: ["Inbox", "Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Documents", "Work & Approvals", "Reports & Insights"],
+    activePage: ["Reports & Insights"], settingsPresent: true,
     riskChildren: ["Risks", "RCSA", "Key indicators", "Loss events"], riskExpandedByKeyboard: true,
     labelsVisible: true, maxLabelLines: 1, targetsContained: true, bounded: true,
     currentPageVisible: true, currentPageBounds: { top: 665, bottom: 709, clipTop: 104, clipBottom: 713 },
@@ -129,7 +145,7 @@ function portfolioCapture(scenario = vendorPortfolioEvidenceScenarios[0]) {
     kind: scenario.vendorPortfolioView, route: scenario.route, evidenceKind: "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
     headingText: "Vendors", heading: rect(contentX, 96, contentWidth, 90), title: rect(contentX, 110, Math.min(220, contentWidth), 40), titleContained: true,
     localTabs: labels, selectedTab: selected, selectedPanelID: "sample-portfolio-panel", visiblePanelIDs: ["sample-portfolio-panel"], selectedPanelControlsMatch: true,
-    menuMode: width === 390 ? "select" : "tabs", compactValue: selected, tablist: rect(contentX, 205, contentWidth, 44), selectedTabBounds: rect(contentX, 205, 100, 44), selectedTabVisible: true,
+    menuMode: "tabs", compactValue: null, tablist: rect(contentX, 205, contentWidth, 44), selectedTabBounds: rect(contentX, 205, 100, 44), selectedTabVisible: true,
     documentWidth: width, scrollWidth: width, selectedRelationshipVisible: false, minTargetWidth: 44, minTargetHeight: 44, undersizedTargets: [],
     main: rect(260, 405, 815, 500), aside: rect(1092, 405, 313, 600), placement: "beside",
     metrics: ["2 vendor services", "5 open exceptions", "5 open actions", "5 overdue actions"].map((label, index) => ({ label, value: index ? "5" : "2", bounds: rect(260 + index * 285, 270, 274, 105) })),
@@ -150,6 +166,7 @@ test("Vendor portfolio rejects a missing menu destination, hidden first content 
   assert.deepEqual(portfolioFailures(capture), []);
   for (const mutate of [
     (layout) => layout.localTabs.pop(),
+    (layout) => { layout.menuMode = "select"; },
     (layout) => { layout.firstUsefulContent = rect(260, 910, 1148, 100); },
     (layout) => { layout.visiblePanelIDs.push("leaked-register-panel"); },
   ]) {
@@ -497,7 +514,7 @@ test("builder workflow claims require retained request and response versions, in
 
 function notificationReceipt(scenario) {
   const box = (x, y, width, height) => ({ x, y, width, height, right: x + width, bottom: y + height });
-  return { ...scenario, navigation: { activePage: ["Work & Approvals"] }, notificationsLayout: {
+  return { ...scenario, navigation: { activePage: ["Inbox"] }, notificationsLayout: {
     kind: scenario.notificationView, evidenceKind: "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
     headingText: "Notifications", heading: box(252, 110, 1160, 120), tablist: box(252, 250, 1160, 50),
     localTabs: ["Inbox", "Activity", "Preferences"], selectedTab: "Inbox", selectedTabBounds: box(260, 252, 90, 44), selectedTabVisible: true,
@@ -567,7 +584,7 @@ test("Activity evidence preserves returned facts and discloses version limits on
   const scenario = notificationsEvidenceScenarios.find((item) => item.notificationMatrix && item.notificationView === "activity" && item.theme === "dark" && item.viewport.width === 1440);
   const valid = notificationReceipt(scenario);
   Object.assign(valid.notificationsLayout, { selectedTab: "Activity", recordCount: 3,
-    activityVersionLimitation: "Record versions are not recorded in this history. Check the related record for its current version and available actions.",
+    activityVersionLimitation: "Activity events omit record versions. Open the related record for its current version and actions.",
     activityEvents: [
       { id: "sample-activity-event-1", action: "Assigned Sample annual-return evidence review", actor: "Sample Amina Yusuf", outcome: "Succeeded", fields: ["Record"], text: "Record matter-gaid-change · Workflow" },
       { id: "sample-activity-event-2", action: "Recorded Sample Program review", actor: "Sample Emeka Okoro", outcome: "Succeeded", fields: ["Record"], text: "Record program-ndpa · Programs" },

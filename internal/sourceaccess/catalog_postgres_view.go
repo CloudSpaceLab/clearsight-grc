@@ -17,7 +17,7 @@ func (r *PostgresCatalogRepository) CreateViewRevision(ctx context.Context, valu
 	if r == nil || r.pool == nil {
 		return ViewRevision{}, ErrCatalogStorage
 	}
-	stableKeys, err := json.Marshal(value.StableKeys)
+	stableKeys, err := json.Marshal(append([]string{}, value.StableKeys...))
 	if err != nil {
 		return ViewRevision{}, ErrCatalogInvalid
 	}
@@ -93,13 +93,20 @@ func (r *PostgresCatalogRepository) ViewRevision(ctx context.Context, tenantID, 
 	if version < 1 {
 		return ViewRevision{}, ErrCatalogInvalid
 	}
-	return scanViewRevision(r.pool.QueryRow(ctx, `
-		SELECT `+viewRevisionColumns+`
+	query := `
+		SELECT ` + viewRevisionColumns + `
 		  FROM source_views sv
 		  JOIN tenants t ON t.id=sv.tenant_id
 		 WHERE (t.id::text=$1 OR t.slug=$1)
 		   AND sv.view_id=$2::uuid
-		   AND sv.version=$3`, tenantID, viewID, version))
+		   AND sv.version=$3`
+	if tx, ok := CatalogProofTransaction(ctx); ok {
+		if tx == nil {
+			return ViewRevision{}, ErrCatalogStorage
+		}
+		return scanViewRevision(tx.QueryRow(ctx, query+` FOR SHARE OF sv`, tenantID, viewID, version))
+	}
+	return scanViewRevision(r.pool.QueryRow(ctx, query, tenantID, viewID, version))
 }
 
 func (r *PostgresCatalogRepository) CurrentView(ctx context.Context, tenantID, viewID string) (ViewRevision, error) {

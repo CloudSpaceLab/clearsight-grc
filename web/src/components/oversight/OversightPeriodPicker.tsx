@@ -48,7 +48,7 @@ export function OversightPeriodPicker({ period, freshness, generatedAt, isChangi
       triggerClassName="oversight-period-trigger"
       triggerDisabled={isChanging}
       triggerChildren={<>
-        <span className="oversight-period-trigger__label">Period</span>
+        <span className="oversight-period-trigger__label">Date range</span>
         <strong>{reportingPeriodLabel(period)}</strong>
         <span aria-hidden="true">⌄</span>
       </>}

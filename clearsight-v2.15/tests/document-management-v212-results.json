@@ -1,0 +1,100 @@
+{
+  "suite": "Document management V2.12",
+  "browserLayoutValidated": false,
+  "passed": 23,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Branch reader can inspect shared references while exact export stays denied",
+      "status": "PASS"
+    },
+    {
+      "name": "Document queries exclude unreadable branch files and preserve the selected hierarchy",
+      "status": "PASS"
+    },
+    {
+      "name": "Document review queues retain responsibility lenses and exclude denied sources",
+      "status": "PASS"
+    },
+    {
+      "name": "File verification fails closed when actual actor changes during storage read",
+      "status": "PASS"
+    },
+    {
+      "name": "Revoked document access is rechecked after byte verification",
+      "status": "PASS"
+    },
+    {
+      "name": "Missing originals and corrupt files cannot be previewed or treated as approved",
+      "status": "PASS"
+    },
+    {
+      "name": "Metadata changes retain immutable versions, exact actor and a reasoned history",
+      "status": "PASS"
+    },
+    {
+      "name": "Stale or unauthorized metadata saves do not partially change the source",
+      "status": "PASS"
+    },
+    {
+      "name": "Management validity does not silently update assessment observation dates",
+      "status": "PASS"
+    },
+    {
+      "name": "Owner, lifecycle and linked filters intersect instead of widening document scope",
+      "status": "PASS"
+    },
+    {
+      "name": "Archiving refuses live review dependencies and records actual archive ownership",
+      "status": "PASS"
+    },
+    {
+      "name": "Upload commit rechecks permission after asynchronous byte writes",
+      "status": "PASS"
+    },
+    {
+      "name": "Word preview reads compressed text without executing or rendering document markup",
+      "status": "PASS"
+    },
+    {
+      "name": "Workbook preview resolves explicit sheet references and marks cached formulas",
+      "status": "PASS"
+    },
+    {
+      "name": "Malformed, traversal and entity-bearing Office packages are rejected safely",
+      "status": "PASS"
+    },
+    {
+      "name": "Version comparison isolates changed excerpts without changing either source",
+      "status": "PASS"
+    },
+    {
+      "name": "External files keep the supplied person separate from the importing coordinator",
+      "status": "PASS"
+    },
+    {
+      "name": "Tampered external document batches fail before creating metadata",
+      "status": "PASS"
+    },
+    {
+      "name": "Expired or changed external request is rechecked after writing file bytes",
+      "status": "PASS"
+    },
+    {
+      "name": "External capture rollback removes only unused files from the matching request",
+      "status": "PASS"
+    },
+    {
+      "name": "Saving a frozen report to Documents requires export and storage authority with a post-await actor check",
+      "status": "PASS"
+    },
+    {
+      "name": "Preview and document tabs retain the filtered results return context",
+      "status": "PASS"
+    },
+    {
+      "name": "All document management buttons resolve to registered commands",
+      "status": "PASS"
+    }
+  ]
+}

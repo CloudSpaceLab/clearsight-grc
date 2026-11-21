@@ -1,0 +1,9 @@
+# Program register status filter
+
+The v2.15 reference is `clearsight-v2.15/programs.html` (SHA-256 `2C524C7D4301165DC0273E321B34219F1AAE73D3846A29A5C9852063B8B5D2B6`). The register submits a supported `overall_state` query to the existing Program summary endpoint. The server filters the last assessed state, which may be out of date; the register states this limitation and continues to label stale and incomplete projections separately. Results remain subject to the existing authenticated server scope. Search and status persist on Program detail links and subsequent pages. The displayed count covers loaded unique records, with a separate indication when another page is available; it is not an enterprise total.
+
+Program summaries require a repository implementing the summary contract. A command-only repository cannot apply the filter before its bounded list or construct the actor-visible assessment, so the endpoint returns unavailable rather than an unfiltered page. The register hides filters while results are unavailable and offers retry and, for a failed filtered query, a clear-filters recovery action.
+
+Synthetic before, filtered and unavailable renders at 1440, 768 and 390 pixels are in `docs/evidence/2026-11-21-v215-program-filter/`. The browser check verifies the query, results, unavailable-state recovery, controls and horizontal overflow. The renders were inspected; the tablet layout was changed to cards after the initial inspection found cramped columns and a truncated selection. Fixtures do not establish backend authorization, production data accuracy, dark-theme behavior or complete screen acceptance.
+
+The legacy Program projection suite remains unresolved: bounded assessment summaries, a distinct evidence-check count and a Program issue drill require supported implementation and coverage. This change is partial v2.15 integration, not production acceptance.

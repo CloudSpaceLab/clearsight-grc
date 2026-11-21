@@ -45,6 +45,7 @@ export async function measureRiskLossLayout(page, scenario) {
     const records = [...(grid?.children ?? table?.querySelectorAll("tbody tr") ?? [])].filter(visible);
     const identity = [...(collection?.querySelectorAll("strong, h3") ?? [])].find((node) => visible(node) && node.textContent.trim() === firstRecord);
     const filters = collection?.querySelector(".risk-register__toolbar, .loss-register__toolbar, .rcsa-register__heading, .insights-indicator__heading, .cs-filter-bar");
+    const rcsaTitle = collection?.querySelector(".rcsa-register__heading h2");
     const local = box(tablist), current = box(selected), first = box(records[0]), identityBox = box(identity);
     const columns = grid ? getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length : null;
     const read = window.riskLossEvidence;
@@ -75,6 +76,9 @@ export async function measureRiskLossLayout(page, scenario) {
       selectedTabVisible: Boolean(current && local && current.x >= local.x - 1 && current.right <= local.right + 1 && current.y >= local.y - 1 && current.bottom <= local.bottom + 1),
       menuMatches: tabs.map((node) => node.textContent.trim()).join("|") === labels.join("|"), table: box(table), grid: box(grid), columns,
       presentation: grid ? "cards" : table ? getComputedStyle(table).display === "block" ? "stacked-records" : "table" : "state",
+      rcsaHeading: view === "rcsa" ? box(rcsaTitle) : null,
+      rcsaFilter: view === "rcsa" ? box(collection?.querySelector(".rcsa-register__filter")) : null,
+      rcsaHeadingWeight: view === "rcsa" && rcsaTitle ? Number(getComputedStyle(rcsaTitle).fontWeight) : null,
       records: records.length, firstRecord: first, firstIdentity: identityBox,
       firstRecordColumns: table && records[0] ? getComputedStyle(records[0]).gridTemplateColumns.split(" ").filter((value) => value !== "none").length : null, rowActions, statusBadges,
       recordTitles: records.map((record) => record.querySelector(grid ? "h3" : "td:first-child strong")?.textContent.trim() ?? ""),
@@ -113,6 +117,7 @@ export function assertRiskLossLayout(layout, scenario) {
   if (["risks", "insights"].includes(scenario.riskLossView) && !riskLossStatusBadgesFit(layout)) fail("status badges must keep every word intact with text contained in the badge and cell");
   if (!(layout.heading.bottom <= layout.menu.y + 1 && layout.menu.bottom <= layout.firstRecord.y + 1)) fail("heading, local menu and useful content anatomy is out of order");
   if (scenario.riskLossView === "rcsa") {
+    if (scenario.viewport.width === 390 && (!layout.rcsaHeading || !layout.rcsaFilter || layout.rcsaHeading.right > layout.rcsaFilter.x + 1 || Math.abs(layout.rcsaHeading.y - layout.rcsaFilter.y) > 2 || layout.rcsaHeadingWeight < 700)) fail("RCSA heading and status filter must share the phone heading row without overlap");
     const expectedColumns = scenario.viewport.width > 1190 ? 3 : scenario.viewport.width > 600 ? 2 : 1;
     if (layout.presentation !== "cards" || layout.columns !== expectedColumns) fail(`RCSA must replace its table with ${expectedColumns} source-aligned card columns`);
     if (layout.cardNumbers.length !== 2 || layout.cardNumbers.some((number) => number.fontSize < 30 || number.labelFontSize > 14 || !number.aligned || !["start", "left"].includes(number.textAlign))) fail("RCSA frozen population counts lost their source numeric hierarchy");

@@ -1,0 +1,21 @@
+{
+  "evidence": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "colorContrastExcluded": true,
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "axeViolations": 0
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "axeViolations": 0
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "axeViolations": 0
+    }
+  ]
+}

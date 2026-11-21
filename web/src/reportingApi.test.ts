@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadContext } from "./api";
 import {
   createReportRun,
+  createIdempotentReportRun,
   createReportDefinition,
   downloadReportRun,
   getReportDefinition,
@@ -87,6 +88,16 @@ afterEach(() => {
 });
 
 describe("reporting API", () => {
+  it("sends a stable report request key without legacy retry", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(run), { status: 201, headers: { "Content-Type": "application/json" } }));
+    await createIdempotentReportRun("definition-1", 1, "550e8400-e29b-41d4-a716-446655440000");
+    const [path, init] = fetchMock.mock.calls[0]!;
+    expect(path).toBe("/api/v1/reports/runs");
+    expect(JSON.parse(init.body)).toMatchObject({ definition_id: "definition-1", expected_definition_version: 1, idempotency_key: "550e8400-e29b-41d4-a716-446655440000" });
+    fetchMock.mockResolvedValueOnce(new Response("{}", { status: 404, headers: { "Content-Type": "application/json" } }));
+    await expect(createIdempotentReportRun("definition-1", 1, "550e8400-e29b-41d4-a716-446655440000")).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
   it("reads the published filter vocabulary without inventing fields", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ fields }), { status: 200 }));
     await expect(listReportFilterFields()).resolves.toEqual({ fields });

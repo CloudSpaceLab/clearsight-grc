@@ -1,5 +1,5 @@
 import type { ReportingPeriodQuery } from "./reportingPeriod";
-export type View = "today" | "oversight" | "programs" | "risks" | "rcsa" | "losses" | "forms" | "vendors" | "ropa" | "reports" | "insights" | "work" | "notifications" | "people" | "imports" | "explore" | "configure";
+export type View = "today" | "oversight" | "programs" | "risks" | "rcsa" | "losses" | "forms" | "vendors" | "ropa" | "documents" | "reports" | "insights" | "work" | "notifications" | "people" | "imports" | "explore" | "configure";
 export type NotificationTab = "inbox" | "activity" | "preferences";
 export type WorkTab = "assigned" | "matters" | "evidence";
 export type ProgramSection = "overview" | "requirements-controls" | "assessments" | "evidence-results" | "issues-actions" | "history" | "monitoring";
@@ -55,7 +55,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     if (!value) return undefined;
     try { return decodeURIComponent(value); } catch { return value; }
   };
-	const allowed: View[] = ["today", "oversight", "programs", "risks", "rcsa", "losses", "forms", "vendors", "ropa", "reports", "insights", "work", "notifications", "people", "imports", "explore", "configure"];
+	const allowed: View[] = ["today", "oversight", "programs", "risks", "rcsa", "losses", "forms", "vendors", "ropa", "documents", "reports", "insights", "work", "notifications", "people", "imports", "explore", "configure"];
 	const requestedView = allowed.includes(parts[0] as View) ? parts[0] as View : "oversight";
 	const view = requestedView === "today" || (requestedView === "ropa" && parts[1] === "reports") ? "oversight" : requestedView;
 	if (requestedView === "ropa" && parts[1] === "reports") return { view: "reports", target: {} };

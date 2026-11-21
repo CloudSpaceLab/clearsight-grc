@@ -1,0 +1,93 @@
+{
+  "runtime": "Actual V2.10 modules with substituted DOM/browser shell",
+  "results": [
+    {
+      "test": "Legacy canonical history retains unknown person, time, definition and document provenance",
+      "status": "PASS"
+    },
+    {
+      "test": "Two named people have separate form bindings and assignment-specific canonical answers",
+      "status": "PASS"
+    },
+    {
+      "test": "Duplicate named assignment reuses that person’s draft and never captures another respondent’s answers",
+      "status": "PASS"
+    },
+    {
+      "test": "Owner or active independent risk assignment is required; self-review and expired grants are rejected",
+      "status": "PASS"
+    },
+    {
+      "test": "A submission dialog names the actual actor and cannot substitute a freely selected submitter",
+      "status": "PASS"
+    },
+    {
+      "test": "Another acting person cannot submit an internal respondent’s draft",
+      "status": "PASS"
+    },
+    {
+      "test": "Every new unmapped form creates a source-owned response review and actionable reviewer notification",
+      "status": "PASS"
+    },
+    {
+      "test": "Assigned program owner can review another person’s response; an unassigned reviewer cannot decide",
+      "status": "PASS"
+    },
+    {
+      "test": "Revoked reviewer authority blocks acceptance and reassignment preserves the original route history",
+      "status": "PASS"
+    },
+    {
+      "test": "Changed submitted answer snapshots and actual canonical identity invalidate review",
+      "status": "PASS"
+    },
+    {
+      "test": "Return and resubmission retain exact previous answers, checksum, comments and named actors",
+      "status": "PASS"
+    },
+    {
+      "test": "Canonical correction opens an independent next run and retains immutable previous source history",
+      "status": "PASS"
+    },
+    {
+      "test": "Requirement conclusions require accepted current facts and preserve accepted posture during later drafts",
+      "status": "PASS"
+    },
+    {
+      "test": "External supplier person, internal recorder and independent reviewer remain separately attributed",
+      "status": "PASS"
+    },
+    {
+      "test": "Program-basis drift invalidates readiness without rewriting historical acceptance or conclusions",
+      "status": "PASS"
+    },
+    {
+      "test": "Unavailable pinned documents block acceptance but allow an attributable correction request",
+      "status": "PASS"
+    },
+    {
+      "test": "Program changes during actual document verification cannot race a satisfied requirement decision",
+      "status": "PASS"
+    },
+    {
+      "test": "Scope and actor changes invalidate open assignment/submission dialogs without mutations",
+      "status": "PASS"
+    },
+    {
+      "test": "Designer previews are explicitly non-assessment drafts and cannot create unassigned submitted reviews",
+      "status": "PASS"
+    },
+    {
+      "test": "Program and form pages expose named respondent, actual history and reviewer without hidden navigation",
+      "status": "PASS"
+    },
+    {
+      "test": "History export includes exact people, reviewer comments, cycles and checksum within current scope",
+      "status": "PASS"
+    },
+    {
+      "test": "New pages render registered actions and exact source destinations without numeric placeholders",
+      "status": "PASS"
+    }
+  ]
+}

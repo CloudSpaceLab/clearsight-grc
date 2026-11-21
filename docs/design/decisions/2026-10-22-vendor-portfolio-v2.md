@@ -50,7 +50,7 @@ Compare the original and runtime at 1440, 1280, 1024, 768 and 390 CSS pixels, in
 
 Verify heading/action proportions, local menu order and selection, two insight panels, inline first useful relationship content, bounded context, register density, narrow replacement and absence of horizontal overflow. Inspect the selected relationship after every new collection entry path. Reuse shared controls, focus, overlays and tokens; do not add a second mobile menu or unbacked global filter.
 
-The source's horizontally scrolling local tab strip is adapted to the existing labelled **Vendor view** selector at 760px or below. It retains all five destinations, their order and current selection, following the already reviewed selected-relationship navigation contract. This is an explicit accessibility adaptation, not a claim that the two narrow-screen menus are visually identical. The wide shared underline tabs retain the source menu anatomy.
+The original implementation used a **Vendor view** selector at 760px or below. The [3 November follow-up](../2026-11-03-vendor-phone-navigation.md) supersedes that portfolio-only adaptation with the source's scrollable shared tab strip, including selected-tab reveal and keyboard checks. Selected-relationship navigation remains separate.
 
 ## Verification plan and status
 

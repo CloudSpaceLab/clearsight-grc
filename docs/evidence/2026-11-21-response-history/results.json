@@ -1,0 +1,28 @@
+{
+  "evidence": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "axeScope": "response_unavailable_only",
+  "colorContrastExcluded": true,
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "axeViolations": 0,
+      "missingDistributionBlocked": true,
+      "mismatchedReceiptBlocked": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "axeViolations": 0,
+      "missingDistributionBlocked": true,
+      "mismatchedReceiptBlocked": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "axeViolations": 0,
+      "missingDistributionBlocked": true,
+      "mismatchedReceiptBlocked": true
+    }
+  ]
+}

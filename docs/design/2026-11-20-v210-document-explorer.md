@@ -1,0 +1,7 @@
+# Document explorer
+
+The submitted-document inventory offers list and grid layouts, exact occurrence selection, and a preview panel. Selecting an eligible PDF or supported raster image requests its bytes through the existing protected content endpoint. Other formats retain the download action. The selected occurrence, its form and response links, review state, and pagination remain tied to the existing scoped query. No folders, document counts, upload, or universal approval are inferred from the loaded page.
+
+Preview requests are aborted when selection changes or the panel closes; object URLs are released. Unavailable and unscanned files retain the server-provided eligibility and demo restrictions. A failed preview can be retried.
+
+Baseline: `docs/design/2026-11-20-v210-documents-detail.md`. The reference is `clearsight-v2.10/documents.html`, SHA-256 `951644972ad207e8f69d42eb5e7521a5bb26c5007dbc14e65b1aa7018e8157d2`; the user's request extends it with explorer-style browsing. Sample screenshots in `docs/evidence/2026-11-20-v210-document-explorer/` record grid, selected document and image-preview states at 1440, 1280, 1024, 768 and 390 pixels. Horizontal overflow was not observed. The sample image is 1×1 pixel and does not verify visual fidelity of a real document. These screenshots do not prove production authorization, full keyboard or dark-theme coverage, or complete document-repository functionality.

@@ -1,0 +1,9 @@
+.v-api-wizard { margin-top: 12px; padding: 16px; border: 1px solid #dce7f5; border-radius: 10px; }
+.v-api-wizard h3, .v-api-wizard h4 { margin: 0 0 10px; }
+.v-api-wizard label { display: grid; gap: 6px; margin: 14px 0 8px; }
+.v-api-wizard input, .v-api-wizard textarea { box-sizing: border-box; width: 100%; min-height: 44px; padding: 10px; border: 1px solid #dce7f5; border-radius: 8px; }
+.v-api-wizard textarea { min-height: 110px; font-family: ui-monospace, monospace; }
+.v-api-wizard pre { overflow: auto; padding: 12px; background: #f3f7fc; border-radius: 8px; }
+.v-api-wizard button:not(.v-primary), .v-api-wizard-launch { min-height: 44px; padding: 0 14px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-api-wizard button:disabled { opacity: .55; }
+.v-api-wizard-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }

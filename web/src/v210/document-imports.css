@@ -1,0 +1,7 @@
+.v-imported-document-layout { display: grid; gap: 18px; }
+.v-imported-document-layout.has-selection { grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); }
+.v-imported-document-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.v-imported-document-detail { min-width: 0; overflow-wrap: anywhere; }
+.v-imported-document-detail article p { white-space: pre-wrap; }
+.v-imported-document-detail h2 { scroll-margin-top: 94px; }
+@media (max-width: 850px) { .v-imported-document-layout.has-selection { grid-template-columns: minmax(0, 1fr); } }

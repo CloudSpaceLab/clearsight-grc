@@ -3,6 +3,23 @@ import { describe, expect, it, vi } from "vitest";
 import { MetricMemberDrill } from "./MetricMemberDrill";
 
 describe("MetricMemberDrill", () => {
+  it("distinguishes recorded indicator severity using text and status color", () => {
+    const page = { source_id: "snapshot", metric_id: "indicator_breaches", definition_revision: "v1", count: 2,
+      items: ["CRITICAL", "HIGH"].map((state) => ({ member_id: state, target_type: "RISK" as const, target_title: `${state} indicator`, state, accessible: true, target_id: state })) };
+    render(<MetricMemberDrill label="Indicator breaches" state="live" page={page} hasPrevious={false}
+      onPrevious={() => {}} onNext={() => {}} onRetry={() => {}} onOpenRisk={() => {}}/>);
+    expect(screen.getByText("Critical").className).toContain("cs-tone--error");
+    expect(screen.getByText("High").className).toContain("cs-tone--warning");
+  });
+
+  it("labels an appetite breach without inventing a risk severity", () => {
+    const page = { source_id: "snapshot", metric_id: "risks_outside_appetite", definition_revision: "v1", count: 1,
+      items: [{ member_id: "m1", target_type: "RISK" as const, target_title: "Service disruption", state: "BREACHED", accessible: true, target_id: "risk-1" }] };
+    render(<MetricMemberDrill label="Outside appetite" state="live" page={page} hasPrevious={false}
+      onPrevious={() => {}} onNext={() => {}} onRetry={() => {}} onOpenRisk={() => {}}/>);
+    expect(screen.getByText("Outside appetite").className).toContain("cs-tone--error");
+    expect(screen.queryByText("Critical")).toBeNull();
+  });
   it("keeps inaccessible historical members in the exact count but disables record navigation", () => {
     const onOpenMatter = vi.fn();
     const onOpenProgram = vi.fn();

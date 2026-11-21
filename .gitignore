@@ -12,6 +12,7 @@ coverage.out
 .tmp-go-cache
 .gocache
 .codex-test-cache
+.codex-postgres-test/
 
 # Web
 web/node_modules/

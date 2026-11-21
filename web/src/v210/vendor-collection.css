@@ -1,0 +1,11 @@
+.v-vendor-collection { margin-top: 16px; }
+.v-vendor-collection > ul { margin: 14px 0 0; padding: 0; list-style: none; }
+.v-vendor-collection > ul > li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-top: 1px solid #e5edf7; }
+.v-vendor-collection strong, .v-vendor-collection small { display: block; }
+.v-vendor-collection small { margin-top: 4px; color: #627b9f; font-size: 12px; }
+.v-vendor-collection form { margin-top: 16px; }
+.v-vendor-collection fieldset { margin: 0; padding: 10px; border: 1px solid #dce7f5; border-radius: 8px; }
+.v-vendor-collection-choice { display: flex !important; align-items: center; gap: 10px; min-height: 44px; padding: 8px; }
+.v-vendor-collection-choice input { width: 18px !important; min-height: 18px !important; }
+.v-vendor-collection button:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 600px) { .v-vendor-collection > ul > li { align-items: flex-start; flex-direction: column; } }

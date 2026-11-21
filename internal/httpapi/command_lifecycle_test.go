@@ -123,6 +123,27 @@ func TestLifecyclePolicyLoadsCurrentDecisionStateBeforeAuthorization(t *testing.
 	}
 }
 
+func TestDecisionAuthorityTargetsTheSameCurrentDecisionAsLifecycleValidation(t *testing.T) {
+	ctx := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "reviewer", LegalEntityID: "entity-a", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour)})
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	matter, err := service.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterRegulatoryChange, Priority: 3, Title: "Decision lifecycle", Summary: "Review the decision.", Scope: json.RawMessage(`{}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matter, err = service.RecordDecisionLifecycle(ctx, continuity.AddDecisionInput{TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, Type: "K", Status: continuity.DecisionProposed, Rationale: "Propose.", AuthorityPrincipalID: "proposer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := map[string]any{"type": "K", "status": "IN_REVIEW"}
+	policy, err := (&API{deps: Dependencies{Continuity: service}}).lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.decision.record", payload, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if policy.ObjectType != "DECISION" || policy.ObjectIDPath != "decision_id" || payload["decision_id"] != matter.Decisions[0].ID {
+		t.Fatalf("authority must target the lifecycle's current decision: policy=%#v payload=%#v", policy, payload)
+	}
+}
+
 func TestLifecyclePolicyUsesRouteMatterAndPriorityFloor(t *testing.T) {
 	ctx := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "proposer", LegalEntityID: "entity-a", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour)})
 	service := continuity.NewService(continuity.NewMemoryRepository())

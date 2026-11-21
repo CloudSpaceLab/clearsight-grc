@@ -1,0 +1,5 @@
+# Vendor activation refresh failure
+
+These synthetic component captures show the current activation form, policy effective date and named gate before confirmation and the confirmed activation after the parent refresh callback throws, at 1440, 768 and 390 pixels. The browser check confirms that activation success and the separate refresh error both appear, that the uncertain-activation message and repeat confirmation are absent, and that the document has no horizontal overflow.
+
+The fixture supplies synthetic authority and API responses and deliberately throws from the parent callback. It does not demonstrate backend authorization, a committed command, full vendor workspace composition, dark theme or complete accessibility. The isolated component does not render the normal navigation shell; its desktop margin is therefore empty. Inspection found the success and error text readable at all three widths; the error uses the shared high-priority status colors and alert semantics. The browser check also verifies the computed status colors.

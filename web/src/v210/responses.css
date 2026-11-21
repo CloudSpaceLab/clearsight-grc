@@ -1,0 +1,31 @@
+.v-responses .v-local-nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 12px; border-bottom: 2px solid transparent; color: #627b9f; font-size: 13px; font-weight: 600; text-decoration: none; }
+.v-responses .v-local-nav a[aria-current="page"] { color: #246cf0; border-color: #246cf0; }
+.v-response-list { overflow: hidden; }
+.v-response-list ul { list-style: none; margin: -20px; padding: 0; }
+.v-response-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 75px; padding: 16px 20px; border-bottom: 1px solid #e5edf7; }
+.v-response-list li a { color: #18335e; font-size: 13px; font-weight: 700; text-decoration: none; }
+.v-response-list li a:hover { text-decoration: underline; }
+.v-response-list small, .v-review-history span { display: block; margin-top: 5px; color: #7589a9; font-size: 12px; }
+.v-response-list > button { margin-top: 28px; }
+.v-response-meta { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-bottom: 20px; color: #627b9f; font-size: 12px; }
+.v-response-meta strong { color: #18335e; }
+.v-response-answers, .v-response-documents, .v-response-review { margin-bottom: 20px; }
+.v-response-documents ul { margin: 16px 0 0; padding: 0; list-style: none; }
+.v-response-documents li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid #e5edf7; color: #18335e; font-size: 13px; overflow-wrap: anywhere; }
+.v-response-documents li a { color: #246cf0; font-weight: 700; }
+.v-response-documents li small { color: #536c90; }
+.v-response-answers dl { margin: 16px -20px -20px; }
+.v-response-answers dl div { border-top: 1px solid #e5edf7; padding: 16px 20px; }
+.v-response-answers dt { color: #18335e; font-size: 13px; font-weight: 700; }
+.v-response-answers dd { margin: 8px 0 0; color: #536c90; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.v-answer-document, .v-answer-document > span { display: block; }
+.v-response-review form { display: grid; gap: 14px; max-width: 640px; margin-top: 16px; }
+.v-response-review label { display: grid; gap: 7px; color: #536c90; font-size: 12px; font-weight: 700; }
+.v-response-review select, .v-response-review textarea { min-height: 44px; width: 100%; padding: 10px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: white; color: #18335e; }
+.v-response-review textarea { min-height: 90px; resize: vertical; }
+.v-response-review form button { justify-self: start; }
+.v-response-review h3 { margin-top: 24px; font-size: 14px; }
+.v-review-history { margin: 0; padding: 0; list-style: none; }
+.v-review-history li { padding: 12px 0; border-top: 1px solid #e5edf7; font-size: 13px; }
+.v-review-history p { margin-bottom: 0; white-space: pre-wrap; }
+@media (max-width: 420px) { .v-response-list li { align-items: flex-start; flex-direction: column; } }

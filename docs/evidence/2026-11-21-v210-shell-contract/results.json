@@ -1,0 +1,257 @@
+{
+  "evidence": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "results": [
+    {
+      "name": "programs",
+      "width": 320,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "forms",
+      "width": 320,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "vendors",
+      "width": 320,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "risks",
+      "width": 320,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "rcsa",
+      "width": 320,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "losses",
+      "width": 320,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "privacy-isolated",
+      "width": 320,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "programs",
+      "width": 390,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "forms",
+      "width": 390,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "vendors",
+      "width": 390,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "risks",
+      "width": 390,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "rcsa",
+      "width": 390,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "losses",
+      "width": 390,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "privacy-isolated",
+      "width": 390,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "programs",
+      "width": 768,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "forms",
+      "width": 768,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "vendors",
+      "width": 768,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "risks",
+      "width": 768,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "rcsa",
+      "width": 768,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "losses",
+      "width": 768,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "privacy-isolated",
+      "width": 768,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "programs",
+      "width": 1024,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "forms",
+      "width": 1024,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "vendors",
+      "width": 1024,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "risks",
+      "width": 1024,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "rcsa",
+      "width": 1024,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "losses",
+      "width": 1024,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "privacy-isolated",
+      "width": 1024,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "programs",
+      "width": 1280,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "forms",
+      "width": 1280,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "vendors",
+      "width": 1280,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "risks",
+      "width": 1280,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "rcsa",
+      "width": 1280,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "losses",
+      "width": 1280,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "privacy-isolated",
+      "width": 1280,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "programs",
+      "width": 1440,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "forms",
+      "width": 1440,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "vendors",
+      "width": 1440,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "risks",
+      "width": 1440,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "rcsa",
+      "width": 1440,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "losses",
+      "width": 1440,
+      "overflow": false,
+      "keyboardFocus": true
+    },
+    {
+      "name": "privacy-isolated",
+      "width": 1440,
+      "overflow": false,
+      "keyboardFocus": true
+    }
+  ]
+}

@@ -13,12 +13,34 @@ const file: DocumentOccurrence = {
 beforeEach(() => { vi.mocked(loadDocuments).mockReset().mockResolvedValue({ items: [file] }); });
 
 describe("DocumentBrowser", () => {
+  it("requests the selected document review view from the server", async () => {
+    render(<DocumentBrowser scopeLabel="Submitted documents" headingLevel="h1"/>);
+    await screen.findByRole("row", { name: /Insurance 2026.docx/ });
+    fireEvent.click(screen.getByRole("tab", { name: "Awaiting assessment review" }));
+    await waitFor(() => expect(loadDocuments).toHaveBeenLastCalledWith(expect.objectContaining({ view: "AWAITING_REVIEW", current_only: true, cursor: undefined }), expect.any(AbortSignal)));
+    expect(screen.getByText("Only recorded vendor assessment reviews are shown.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Assessment review history" }));
+    await waitFor(() => expect(loadDocuments).toHaveBeenLastCalledWith(expect.objectContaining({ view: "REVIEW_HISTORY", current_only: false }), expect.any(AbortSignal)));
+  });
+  it("distinguishes assessment review from file availability", async () => {
+    vi.mocked(loadDocuments).mockResolvedValue({ items: [
+      { ...file, review: { id: "review-1", status: "VALIDATED", reviewed_by: "reviewer-1", source: "VENDOR_ASSESSMENT" } },
+      { ...file, id: "occurrence-2", file_name: "Unreviewed.pdf", file_kind: "PDF", review: undefined },
+    ] });
+    render(<DocumentBrowser scopeLabel="Submitted documents"/>);
+    const reviewed = await screen.findByRole("row", { name: /Insurance 2026.docx/ });
+    const unknown = screen.getByRole("row", { name: /Unreviewed.pdf/ });
+    expect(screen.getByRole("columnheader", { name: "Assessment review" })).toBeTruthy();
+    expect(reviewed.textContent).toContain("Ready to view");
+    expect(reviewed.textContent).toContain("Validated by reviewer");
+    expect(unknown.textContent).toContain("No review recorded");
+  });
   it("labels the current page count in singular or plural from the returned rows", async () => {
     render(<DocumentBrowser scopeLabel="Vendor documents" relationshipID="vendor-1"/>);
-    expect(await screen.findByText("1 file on this page")).toBeTruthy();
+    expect(await screen.findByText("1 file")).toBeTruthy();
     vi.mocked(loadDocuments).mockResolvedValue({ items: [file, { ...file, id: "occurrence-2" }], next_cursor: "next-page" });
     fireEvent.click(screen.getByRole("button", { name: "Refresh files" }));
-    expect(await screen.findByText("2 files on this page · More available")).toBeTruthy();
+    expect(await screen.findByText("2 files · More available")).toBeTruthy();
   });
 
   it("uses the compact type selector to reset pagination and preserve exact response scope and search", async () => {

@@ -87,6 +87,14 @@ func TestCreateSourceStoresEndpointOnlyAsReferenceConnection(t *testing.T) {
 	if len(connections) != 1 {
 		t.Fatalf("reference connections=%d want=1", len(connections))
 	}
+	service := sourceaccess.NewCatalogService(catalog, nil, sourceaccess.DefaultCatalogAdapters())
+	draft, err := service.CreateConnectionDraft(ctx, sourceaccess.CatalogActor{TenantID: sourceCatalogTenantID, PrincipalID: sourceCatalogActorID}, created.ID, sourceaccess.CreateConnectionDraftInput{
+		Code: "CORE-API", Name: "Core API", AdapterKind: sourceaccess.AdapterRESTJSON, AdapterVersion: sourceaccess.RESTJSONAdapterVersion,
+		Definition: json.RawMessage(`{"base_url":"https://example.test","authentication":{"kind":"NONE"}}`), DeclaredCapabilities: []sourceaccess.Capability{sourceaccess.CapabilityInspect, sourceaccess.CapabilityPage},
+	})
+	if err != nil || draft.SourceID != created.ID || draft.Status != sourceaccess.RevisionDraft {
+		t.Fatalf("source not available to catalog: %+v %v", draft, err)
+	}
 	connection := connections[0]
 	if connection.Code != sourceaccess.ReferenceConnectionCode || connection.AdapterKind != sourceaccess.AdapterReference || connection.AdapterVersion != sourceaccess.ReferenceAdapterVersion || connection.SecretRef != "" {
 		t.Fatalf("unexpected reference connection: %#v", connection)

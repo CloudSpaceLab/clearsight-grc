@@ -61,6 +61,8 @@ type distributionLifecycleStore interface {
 type DistributionService struct {
 	assessmentAuthorizer        ResponseAssessmentAuthorizer
 	responseDiscoveryAuthorizer ResponseDiscoveryAuthorizer
+	responseReviewAuthorizer    ResponseReviewAuthorizer
+	demoResponseReviewDecisions bool
 	store                       distributionLifecycleStore
 	now                         func() time.Time
 	demoSamplePreview           bool

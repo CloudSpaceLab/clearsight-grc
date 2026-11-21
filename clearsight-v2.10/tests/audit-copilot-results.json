@@ -1,0 +1,103 @@
+{
+  "version": "2.7",
+  "tests": [
+    {
+      "name": "Unknown IDs, invalid targets, wrong versions and unknown routes fail closed without substitution",
+      "status": "PASS",
+      "seconds": 1.04
+    },
+    {
+      "name": "Removed or inconsistent saved hierarchy never silently widens the view to all branches",
+      "status": "PASS",
+      "seconds": 0.32
+    },
+    {
+      "name": "Out-of-scope details suppress copilot and contextual attachments as well as the primary view",
+      "status": "PASS",
+      "seconds": 0.79
+    },
+    {
+      "name": "New actions retain explicit accountable scope and agree across Work and reporting",
+      "status": "PASS",
+      "seconds": 0.61
+    },
+    {
+      "name": "Indicator creation uses scoped risks, historical readings cannot replace current values, breach work remains visible",
+      "status": "PASS",
+      "seconds": 0.98
+    },
+    {
+      "name": "Missing and malformed evidence dates remain unknown; CSV preserves numbers and neutralizes formula text; timestamps use WAT",
+      "status": "PASS",
+      "seconds": 0.19
+    },
+    {
+      "name": "Single-file answer rejects batches and real attachment upload returns to the originating assessment",
+      "status": "PASS",
+      "seconds": 0.63
+    },
+    {
+      "name": "Grid evidence resolves the originating response definition instead of whichever form is currently open",
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "name": "Changing the actor during asynchronous upload blocks commit and keeps the batch recoverable",
+      "status": "PASS",
+      "seconds": 0.34
+    },
+    {
+      "name": "Approval rechecks acting identity after asynchronous file verification and creates no misleading receipt",
+      "status": "PASS",
+      "seconds": 0.43
+    },
+    {
+      "name": "Review drill-downs open canonical source workflows and final sign-off is included in review classification",
+      "status": "PASS",
+      "seconds": 0.33
+    },
+    {
+      "name": "Copilot reads canonical scoped measures, cites navigable records and clears prior answers on scope changes",
+      "status": "PASS",
+      "seconds": 0.65
+    },
+    {
+      "name": "Copilot tasks use form, program, risk, engagement, privacy, monthly-return and library-specific context",
+      "status": "PASS",
+      "seconds": 1.47
+    },
+    {
+      "name": "Restricted originals are excluded; unsupported requests and approval/signing instructions cause no mutations",
+      "status": "PASS",
+      "seconds": 0.55
+    },
+    {
+      "name": "Copilot proposals require explicit review, create one scoped work item, preserve domain decisions and reject stale context",
+      "status": "PASS",
+      "seconds": 1.07
+    },
+    {
+      "name": "Published-report copilot uses the captured snapshot rather than later live risk changes",
+      "status": "PASS",
+      "seconds": 0.87
+    },
+    {
+      "name": "Untrusted record text is escaped and never interpreted as copilot instructions",
+      "status": "PASS",
+      "seconds": 0.4
+    },
+    {
+      "name": "Open copilot fits twelve real record contexts at four widths; keyboard dismissal restores focus; dark theme works",
+      "status": "PASS",
+      "seconds": 7.05
+    },
+    {
+      "name": "No external model, data or asset requests during the tested local workflows",
+      "status": "PASS",
+      "externalRequests": []
+    }
+  ],
+  "layouts": 49,
+  "pageErrors": [],
+  "externalRequests": []
+}

@@ -45,7 +45,7 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 	limitPlaceholder := fmt.Sprintf("$%d", len(args)+1)
 	args = append(args, query.Limit+1)
 	rows, err := s.repo.pool.Query(ctx, `
-		SELECT `+completedResponseRevisionProjection()+`,d.form_template_id::text,d.form_template_version,d.title,d.subject_type,d.subject_id::text
+		SELECT `+completedResponseRevisionProjection()+`,d.form_template_id::text,d.form_template_version,d.title,d.subject_type,d.subject_id::text,CASE WHEN req.id IS NOT NULL THEN COALESCE(submission.submitted_by::text,'') ELSE '' END
 		FROM capture_response_revisions r
 		JOIN tenants t ON t.id=r.tenant_id
 		JOIN capture_form_distributions d
@@ -73,16 +73,16 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 	defer rows.Close()
 	values := make([]CompletedResponseSummary, 0, query.Limit+1)
 	for rows.Next() {
-		var formID, title, subjectType, subjectID string
+		var formID, title, subjectType, subjectID, submittedBy string
 		var formVersion int64
-		revision, scanErr := scanPostgresResponseRevisionWithExtra(rows, &formID, &formVersion, &title, &subjectType, &subjectID)
+		revision, scanErr := scanPostgresResponseRevisionWithExtra(rows, &formID, &formVersion, &title, &subjectType, &subjectID, &submittedBy)
 		if scanErr != nil {
 			return CompletedResponsePage{}, fmt.Errorf("scan completed response: %w", scanErr)
 		}
 		values = append(values, CompletedResponseSummary{
 			ID: revision.ID, TenantID: revision.TenantID, LegalEntityID: revision.LegalEntityID, DistributionID: revision.DistributionID,
 			FormTemplateID: formID, FormTemplateVersion: formVersion, Title: title, SubjectType: subjectType, SubjectID: subjectID,
-			Revision: revision.Revision, Current: revision.Current, State: revision.State, Score: revision.Score, CompletedAt: revision.CreatedAt.UTC(),
+			Revision: revision.Revision, Current: revision.Current, State: revision.State, Score: revision.Score, CompletedAt: revision.CreatedAt.UTC(), SubmittedBy: submittedBy, SubmissionRecipient: responseSubmissionRecipient(revision),
 		})
 	}
 	if err := rows.Err(); err != nil {
@@ -97,10 +97,10 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 }
 
 func (s *PostgresDistributionStore) GetCompletedResponse(ctx context.Context, tenantID, legalEntityID, principalID, revisionID string) (CompletedResponseSummary, ResponseRevision, error) {
-	var formID, title, subjectType, subjectID string
+	var formID, title, subjectType, subjectID, submittedBy string
 	var formVersion int64
 	revision, err := scanPostgresResponseRevisionWithExtra(s.repo.pool.QueryRow(ctx, `
-		SELECT `+completedResponseRevisionProjection()+`,d.form_template_id::text,d.form_template_version,d.title,d.subject_type,d.subject_id::text
+		SELECT `+completedResponseRevisionProjection()+`,d.form_template_id::text,d.form_template_version,d.title,d.subject_type,d.subject_id::text,CASE WHEN req.id IS NOT NULL THEN COALESCE(submission.submitted_by::text,'') ELSE '' END
 		FROM capture_response_revisions r
 		JOIN tenants t ON t.id=r.tenant_id
 		JOIN capture_form_distributions d
@@ -108,7 +108,7 @@ func (s *PostgresDistributionStore) GetCompletedResponse(ctx context.Context, te
 		`+completedResponseRequestJoinsSQL()+`
 		WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id=$2::uuid AND r.id::text=$3
 		  AND (`+completedResponseDiscoverySQL(4, 5)+`)`,
-		tenantID, legalEntityID, revisionID, principalID, time.Now().UTC()), &formID, &formVersion, &title, &subjectType, &subjectID)
+		tenantID, legalEntityID, revisionID, principalID, time.Now().UTC()), &formID, &formVersion, &title, &subjectType, &subjectID, &submittedBy)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return CompletedResponseSummary{}, ResponseRevision{}, ErrNotFound
@@ -118,7 +118,7 @@ func (s *PostgresDistributionStore) GetCompletedResponse(ctx context.Context, te
 	summary := CompletedResponseSummary{
 		ID: revision.ID, TenantID: revision.TenantID, LegalEntityID: revision.LegalEntityID, DistributionID: revision.DistributionID,
 		FormTemplateID: formID, FormTemplateVersion: formVersion, Title: title, SubjectType: subjectType, SubjectID: subjectID,
-		Revision: revision.Revision, Current: revision.Current, State: revision.State, Score: revision.Score, CompletedAt: revision.CreatedAt.UTC(),
+		Revision: revision.Revision, Current: revision.Current, State: revision.State, Score: revision.Score, CompletedAt: revision.CreatedAt.UTC(), SubmittedBy: submittedBy, SubmissionRecipient: responseSubmissionRecipient(revision),
 	}
 	return summary, revision, nil
 }
@@ -296,5 +296,5 @@ func completedResponseDiscoverySQL(principal, at int) string {
 	return "(" + completedResponseVisibilitySQL(principal, at) + ") OR (" + completedResponseReviewerSQL(principal, at) + ")"
 }
 func completedResponseReviewerSQL(principal, at int) string {
-	return `submission.id IS NOT NULL AND req.id IS NOT NULL AND r.id IS NOT NULL AND r.state IN ('FINAL','PROVISIONAL') AND d.subject_type='VENDOR_RELATIONSHIP' AND COALESCE(req.origin_type,'') NOT IN ('THIRD_PARTY_WORK','THIRD_PARTY_ASSESSMENT') AND ` + documentRevisionScopeSQL() + ` AND COALESCE(submission.submitted_by::text,'')<>` + fmt.Sprintf("$%d", principal) + ` AND EXISTS(SELECT 1 FROM third_party_relationships vr WHERE vr.tenant_id=r.tenant_id AND vr.legal_entity_id=r.legal_entity_id AND vr.id=d.subject_id) AND EXISTS(SELECT 1 FROM jsonb_array_elements(req.fields) field WHERE field->'assessment'->>'mode' IN ('MANUAL','AUTOMATIC_REVIEW')) AND ` + authority.PostgresReadRouteSQL("r", "id", "FORM_RESPONSE", "FORMS.RESPONSE.ASSESS", "REVIEWER", principal, at)
+	return `submission.id IS NOT NULL AND req.id IS NOT NULL AND r.id IS NOT NULL AND r.state IN ('FINAL','PROVISIONAL') AND d.subject_type='VENDOR_RELATIONSHIP' AND COALESCE(req.origin_type,'') NOT IN ('THIRD_PARTY_WORK','THIRD_PARTY_ASSESSMENT') AND ` + documentRevisionScopeSQL() + ` AND COALESCE(submission.submitted_by::text,'')<>` + fmt.Sprintf("$%d", principal) + ` AND (COALESCE(req.recipient_type,'')<>'INTERNAL_PRINCIPAL' OR COALESCE(req.recipient_principal_id::text,'')<>` + fmt.Sprintf("$%d", principal) + `) AND COALESCE(r.submitted_recipient_principal_id::text,'')<>` + fmt.Sprintf("$%d", principal) + ` AND (r.submitted_recipient_id IS NULL OR EXISTS(SELECT 1 FROM capture_distribution_recipients sr WHERE sr.id=r.submitted_recipient_id AND sr.tenant_id=r.tenant_id AND sr.legal_entity_id=r.legal_entity_id AND sr.distribution_id=r.distribution_id AND sr.request_id=submission.request_id AND sr.role='TO')) AND EXISTS(SELECT 1 FROM third_party_relationships vr WHERE vr.tenant_id=r.tenant_id AND vr.legal_entity_id=r.legal_entity_id AND vr.id=d.subject_id) AND ((EXISTS(SELECT 1 FROM jsonb_array_elements(req.fields) field WHERE field->'assessment'->>'mode' IN ('MANUAL','AUTOMATIC_REVIEW')) AND ` + authority.PostgresReadRouteSQL("r", "id", "FORM_RESPONSE", "FORMS.RESPONSE.ASSESS", "REVIEWER", principal, at) + `) OR ` + authority.PostgresReadRouteSQL("r", "id", "FORM_RESPONSE", "FORMS.RESPONSE.REVIEW", "REVIEWER", principal, at) + `)`
 }

@@ -8,11 +8,12 @@ import (
 )
 
 type MemoryCatalogRepository struct {
-	mu          sync.RWMutex
-	sources     map[string]struct{}
-	connections map[string]ConnectionRevision
-	views       map[string]ViewRevision
-	bindings    map[string]BindingRevision
+	mu           sync.RWMutex
+	sources      map[string]struct{}
+	sourceLookup func(context.Context, string, string) (bool, error)
+	connections  map[string]ConnectionRevision
+	views        map[string]ViewRevision
+	bindings     map[string]BindingRevision
 }
 
 func NewMemoryCatalogRepository(sources []SourceScope) *MemoryCatalogRepository {
@@ -28,17 +29,13 @@ func NewMemoryCatalogRepository(sources []SourceScope) *MemoryCatalogRepository 
 	return repository
 }
 
-func (r *MemoryCatalogRepository) RegisterSourceScope(_ context.Context, scope SourceScope) error {
-	if scope.TenantID == "" || scope.SourceID == "" {
-		return ErrCatalogInvalid
-	}
+func (r *MemoryCatalogRepository) ConfigureSourceScopeLookup(lookup func(context.Context, string, string) (bool, error)) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.sources[catalogScopeKey(scope.TenantID, scope.SourceID)] = struct{}{}
-	return nil
+	r.sourceLookup = lookup
 }
 
-func (r *MemoryCatalogRepository) CreateConnectionRevision(_ context.Context, value ConnectionRevision) (ConnectionRevision, error) {
+func (r *MemoryCatalogRepository) CreateConnectionRevision(ctx context.Context, value ConnectionRevision) (ConnectionRevision, error) {
 	value, err := normalizeConnectionRevision(value)
 	if err != nil {
 		return ConnectionRevision{}, err
@@ -46,7 +43,16 @@ func (r *MemoryCatalogRepository) CreateConnectionRevision(_ context.Context, va
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if _, exists := r.sources[catalogScopeKey(value.TenantID, value.SourceID)]; !exists {
-		return ConnectionRevision{}, ErrCatalogNotFound
+		if r.sourceLookup == nil {
+			return ConnectionRevision{}, ErrCatalogNotFound
+		}
+		found, err := r.sourceLookup(ctx, value.TenantID, value.SourceID)
+		if err != nil {
+			return ConnectionRevision{}, err
+		}
+		if !found {
+			return ConnectionRevision{}, ErrCatalogNotFound
+		}
 	}
 	if r.connectionScopeConflict(value) {
 		return ConnectionRevision{}, ErrCatalogInvalid

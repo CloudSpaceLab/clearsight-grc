@@ -1,0 +1,369 @@
+{
+  "records": [
+    {
+      "kind": "runtime",
+      "width": 1440,
+      "theme": "light",
+      "geometry": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "bottom": 76
+        },
+        "main": {
+          "x": 228,
+          "y": 76
+        },
+        "railWidth": 228,
+        "overflow": 0,
+        "assigned": {
+          "x": 1044.8125,
+          "y": 914.5625,
+          "width": 320
+        },
+        "analysis": {
+          "x": 303.1875,
+          "right": 1026.8125
+        },
+        "pressureColumnsContained": true,
+        "pressureBounds": {
+          "columnRight": 1004.8125,
+          "panelRight": 1026.8125,
+          "textRight": 981.171875
+        }
+      }
+    },
+    {
+      "kind": "reference",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "kind": "runtime",
+      "width": 1440,
+      "theme": "dark",
+      "geometry": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "bottom": 76
+        },
+        "main": {
+          "x": 228,
+          "y": 76
+        },
+        "railWidth": 228,
+        "overflow": 0,
+        "assigned": {
+          "x": 1044.8125,
+          "y": 914.5625,
+          "width": 320
+        },
+        "analysis": {
+          "x": 303.1875,
+          "right": 1026.8125
+        },
+        "pressureColumnsContained": true,
+        "pressureBounds": {
+          "columnRight": 1004.8125,
+          "panelRight": 1026.8125,
+          "textRight": 981.171875
+        }
+      }
+    },
+    {
+      "kind": "runtime",
+      "width": 1280,
+      "theme": "light",
+      "geometry": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "bottom": 76
+        },
+        "main": {
+          "x": 228,
+          "y": 76
+        },
+        "railWidth": 228,
+        "overflow": 0,
+        "assigned": {
+          "x": 889.609375,
+          "y": 932.5625,
+          "width": 320
+        },
+        "analysis": {
+          "x": 298.390625,
+          "right": 871.609375
+        },
+        "pressureColumnsContained": true,
+        "pressureBounds": {
+          "columnRight": 849.609375,
+          "panelRight": 871.609375,
+          "textRight": 836.484375
+        }
+      }
+    },
+    {
+      "kind": "reference",
+      "width": 1280,
+      "theme": "light"
+    },
+    {
+      "kind": "runtime",
+      "width": 1280,
+      "theme": "dark",
+      "geometry": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "bottom": 76
+        },
+        "main": {
+          "x": 228,
+          "y": 76
+        },
+        "railWidth": 228,
+        "overflow": 0,
+        "assigned": {
+          "x": 889.609375,
+          "y": 932.5625,
+          "width": 320
+        },
+        "analysis": {
+          "x": 298.390625,
+          "right": 871.609375
+        },
+        "pressureColumnsContained": true,
+        "pressureBounds": {
+          "columnRight": 849.609375,
+          "panelRight": 871.609375,
+          "textRight": 836.484375
+        }
+      }
+    },
+    {
+      "kind": "runtime",
+      "width": 1024,
+      "theme": "light",
+      "geometry": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "width": 1024,
+          "bottom": 76
+        },
+        "main": {
+          "x": 72,
+          "y": 76
+        },
+        "railWidth": 72,
+        "overflow": 0,
+        "assigned": {
+          "x": 134.71875,
+          "y": 950.5625,
+          "width": 826.5625
+        },
+        "analysis": {
+          "x": 134.71875,
+          "right": 961.28125
+        },
+        "pressureColumnsContained": true,
+        "pressureBounds": {
+          "columnRight": 939.28125,
+          "panelRight": 961.28125,
+          "textRight": 908.421875
+        }
+      }
+    },
+    {
+      "kind": "reference",
+      "width": 1024,
+      "theme": "light"
+    },
+    {
+      "kind": "runtime",
+      "width": 1024,
+      "theme": "dark",
+      "geometry": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "width": 1024,
+          "bottom": 76
+        },
+        "main": {
+          "x": 72,
+          "y": 76
+        },
+        "railWidth": 72,
+        "overflow": 0,
+        "assigned": {
+          "x": 134.71875,
+          "y": 950.5625,
+          "width": 826.5625
+        },
+        "analysis": {
+          "x": 134.71875,
+          "right": 961.28125
+        },
+        "pressureColumnsContained": true,
+        "pressureBounds": {
+          "columnRight": 939.28125,
+          "panelRight": 961.28125,
+          "textRight": 908.421875
+        }
+      }
+    },
+    {
+      "kind": "runtime",
+      "width": 768,
+      "theme": "light",
+      "geometry": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "bottom": 66
+        },
+        "main": {
+          "x": 72,
+          "y": 66
+        },
+        "railWidth": 72,
+        "overflow": 0,
+        "assigned": {
+          "x": 103.03125,
+          "y": 1064.65625,
+          "width": 633.9375
+        },
+        "analysis": {
+          "x": 103.03125,
+          "right": 736.96875
+        },
+        "pressureColumnsContained": true,
+        "pressureBounds": {
+          "columnRight": 714.96875,
+          "panelRight": 736.96875,
+          "textRight": 697.59375
+        }
+      }
+    },
+    {
+      "kind": "reference",
+      "width": 768,
+      "theme": "light"
+    },
+    {
+      "kind": "runtime",
+      "width": 768,
+      "theme": "dark",
+      "geometry": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "bottom": 66
+        },
+        "main": {
+          "x": 72,
+          "y": 66
+        },
+        "railWidth": 72,
+        "overflow": 0,
+        "assigned": {
+          "x": 103.03125,
+          "y": 1064.65625,
+          "width": 633.9375
+        },
+        "analysis": {
+          "x": 103.03125,
+          "right": 736.96875
+        },
+        "pressureColumnsContained": true,
+        "pressureBounds": {
+          "columnRight": 714.96875,
+          "panelRight": 736.96875,
+          "textRight": 697.59375
+        }
+      }
+    },
+    {
+      "kind": "runtime",
+      "width": 390,
+      "theme": "light",
+      "geometry": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "bottom": 64
+        },
+        "main": {
+          "x": 0,
+          "y": 64
+        },
+        "railWidth": 0,
+        "overflow": 0,
+        "assigned": {
+          "x": 22,
+          "y": 1310.65625,
+          "width": 346
+        },
+        "analysis": {
+          "x": 22,
+          "right": 368
+        },
+        "pressureColumnsContained": true,
+        "pressureBounds": {
+          "columnRight": 297.984375,
+          "panelRight": 368,
+          "textRight": 289.984375
+        }
+      }
+    },
+    {
+      "kind": "reference",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "kind": "runtime",
+      "width": 390,
+      "theme": "dark",
+      "geometry": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "bottom": 64
+        },
+        "main": {
+          "x": 0,
+          "y": 64
+        },
+        "railWidth": 0,
+        "overflow": 0,
+        "assigned": {
+          "x": 22,
+          "y": 1310.65625,
+          "width": 346
+        },
+        "analysis": {
+          "x": 22,
+          "right": 368
+        },
+        "pressureColumnsContained": true,
+        "pressureBounds": {
+          "columnRight": 297.984375,
+          "panelRight": 368,
+          "textRight": 289.984375
+        }
+      }
+    }
+  ]
+}

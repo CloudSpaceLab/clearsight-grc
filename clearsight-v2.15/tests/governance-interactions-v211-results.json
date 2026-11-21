@@ -1,0 +1,84 @@
+{
+  "suite": "V2.11 actual-source governance and queue interactions",
+  "browserLayoutValidated": false,
+  "passed": 19,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Work prioritizes the acting person’s scoped due actions and retains explicit team filters",
+      "status": "PASS"
+    },
+    {
+      "name": "Work filters and exact action links preserve source decisions and completed outcomes",
+      "status": "PASS"
+    },
+    {
+      "name": "Inbox priority follows unresolved due work; read and acknowledgement do not resolve it",
+      "status": "PASS"
+    },
+    {
+      "name": "Notification source actions open the exact task and reject recipient or source changes",
+      "status": "PASS"
+    },
+    {
+      "name": "Follow-ups reuse exact existing actions and reject resolved sources during preparation",
+      "status": "PASS"
+    },
+    {
+      "name": "Role comparison uses canonical deny precedence without changing live access",
+      "status": "PASS"
+    },
+    {
+      "name": "Reviewed role apply checks actual administrator, full preview and source freshness",
+      "status": "PASS"
+    },
+    {
+      "name": "A reviewed role applies through the canonical command and retains immutable system guards",
+      "status": "PASS"
+    },
+    {
+      "name": "Opening another role or policy preserves the unfinished singleton draft",
+      "status": "PASS"
+    },
+    {
+      "name": "Assignment preview is nonmutating and applies only on the reviewed second step",
+      "status": "PASS"
+    },
+    {
+      "name": "Access review rejects stale state and provides a dated renewal for expired assignments",
+      "status": "PASS"
+    },
+    {
+      "name": "Direct-rule preview preserves independent actor checks and separation of duties",
+      "status": "PASS"
+    },
+    {
+      "name": "Draft escalation compares weekend clocks and real fallback without changing saved policy",
+      "status": "PASS"
+    },
+    {
+      "name": "Escalation tests respect stop semantics, missing fallback and stale draft results",
+      "status": "PASS"
+    },
+    {
+      "name": "File approval preparation shows actionable routing and source blockers without submitting",
+      "status": "PASS"
+    },
+    {
+      "name": "Refreshing a stale approval draft binds current source and preserves review instructions",
+      "status": "PASS"
+    },
+    {
+      "name": "Real file approval retains origin, requires explicit decision and preserves canonical byte checks",
+      "status": "PASS"
+    },
+    {
+      "name": "Pending withdrawal cannot be committed after identity changes inside its dialog",
+      "status": "PASS"
+    },
+    {
+      "name": "Rendered interaction routes expose registered actions and useful scoped missing-record states",
+      "status": "PASS"
+    }
+  ]
+}

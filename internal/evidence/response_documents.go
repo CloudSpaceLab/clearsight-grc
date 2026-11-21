@@ -12,6 +12,13 @@ import (
 )
 
 type DocumentFileKind string
+type DocumentView string
+
+const (
+	DocumentViewAwaitingReview DocumentView = "AWAITING_REVIEW"
+	DocumentViewNeedsRefresh   DocumentView = "NEEDS_REFRESH"
+	DocumentViewReviewHistory  DocumentView = "REVIEW_HISTORY"
+)
 
 const (
 	DocumentPDF         DocumentFileKind = "PDF"
@@ -88,8 +95,10 @@ type DocumentQuery struct {
 	// Set only after the service verifies the current review route for the exact
 	// generic vendor response. This never expands a relationship-wide inventory.
 	assessmentRead                                            bool
+	asOf                                                      time.Time
 	TenantID, LegalEntityID, PrincipalID                      string
 	FileKind                                                  DocumentFileKind
+	View                                                      DocumentView
 	Query, FormTemplateID, RelationshipID, ResponseRevisionID string
 	ProgramID                                                 string
 	CurrentOnly                                               bool
@@ -108,6 +117,9 @@ type documentCursor struct {
 }
 type documentStore interface {
 	ListDocuments(context.Context, DocumentQuery) (DocumentPage, error)
+}
+type exactDocumentStore interface {
+	ListExactDocuments(context.Context, DocumentQuery) (DocumentPage, error)
 }
 
 // DocumentContextReader delegates memory-mode legacy reads to their owning
@@ -139,6 +151,11 @@ func normalizeDocumentQuery(q *DocumentQuery) (documentCursor, error) {
 	default:
 		return documentCursor{}, ErrDistributionInvalid
 	}
+	switch q.View {
+	case "", DocumentViewAwaitingReview, DocumentViewNeedsRefresh, DocumentViewReviewHistory:
+	default:
+		return documentCursor{}, ErrDistributionInvalid
+	}
 	q.Query = strings.TrimSpace(q.Query)
 	if q.Cursor == "" {
 		return documentCursor{}, nil
@@ -152,6 +169,27 @@ func normalizeDocumentQuery(q *DocumentQuery) (documentCursor, error) {
 		return documentCursor{}, ErrDistributionInvalid
 	}
 	return c, nil
+}
+
+func documentViewMatches(v DocumentOccurrence, view DocumentView, now time.Time) bool {
+	switch view {
+	case DocumentViewAwaitingReview:
+		return v.Current && v.Review != nil && v.Review.Status == "SUBMITTED"
+	case DocumentViewNeedsRefresh:
+		if !v.Current {
+			return false
+		}
+		if v.Review != nil && v.Review.Status == "EXPIRED" {
+			return true
+		}
+		expiry, err := time.Parse("2006-01-02", v.ExpiresOn)
+		today := now.UTC().Format("2006-01-02")
+		return err == nil && expiry.Format("2006-01-02") < today
+	case DocumentViewReviewHistory:
+		return v.Review != nil
+	default:
+		return true
+	}
 }
 func documentPage(values []DocumentOccurrence, limit int) DocumentPage {
 	page := DocumentPage{Items: values}
@@ -167,6 +205,18 @@ func documentPage(values []DocumentOccurrence, limit int) DocumentPage {
 	return page
 }
 func (s *DistributionService) ListDocuments(ctx context.Context, q DocumentQuery) (DocumentPage, error) {
+	return s.listDocuments(ctx, q, false)
+}
+
+// GetExactDocument requires a repository with a bounded exact-occurrence query.
+func (s *DistributionService) GetExactDocument(ctx context.Context, q DocumentQuery) (DocumentPage, error) {
+	if q.SubmissionID == "" || q.FieldID == "" || len(q.FieldID) > 80 || q.ArtifactID == "" || q.Limit != 1 {
+		return DocumentPage{}, ErrDistributionInvalid
+	}
+	return s.listDocuments(ctx, q, true)
+}
+
+func (s *DistributionService) listDocuments(ctx context.Context, q DocumentQuery, exact bool) (DocumentPage, error) {
 	if _, err := normalizeDocumentQuery(&q); err != nil {
 		return DocumentPage{}, err
 	}
@@ -186,7 +236,17 @@ func (s *DistributionService) ListDocuments(ctx context.Context, q DocumentQuery
 			}
 		}
 	}
-	page, err := reader.ListDocuments(ctx, q)
+	var page DocumentPage
+	var err error
+	if exact {
+		exactReader, ok := s.store.(exactDocumentStore)
+		if !ok {
+			return DocumentPage{}, ErrNotFound
+		}
+		page, err = exactReader.ListExactDocuments(ctx, q)
+	} else {
+		page, err = reader.ListDocuments(ctx, q)
+	}
 	if err != nil {
 		return DocumentPage{}, err
 	}

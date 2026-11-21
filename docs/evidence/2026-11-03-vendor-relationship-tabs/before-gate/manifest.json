@@ -1,0 +1,1345 @@
+{
+  "generatedAt": "2026-11-03T19:43:15.898Z",
+  "baseURL": "http://127.0.0.1:4178",
+  "failure": "230-vendor-relationship-overview-light-390x844: relationship page heading, menu or first content differs from its source boundary: {\"kind\":\"overview\",\"heading\":{\"x\":64,\"y\":188,\"width\":318,\"height\":184.890625,\"right\":382,\"bottom\":372.890625},\"headingText\":\"Acme Processing Limited\",\"title\":{\"x\":126,\"y\":213,\"width\":236,\"height\":25.296875,\"right\":362,\"bottom\":238.296875},\"selectedRelationshipID\":\"vendor-relationship-payments\",\"selectedRoute\":\"#vendors/register/vendor-relationship-payments\",\"localTabs\":[\"Overview\",\"Due diligence\",\"Evidence\",\"Issues & actions\",\"Activity\"],\"selectedTab\":\"Overview\",\"tablist\":{\"x\":64,\"y\":384.890625,\"width\":318,\"height\":73,\"right\":382,\"bottom\":457.890625},\"selectedPanelID\":\"react-aria2183422821-_r_75_-tabpanel-OVERVIEW\",\"visiblePanelIDs\":[\"react-aria2183422821-_r_75_-tabpanel-OVERVIEW\"],\"selectedPanelControlsMatch\":true,\"selectedTabBounds\":{\"x\":64,\"y\":413.890625,\"width\":318,\"height\":44,\"right\":382,\"bottom\":457.890625},\"menuMode\":\"select\",\"compactValue\":\"Overview\",\"selectedTabVisible\":true,\"main\":{\"x\":64,\"y\":473.890625,\"width\":318,\"height\":1288.640625,\"right\":382,\"bottom\":1762.53125},\"aside\":{\"x\":64,\"y\":1778.53125,\"width\":318,\"height\":475.59375,\"right\":382,\"bottom\":2254.125},\"placement\":\"stacked\",\"firstUsefulContent\":{\"x\":64,\"y\":473.890625,\"width\":318,\"height\":206.890625,\"right\":382,\"bottom\":680.78125},\"firstUsefulContentVisible\":true,\"parentHeadingVisible\":false,\"parentMenuVisible\":false,\"registerVisible\":false,\"mainHeading\":\"Review status\",\"relationshipFacts\":[\"Accountable owner\",\"Service criticality\",\"Privacy role\",\"Renewal date\",\"Jurisdiction\",\"Logo\",\"Registration reference\",\"Website domain\",\"Registered address\",\"Effective date\",\"Source\",\"Relationship updated\",\"Relationship version\",\"Vendor details version\"],\"statusFields\":[{\"label\":\"Relationship\",\"value\":\"Proposed\",\"bounds\":{\"x\":77,\"y\":549.78125,\"width\":140,\"height\":53,\"right\":217,\"bottom\":602.78125}},{\"label\":\"Due diligence\",\"value\":\"Not started\",\"bounds\":{\"x\":229,\"y\":549.78125,\"width\":140,\"height\":53,\"right\":369,\"bottom\":602.78125}},{\"label\":\"Submitted forms\",\"value\":\"2\",\"bounds\":{\"x\":77,\"y\":614.78125,\"width\":140,\"height\":53,\"right\":217,\"bottom\":667.78125}},{\"label\":\"Awaiting review\",\"value\":\"1\",\"bounds\":{\"x\":229,\"y\":614.78125,\"width\":140,\"height\":53,\"right\":369,\"bottom\":667.78125}}],\"settledContent\":{\"pendingVisible\":0,\"requestsSummary\":null,\"complianceStatus\":\"Action required\",\"complianceRows\":4,\"formsEmptyState\":false,\"formsShownScope\":null,\"summaryCountsVisible\":true,\"exceptionRows\":0,\"responseRevisionSummary\":null,\"documentState\":null},\"titleContained\":true,\"documentWidth\":390,\"scrollWidth\":390,\"minTargetWidth\":80.671875,\"minTargetHeight\":44,\"undersizedTargets\":[],\"activityScope\":null,\"apiReads\":[{\"path\":\"/api/v1/vendors/vendor-relationship-payments/forms\",\"query\":\"?limit=25\",\"method\":\"GET\",\"phase\":\"SELECTED_RELATIONSHIP\",\"initiatedAt\":883.6999999992549,\"status\":200},{\"path\":\"/api/v1/vendors\",\"query\":\"?limit=50\",\"method\":\"GET\",\"phase\":\"SELECTED_RELATIONSHIP\",\"initiatedAt\":884,\"status\":200},{\"path\":\"/api/v1/vendors/vendor-relationship-payments/assessments/current\",\"query\":\"\",\"method\":\"GET\",\"phase\":\"SELECTED_RELATIONSHIP\",\"initiatedAt\":884.1999999992549,\"status\":404},{\"path\":\"/api/v1/authority/resolve\",\"query\":\"\",\"method\":\"POST\",\"phase\":\"SELECTED_RELATIONSHIP\",\"initiatedAt\":885.6999999992549,\"queryInput\":{\"object_type\":\"THIRD_PARTY_RELATIONSHIP\",\"object_id\":\"vendor-relationship-payments\",\"responsibility\":\"ACCOUNTABLE_OWNER\",\"decision_type\":\"thirdparty.assessment.start\"},\"requestKind\":\"AUTHORITY_READ_QUERY\",\"status\":200},{\"path\":\"/api/v1/vendors/vendor-relationship-payments/forms\",\"query\":\"?limit=25\",\"method\":\"GET\",\"phase\":\"SELECTED_RELATIONSHIP\",\"initiatedAt\":903.5,\"status\":200}],\"commands\":[],\"preparationReads\":[],\"selectionBoundary\":{\"event\":\"RELATIONSHIP_SELECTION_POINTERDOWN\",\"relationshipID\":\"vendor-relationship-payments\",\"at\":840.4000000003725,\"observedAt\":\"2026-11-03T19:43:15.645Z\"},\"evidenceKind\":\"SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION\"}",
+  "captures": [
+    {
+      "name": "230-vendor-relationship-overview-light-1440x900",
+      "route": "#vendors/register",
+      "fixture": "vendor-form-assessment",
+      "state": "vendor-relationship-overview-light-1440",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "vendorRelationshipLayout": {
+        "kind": "overview",
+        "heading": {
+          "x": 260,
+          "y": 152,
+          "width": 1148,
+          "height": 96,
+          "right": 1408,
+          "bottom": 248
+        },
+        "headingText": "Acme Processing Limited",
+        "title": {
+          "x": 341,
+          "y": 180.5,
+          "width": 386.171875,
+          "height": 41.390625,
+          "right": 727.171875,
+          "bottom": 221.890625
+        },
+        "selectedRelationshipID": "vendor-relationship-payments",
+        "selectedRoute": "#vendors/register/vendor-relationship-payments",
+        "localTabs": [
+          "Overview",
+          "Due diligence",
+          "Evidence",
+          "Issues & actions",
+          "Activity"
+        ],
+        "selectedTab": "Overview",
+        "tablist": {
+          "x": 260,
+          "y": 264,
+          "width": 1148,
+          "height": 45,
+          "right": 1408,
+          "bottom": 309
+        },
+        "selectedPanelID": "react-aria9989750445-_r_lc_-tabpanel-OVERVIEW",
+        "visiblePanelIDs": [
+          "react-aria9989750445-_r_lc_-tabpanel-OVERVIEW"
+        ],
+        "selectedPanelControlsMatch": true,
+        "selectedTabBounds": {
+          "x": 260,
+          "y": 264,
+          "width": 88.984375,
+          "height": 44,
+          "right": 348.984375,
+          "bottom": 308
+        },
+        "menuMode": "tabs",
+        "compactValue": "Overview",
+        "selectedTabVisible": true,
+        "main": {
+          "x": 260,
+          "y": 325,
+          "width": 816,
+          "height": 912.671875,
+          "right": 1076,
+          "bottom": 1237.671875
+        },
+        "aside": {
+          "x": 1092,
+          "y": 325,
+          "width": 316,
+          "height": 499.59375,
+          "right": 1408,
+          "bottom": 824.59375
+        },
+        "placement": "beside",
+        "firstUsefulContent": {
+          "x": 260,
+          "y": 325,
+          "width": 816,
+          "height": 149.890625,
+          "right": 1076,
+          "bottom": 474.890625
+        },
+        "firstUsefulContentVisible": true,
+        "parentHeadingVisible": false,
+        "parentMenuVisible": false,
+        "registerVisible": false,
+        "mainHeading": "Review status",
+        "relationshipFacts": [
+          "Accountable owner",
+          "Service criticality",
+          "Privacy role",
+          "Renewal date",
+          "Jurisdiction",
+          "Logo",
+          "Registration reference",
+          "Website domain",
+          "Registered address",
+          "Effective date",
+          "Source",
+          "Relationship updated",
+          "Relationship version",
+          "Vendor details version"
+        ],
+        "statusFields": [
+          {
+            "label": "Relationship",
+            "value": "Proposed",
+            "bounds": {
+              "x": 277,
+              "y": 404.890625,
+              "width": 186.5,
+              "height": 53,
+              "right": 463.5,
+              "bottom": 457.890625
+            }
+          },
+          {
+            "label": "Due diligence",
+            "value": "Not started",
+            "bounds": {
+              "x": 475.5,
+              "y": 404.890625,
+              "width": 186.5,
+              "height": 53,
+              "right": 662,
+              "bottom": 457.890625
+            }
+          },
+          {
+            "label": "Submitted forms",
+            "value": "2",
+            "bounds": {
+              "x": 674,
+              "y": 404.890625,
+              "width": 186.5,
+              "height": 53,
+              "right": 860.5,
+              "bottom": 457.890625
+            }
+          },
+          {
+            "label": "Awaiting review",
+            "value": "1",
+            "bounds": {
+              "x": 872.5,
+              "y": 404.890625,
+              "width": 186.5,
+              "height": 53,
+              "right": 1059,
+              "bottom": 457.890625
+            }
+          }
+        ],
+        "settledContent": {
+          "pendingVisible": 0,
+          "requestsSummary": null,
+          "complianceStatus": "Action required",
+          "complianceRows": 4,
+          "formsEmptyState": false,
+          "formsShownScope": null,
+          "summaryCountsVisible": true,
+          "exceptionRows": 0,
+          "responseRevisionSummary": null,
+          "documentState": null
+        },
+        "titleContained": true,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "minTargetWidth": 77.25,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "activityScope": null,
+        "apiReads": [
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1034.9000000003725,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1035.0999999996275,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/assessments/current",
+            "query": "",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1035.2000000011176,
+            "status": 404
+          },
+          {
+            "path": "/api/v1/authority/resolve",
+            "query": "",
+            "method": "POST",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1036.300000000745,
+            "queryInput": {
+              "object_type": "THIRD_PARTY_RELATIONSHIP",
+              "object_id": "vendor-relationship-payments",
+              "responsibility": "ACCOUNTABLE_OWNER",
+              "decision_type": "thirdparty.assessment.start"
+            },
+            "requestKind": "AUTHORITY_READ_QUERY",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1052.0999999996275,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/activation",
+            "query": "",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1246,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1324.800000000745,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendor-work",
+            "query": "?relationship_id=vendor-relationship-payments&limit=20",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1325.2000000011176,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/links",
+            "query": "?limit=50",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1325.300000000745,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments",
+            "query": "",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1348.2000000011176,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/links",
+            "query": "?limit=50",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1403.2000000011176,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/responses",
+            "query": "?subject_type=VENDOR_RELATIONSHIP&subject_id=vendor-relationship-payments&current_only=false&sort=COMPLETED_DESC&limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1490.5,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/responses",
+            "query": "?subject_type=VENDOR_RELATIONSHIP&subject_id=vendor-relationship-payments&current_only=false&sort=COMPLETED_DESC&limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 1929.7000000011176,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 2264.2000000011176,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 2480.7000000011176,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 2547.5999999996275,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 2547.5999999996275,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/assessments/current",
+            "query": "",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 2547.7000000011176,
+            "status": 404
+          },
+          {
+            "path": "/api/v1/authority/resolve",
+            "query": "",
+            "method": "POST",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 2548.4000000003725,
+            "queryInput": {
+              "object_type": "THIRD_PARTY_RELATIONSHIP",
+              "object_id": "vendor-relationship-payments",
+              "responsibility": "ACCOUNTABLE_OWNER",
+              "decision_type": "thirdparty.assessment.start"
+            },
+            "requestKind": "AUTHORITY_READ_QUERY",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 2559.4000000003725,
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "preparationReads": [],
+        "selectionBoundary": {
+          "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+          "relationshipID": "vendor-relationship-payments",
+          "at": 1001.9000000003725,
+          "observedAt": "2026-11-03T19:43:09.130Z"
+        },
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "interaction": {
+          "visited": [
+            "Overview",
+            "Due diligence",
+            "Evidence",
+            "Issues & actions",
+            "Activity"
+          ],
+          "keyboard": {
+            "mode": "tabs",
+            "sequence": [
+              "Due diligence",
+              "Evidence",
+              "Issues & actions",
+              "Activity",
+              "Overview"
+            ],
+            "complete": true
+          },
+          "selectedRoute": "#vendors/register/vendor-relationship-payments",
+          "relationshipPreserved": true,
+          "evidenceDocumentsReachable": true,
+          "evidenceFormsReachable": true,
+          "responseHistoryReachable": true,
+          "backRestoredFocus": true,
+          "baselineRestored": true
+        }
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Vendors"
+        ],
+        "activeLocation": [],
+        "railWidth": 228,
+        "railX": 0,
+        "labelMode": "expanded",
+        "maxLabelLines": 1,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": false,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1286,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Selected vendor relationship"
+      }
+    },
+    {
+      "name": "230-vendor-relationship-overview-light-1280x800",
+      "route": "#vendors/register",
+      "fixture": "vendor-form-assessment",
+      "state": "vendor-relationship-overview-light-1280",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "vendorRelationshipLayout": {
+        "kind": "overview",
+        "heading": {
+          "x": 260,
+          "y": 152,
+          "width": 988,
+          "height": 130.03125,
+          "right": 1248,
+          "bottom": 282.03125
+        },
+        "headingText": "Acme Processing Limited",
+        "title": {
+          "x": 341,
+          "y": 177,
+          "width": 379,
+          "height": 82.4375,
+          "right": 720,
+          "bottom": 259.4375
+        },
+        "selectedRelationshipID": "vendor-relationship-payments",
+        "selectedRoute": "#vendors/register/vendor-relationship-payments",
+        "localTabs": [
+          "Overview",
+          "Due diligence",
+          "Evidence",
+          "Issues & actions",
+          "Activity"
+        ],
+        "selectedTab": "Overview",
+        "tablist": {
+          "x": 260,
+          "y": 298.03125,
+          "width": 988,
+          "height": 45,
+          "right": 1248,
+          "bottom": 343.03125
+        },
+        "selectedPanelID": "react-aria2822200503-_r_75_-tabpanel-OVERVIEW",
+        "visiblePanelIDs": [
+          "react-aria2822200503-_r_75_-tabpanel-OVERVIEW"
+        ],
+        "selectedPanelControlsMatch": true,
+        "selectedTabBounds": {
+          "x": 260,
+          "y": 298.03125,
+          "width": 88.984375,
+          "height": 44,
+          "right": 348.984375,
+          "bottom": 342.03125
+        },
+        "menuMode": "tabs",
+        "compactValue": "Overview",
+        "selectedTabVisible": true,
+        "main": {
+          "x": 260,
+          "y": 359.03125,
+          "width": 656,
+          "height": 912.671875,
+          "right": 916,
+          "bottom": 1271.703125
+        },
+        "aside": {
+          "x": 932,
+          "y": 359.03125,
+          "width": 316,
+          "height": 499.59375,
+          "right": 1248,
+          "bottom": 858.625
+        },
+        "placement": "beside",
+        "firstUsefulContent": {
+          "x": 260,
+          "y": 359.03125,
+          "width": 656,
+          "height": 149.890625,
+          "right": 916,
+          "bottom": 508.921875
+        },
+        "firstUsefulContentVisible": true,
+        "parentHeadingVisible": false,
+        "parentMenuVisible": false,
+        "registerVisible": false,
+        "mainHeading": "Review status",
+        "relationshipFacts": [
+          "Accountable owner",
+          "Service criticality",
+          "Privacy role",
+          "Renewal date",
+          "Jurisdiction",
+          "Logo",
+          "Registration reference",
+          "Website domain",
+          "Registered address",
+          "Effective date",
+          "Source",
+          "Relationship updated",
+          "Relationship version",
+          "Vendor details version"
+        ],
+        "statusFields": [
+          {
+            "label": "Relationship",
+            "value": "Proposed",
+            "bounds": {
+              "x": 277,
+              "y": 438.921875,
+              "width": 146.5,
+              "height": 53,
+              "right": 423.5,
+              "bottom": 491.921875
+            }
+          },
+          {
+            "label": "Due diligence",
+            "value": "Not started",
+            "bounds": {
+              "x": 435.5,
+              "y": 438.921875,
+              "width": 146.5,
+              "height": 53,
+              "right": 582,
+              "bottom": 491.921875
+            }
+          },
+          {
+            "label": "Submitted forms",
+            "value": "2",
+            "bounds": {
+              "x": 594,
+              "y": 438.921875,
+              "width": 146.5,
+              "height": 53,
+              "right": 740.5,
+              "bottom": 491.921875
+            }
+          },
+          {
+            "label": "Awaiting review",
+            "value": "1",
+            "bounds": {
+              "x": 752.5,
+              "y": 438.921875,
+              "width": 146.5,
+              "height": 53,
+              "right": 899,
+              "bottom": 491.921875
+            }
+          }
+        ],
+        "settledContent": {
+          "pendingVisible": 0,
+          "requestsSummary": null,
+          "complianceStatus": "Action required",
+          "complianceRows": 4,
+          "formsEmptyState": false,
+          "formsShownScope": null,
+          "summaryCountsVisible": true,
+          "exceptionRows": 0,
+          "responseRevisionSummary": null,
+          "documentState": null
+        },
+        "titleContained": true,
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "minTargetWidth": 77.25,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "activityScope": null,
+        "apiReads": [
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 875.7999999988824,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 876,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/assessments/current",
+            "query": "",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 876.1999999992549,
+            "status": 404
+          },
+          {
+            "path": "/api/v1/authority/resolve",
+            "query": "",
+            "method": "POST",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 877.0999999996275,
+            "queryInput": {
+              "object_type": "THIRD_PARTY_RELATIONSHIP",
+              "object_id": "vendor-relationship-payments",
+              "responsibility": "ACCOUNTABLE_OWNER",
+              "decision_type": "thirdparty.assessment.start"
+            },
+            "requestKind": "AUTHORITY_READ_QUERY",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 894.0999999996275,
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "preparationReads": [],
+        "selectionBoundary": {
+          "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+          "relationshipID": "vendor-relationship-payments",
+          "at": 848,
+          "observedAt": "2026-11-03T19:43:11.879Z"
+        },
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION"
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Vendors"
+        ],
+        "activeLocation": [],
+        "railWidth": 228,
+        "railX": 0,
+        "labelMode": "expanded",
+        "maxLabelLines": 1,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": false,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "clientHeight": 800,
+        "scrollHeight": 1320,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Overview"
+      }
+    },
+    {
+      "name": "230-vendor-relationship-overview-light-1024x768",
+      "route": "#vendors/register",
+      "fixture": "vendor-form-assessment",
+      "state": "vendor-relationship-overview-light-1024",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "vendorRelationshipLayout": {
+        "kind": "overview",
+        "heading": {
+          "x": 104,
+          "y": 152,
+          "width": 888,
+          "height": 96,
+          "right": 992,
+          "bottom": 248
+        },
+        "headingText": "Acme Processing Limited",
+        "title": {
+          "x": 185,
+          "y": 184.71875,
+          "width": 307.546875,
+          "height": 32.96875,
+          "right": 492.546875,
+          "bottom": 217.6875
+        },
+        "selectedRelationshipID": "vendor-relationship-payments",
+        "selectedRoute": "#vendors/register/vendor-relationship-payments",
+        "localTabs": [
+          "Overview",
+          "Due diligence",
+          "Evidence",
+          "Issues & actions",
+          "Activity"
+        ],
+        "selectedTab": "Overview",
+        "tablist": {
+          "x": 104,
+          "y": 264,
+          "width": 888,
+          "height": 45,
+          "right": 992,
+          "bottom": 309
+        },
+        "selectedPanelID": "react-aria6026222700-_r_75_-tabpanel-OVERVIEW",
+        "visiblePanelIDs": [
+          "react-aria6026222700-_r_75_-tabpanel-OVERVIEW"
+        ],
+        "selectedPanelControlsMatch": true,
+        "selectedTabBounds": {
+          "x": 104,
+          "y": 264,
+          "width": 88.984375,
+          "height": 44,
+          "right": 192.984375,
+          "bottom": 308
+        },
+        "menuMode": "tabs",
+        "compactValue": "Overview",
+        "selectedTabVisible": true,
+        "main": {
+          "x": 104,
+          "y": 325,
+          "width": 556,
+          "height": 912.671875,
+          "right": 660,
+          "bottom": 1237.671875
+        },
+        "aside": {
+          "x": 676,
+          "y": 325,
+          "width": 316,
+          "height": 499.59375,
+          "right": 992,
+          "bottom": 824.59375
+        },
+        "placement": "beside",
+        "firstUsefulContent": {
+          "x": 104,
+          "y": 325,
+          "width": 556,
+          "height": 149.890625,
+          "right": 660,
+          "bottom": 474.890625
+        },
+        "firstUsefulContentVisible": true,
+        "parentHeadingVisible": false,
+        "parentMenuVisible": false,
+        "registerVisible": false,
+        "mainHeading": "Review status",
+        "relationshipFacts": [
+          "Accountable owner",
+          "Service criticality",
+          "Privacy role",
+          "Renewal date",
+          "Jurisdiction",
+          "Logo",
+          "Registration reference",
+          "Website domain",
+          "Registered address",
+          "Effective date",
+          "Source",
+          "Relationship updated",
+          "Relationship version",
+          "Vendor details version"
+        ],
+        "statusFields": [
+          {
+            "label": "Relationship",
+            "value": "Proposed",
+            "bounds": {
+              "x": 121,
+              "y": 404.890625,
+              "width": 121.5,
+              "height": 53,
+              "right": 242.5,
+              "bottom": 457.890625
+            }
+          },
+          {
+            "label": "Due diligence",
+            "value": "Not started",
+            "bounds": {
+              "x": 254.5,
+              "y": 404.890625,
+              "width": 121.5,
+              "height": 53,
+              "right": 376,
+              "bottom": 457.890625
+            }
+          },
+          {
+            "label": "Submitted forms",
+            "value": "2",
+            "bounds": {
+              "x": 388,
+              "y": 404.890625,
+              "width": 121.5,
+              "height": 53,
+              "right": 509.5,
+              "bottom": 457.890625
+            }
+          },
+          {
+            "label": "Awaiting review",
+            "value": "1",
+            "bounds": {
+              "x": 521.5,
+              "y": 404.890625,
+              "width": 121.5,
+              "height": 53,
+              "right": 643,
+              "bottom": 457.890625
+            }
+          }
+        ],
+        "settledContent": {
+          "pendingVisible": 0,
+          "requestsSummary": null,
+          "complianceStatus": "Action required",
+          "complianceRows": 4,
+          "formsEmptyState": false,
+          "formsShownScope": null,
+          "summaryCountsVisible": true,
+          "exceptionRows": 0,
+          "responseRevisionSummary": null,
+          "documentState": null
+        },
+        "titleContained": true,
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "minTargetWidth": 77.25,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "activityScope": null,
+        "apiReads": [
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 850.1000000014901,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 850.3000000007451,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/assessments/current",
+            "query": "",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 850.5,
+            "status": 404
+          },
+          {
+            "path": "/api/v1/authority/resolve",
+            "query": "",
+            "method": "POST",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 851.5,
+            "queryInput": {
+              "object_type": "THIRD_PARTY_RELATIONSHIP",
+              "object_id": "vendor-relationship-payments",
+              "responsibility": "ACCOUNTABLE_OWNER",
+              "decision_type": "thirdparty.assessment.start"
+            },
+            "requestKind": "AUTHORITY_READ_QUERY",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 866.9000000003725,
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "preparationReads": [],
+        "selectionBoundary": {
+          "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+          "relationshipID": "vendor-relationship-payments",
+          "at": 820.3000000007451,
+          "observedAt": "2026-11-03T19:43:13.161Z"
+        },
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION"
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Vendors"
+        ],
+        "activeLocation": [],
+        "railWidth": 72,
+        "railX": 0,
+        "labelMode": "icons",
+        "maxLabelLines": 0,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": true,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "clientHeight": 768,
+        "scrollHeight": 1286,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Overview"
+      }
+    },
+    {
+      "name": "230-vendor-relationship-overview-light-768x900",
+      "route": "#vendors/register",
+      "fixture": "vendor-form-assessment",
+      "state": "vendor-relationship-overview-light-768",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "vendorRelationshipLayout": {
+        "kind": "overview",
+        "heading": {
+          "x": 80,
+          "y": 192,
+          "width": 680,
+          "height": 139.78125,
+          "right": 760,
+          "bottom": 331.78125
+        },
+        "headingText": "Acme Processing Limited",
+        "title": {
+          "x": 161,
+          "y": 217,
+          "width": 300.359375,
+          "height": 32.1875,
+          "right": 461.359375,
+          "bottom": 249.1875
+        },
+        "selectedRelationshipID": "vendor-relationship-payments",
+        "selectedRoute": "#vendors/register/vendor-relationship-payments",
+        "localTabs": [
+          "Overview",
+          "Due diligence",
+          "Evidence",
+          "Issues & actions",
+          "Activity"
+        ],
+        "selectedTab": "Overview",
+        "tablist": {
+          "x": 80,
+          "y": 347.78125,
+          "width": 680,
+          "height": 45,
+          "right": 760,
+          "bottom": 392.78125
+        },
+        "selectedPanelID": "react-aria4676936608-_r_75_-tabpanel-OVERVIEW",
+        "visiblePanelIDs": [
+          "react-aria4676936608-_r_75_-tabpanel-OVERVIEW"
+        ],
+        "selectedPanelControlsMatch": true,
+        "selectedTabBounds": {
+          "x": 80,
+          "y": 347.78125,
+          "width": 88.984375,
+          "height": 44,
+          "right": 168.984375,
+          "bottom": 391.78125
+        },
+        "menuMode": "tabs",
+        "compactValue": "Overview",
+        "selectedTabVisible": true,
+        "main": {
+          "x": 80,
+          "y": 408.78125,
+          "width": 680,
+          "height": 912.671875,
+          "right": 760,
+          "bottom": 1321.453125
+        },
+        "aside": {
+          "x": 80,
+          "y": 1337.453125,
+          "width": 680,
+          "height": 481.59375,
+          "right": 760,
+          "bottom": 1819.046875
+        },
+        "placement": "stacked",
+        "firstUsefulContent": {
+          "x": 80,
+          "y": 408.78125,
+          "width": 680,
+          "height": 149.890625,
+          "right": 760,
+          "bottom": 558.671875
+        },
+        "firstUsefulContentVisible": true,
+        "parentHeadingVisible": false,
+        "parentMenuVisible": false,
+        "registerVisible": false,
+        "mainHeading": "Review status",
+        "relationshipFacts": [
+          "Accountable owner",
+          "Service criticality",
+          "Privacy role",
+          "Renewal date",
+          "Jurisdiction",
+          "Logo",
+          "Registration reference",
+          "Website domain",
+          "Registered address",
+          "Effective date",
+          "Source",
+          "Relationship updated",
+          "Relationship version",
+          "Vendor details version"
+        ],
+        "statusFields": [
+          {
+            "label": "Relationship",
+            "value": "Proposed",
+            "bounds": {
+              "x": 97,
+              "y": 488.671875,
+              "width": 152.5,
+              "height": 53,
+              "right": 249.5,
+              "bottom": 541.671875
+            }
+          },
+          {
+            "label": "Due diligence",
+            "value": "Not started",
+            "bounds": {
+              "x": 261.5,
+              "y": 488.671875,
+              "width": 152.5,
+              "height": 53,
+              "right": 414,
+              "bottom": 541.671875
+            }
+          },
+          {
+            "label": "Submitted forms",
+            "value": "2",
+            "bounds": {
+              "x": 426,
+              "y": 488.671875,
+              "width": 152.5,
+              "height": 53,
+              "right": 578.5,
+              "bottom": 541.671875
+            }
+          },
+          {
+            "label": "Awaiting review",
+            "value": "1",
+            "bounds": {
+              "x": 590.5,
+              "y": 488.671875,
+              "width": 152.5,
+              "height": 53,
+              "right": 743,
+              "bottom": 541.671875
+            }
+          }
+        ],
+        "settledContent": {
+          "pendingVisible": 0,
+          "requestsSummary": null,
+          "complianceStatus": "Action required",
+          "complianceRows": 4,
+          "formsEmptyState": false,
+          "formsShownScope": null,
+          "summaryCountsVisible": true,
+          "exceptionRows": 0,
+          "responseRevisionSummary": null,
+          "documentState": null
+        },
+        "titleContained": true,
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "minTargetWidth": 77.25,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "activityScope": null,
+        "apiReads": [
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 894.7999999988824,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 894.8999999985099,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/assessments/current",
+            "query": "",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 895.0999999996275,
+            "status": 404
+          },
+          {
+            "path": "/api/v1/authority/resolve",
+            "query": "",
+            "method": "POST",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 896.1999999992549,
+            "queryInput": {
+              "object_type": "THIRD_PARTY_RELATIONSHIP",
+              "object_id": "vendor-relationship-payments",
+              "responsibility": "ACCOUNTABLE_OWNER",
+              "decision_type": "thirdparty.assessment.start"
+            },
+            "requestKind": "AUTHORITY_READ_QUERY",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "phase": "SELECTED_RELATIONSHIP",
+            "initiatedAt": 912.3999999985099,
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "preparationReads": [],
+        "selectionBoundary": {
+          "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+          "relationshipID": "vendor-relationship-payments",
+          "at": 864.2999999988824,
+          "observedAt": "2026-11-03T19:43:14.461Z"
+        },
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION"
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Vendors"
+        ],
+        "activeLocation": [],
+        "railWidth": 72,
+        "railX": 0,
+        "labelMode": "icons",
+        "maxLabelLines": 0,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": true,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "clientHeight": 900,
+        "scrollHeight": 1843,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Overview"
+      }
+    }
+  ]
+}

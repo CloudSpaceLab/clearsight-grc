@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -18,6 +19,8 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
+
+var ErrArtifactOutcomeUnknown = errors.New("document storage outcome is unknown")
 
 type Service struct {
 	repo                 Repository
@@ -50,6 +53,19 @@ func (s *Service) Configure(sessionTTL time.Duration, maxArtifactBytes int64) {
 
 func (s *Service) ConfigureLegalEntityResolver(resolver LegalEntityResolver) {
 	s.legalEntities = resolver
+}
+
+func (s *Service) SourceScopeExists(ctx context.Context, tenant, sourceID string) (bool, error) {
+	if s == nil || s.repo == nil || strings.TrimSpace(tenant) == "" || strings.TrimSpace(sourceID) == "" {
+		return false, fmt.Errorf("source scope is required")
+	}
+	reader, ok := s.repo.(interface {
+		SourceScopeExists(context.Context, string, string) (bool, error)
+	})
+	if !ok {
+		return false, fmt.Errorf("source scope lookup unavailable")
+	}
+	return reader.SourceScopeExists(ctx, tenant, sourceID)
 }
 
 func (s *Service) CreateSource(ctx context.Context, input CreateSourceInput) (Source, error) {
@@ -531,6 +547,25 @@ func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader
 	return s.storeArtifact(ctx, input, reader, false)
 }
 
+// StoreArtifactForInternalWorkspace is intentionally private to the service
+// boundary until its HTTP route and authority coordination are verified.
+func (s *Service) StoreArtifactForInternalWorkspace(ctx context.Context, access *DistributionAccessService, requestID string, input ArtifactInput, reader io.Reader) (Artifact, error) {
+	if access == nil || access.internalAuthorizer == nil || strings.TrimSpace(input.FieldID) == "" || strings.TrimSpace(input.SubmissionID) != "" || strings.TrimSpace(input.SessionToken) != "" {
+		return Artifact{}, ErrWorkspaceUnavailable
+	}
+	actor, err := identity.Require(ctx)
+	if err != nil || !strings.EqualFold(actor.Kind, "PERSON") || actor.LegalEntityID == "*" {
+		return Artifact{}, ErrWorkspaceUnavailable
+	}
+	request, _, err := access.GetInternalWorkspace(ctx, requestID)
+	if err != nil || request.ID != requestID {
+		return Artifact{}, ErrWorkspaceUnavailable
+	}
+	input.TenantID, input.RequestID, input.CreatedBy = actor.TenantID, request.ID, actor.PrincipalID
+	ctx = context.WithValue(ctx, internalWorkspaceAuthorityKey{}, internalWorkspaceAuthorityCheck{access.internalAuthorizer, "forms.response.upload"})
+	return s.storeArtifact(ctx, input, reader, false)
+}
+
 // StoreArtifactForDistributionSession binds an external upload to the
 // canonical distribution session before any object or artifact row is written.
 func (s *Service) StoreArtifactForDistributionSession(ctx context.Context, access *DistributionAccessService, sessionToken string, input ArtifactInput, reader io.Reader) (Artifact, error) {
@@ -624,7 +659,9 @@ func (s *Service) storeArtifact(ctx context.Context, input ArtifactInput, reader
 	artifact := Artifact{Correction: input.Correction, ID: valueID, TenantID: input.TenantID, RequestID: input.RequestID, SubmissionID: input.SubmissionID, FileName: fileName, MediaType: mediaType, SizeBytes: object.SizeBytes, SHA256: object.SHA256, StorageKey: object.Key, Status: ArtifactStoredUnscanned, CreatedBy: input.CreatedBy, CreatedAt: now}
 	created, err := s.repo.CreateArtifact(ctx, artifact)
 	if err != nil {
-		_ = s.store.Delete(ctx, object.Key)
+		if !errors.Is(err, ErrArtifactOutcomeUnknown) {
+			_ = s.store.Delete(ctx, object.Key)
+		}
 		return Artifact{}, err
 	}
 	return withArtifactUsePolicy(created, s.demoUnscannedAllowed), nil

@@ -1,0 +1,9 @@
+# Response history scope check — 21 November 2026
+
+Status: partial v2.15 integration. The previous-response link includes the originating distribution as a narrowing receipt; an absent or invalid distribution leaves the previous response unavailable. The response detail rejects mismatched distribution or response/revision IDs; a direct response link without a receipt remains authorized by the existing API. The receipt is not an authorization credential. Server-side composite foreign keys bind response supersession to the same distribution and workspace. Review decisions remain gated independently.
+
+The migrated response review tests cover independent reviewer denial, conflict and preserved reason, history retry, exact prior revision, cross-distribution rejection and same-route scope changes. The current response suite and copy-quality regression passed alongside those tests. `web/scripts/v215-response-history-evidence.mjs` records the synthetic unavailable state at 1440, 768 and 390 px; it checks no horizontal overflow and axe violations except color contrast. The standard response-values evidence was also run at those widths. The 390 px unavailable render was inspected and the retry action was brought into the existing panel/button layout, then rechecked.
+
+When a review command is available in a supported environment, its success receipt must match the requested response, response revision, next review version and decision before the view reports success. A missing or mismatched receipt is an unknown outcome: the view requires a reload and does not automatically retry. This client check does not authorize or enable the gated command.
+
+The pre-change unavailable render was inspected but not retained, and dark theme, color contrast, live backend authorization and complete cross-browser accessibility remain unverified. This evidence does not establish production acceptance.

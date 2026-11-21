@@ -53,6 +53,9 @@ func main() {
 	}
 	services.ThirdParty.ConfigureIdentityAuthority(guard)
 	services.Monitoring.ConfigureCommandGuard(guard)
+	if services.QuestionDrafts != nil {
+		services.QuestionDrafts.ConfigureAuthority(guard)
+	}
 	vendorBrandService := thirdparty.NewVendorBrandService(services.ThirdPartyBrandRepo, services.ObjectStore, guard)
 	vendorBrandService.ConfigureDiscoveryEnabled(cfg.VendorBrandDiscoveryEnabled)
 	services.ThirdParty.ConfigureVendorBrands(vendorBrandService)
@@ -122,7 +125,7 @@ func main() {
 		Evidence: services.Evidence, FormDistributions: services.FormDistributions, FormDistributionAccess: services.FormDistributionAccess,
 		FormCommunications: services.FormCommunications, FormCommunicationBrands: services.FormCommunicationBrands, FormCommunicationTestDelivery: services.FormCommunicationTestDelivery,
 		FormPolicies: services.FormPolicies,
-		Monitoring:   services.Monitoring, FormProposals: services.FormProposals, ThirdParty: services.ThirdParty, VendorBrands: vendorBrandService, ThirdPartyRelationshipLinks: services.ThirdPartyRelationshipLinks, ThirdPartyWork: vendorWorkService, ThirdPartyAssessments: assessmentService, ThirdPartyActivation: activationService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentApplications: assessmentApplicationService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
+		Monitoring:   services.Monitoring, FormProposals: services.FormProposals, ThirdParty: services.ThirdParty, VendorBrands: vendorBrandService, ThirdPartyRelationshipLinks: services.ThirdPartyRelationshipLinks, ThirdPartyWork: vendorWorkService, ThirdPartyAssessments: assessmentService, ThirdPartyActivation: activationService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentApplications: assessmentApplicationService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, QuestionTestAudit: services.QuestionTestAudit, QuestionDrafts: services.QuestionDrafts, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
 		RegisterMigrations: registermigration.New(services.RegisterMigrations, services.DocumentImports, services.ThirdParty, services.Authority),
 		FrameworkCatalog:   services.FrameworkCatalog,
 		Continuity:         services.Continuity, Ropa: services.Ropa, RopaEventsReader: services.RopaEventsReader, Reporting: services.Reporting, Risk: services.Risk, RCSA: services.RCSA, OperationalLoss: services.OperationalLoss, ControlCatalog: services.ControlCatalog, MatterFormRemediation: matterFormRemediation, Today: services.Today, Oversight: services.Oversight, GroupOversight: services.GroupOversight, MetricMembership: services.MetricMembership, MetricTrends: services.MetricTrends, MetricMatrices: services.MetricMatrices, DomainMetrics: services.DomainMetrics, GroupPostureMetrics: services.GroupPostureMetrics, LossPeriodMetrics: services.LossPeriodMetrics, Workflow: services.Workflow, EscalationSimulation: services.EscalationSimulation, Onboarding: services.Onboarding, PresentationPreferences: services.PresentationPreferences, NotificationPreferences: services.NotificationPreferences,

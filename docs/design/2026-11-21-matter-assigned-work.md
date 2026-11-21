@@ -1,0 +1,15 @@
+# Assigned issue detail
+
+## Decision
+
+The existing actor-scoped work feed supplies a Matter target for some assigned work. A valid Matter target opens a read-only issue detail through the existing exact scoped Matter reader. Other targets remain unlinked until their current workflows exist. The exact-read response contains a server-generated scope receipt for the verified tenant, legal entity and person, plus the canonical record identifiers. The detail verifies the receipt against the active context and the record, accepting a verified tenant slug or entity code without treating it as a different tenant or entity. Missing, mismatched or stale scope reports an unavailable read without exposing details. It shows the current issue name, summary, status and owner using returned data; absent names and status are not inferred.
+
+Issue decisions and actions are explicitly unavailable in this increment. The existing `matter.decision.record` route resolves its authority in the HTTP command guard before the repository opens its material transaction. `continuity.PostgresRepository.ApplyMatterEvent` subsequently locks the Matter and checks entity and version, but does not re-resolve the decision authority in that transaction. A concurrent authority change is therefore not coordinated with the material write. Do not enable the new decision UI until an appropriately scoped decision boundary, verified actor/session, independence and current route are checked together with the exact version and transactional event/outbox; verify revocation and concurrent change with real PostgreSQL connections. No extra queue or store is introduced.
+
+## Evidence and limitations
+
+Reference: `clearsight-v2.15/work-item.html`, SHA-256 `f02d6b46df0e246424cbdb7b7d24a9bb65b2412dccaec0c8d9ecabf0acebde3c`; the earlier Work baseline is in `docs/evidence/2026-11-21-form-approvals/before-work-*`. The current work list and issue detail synthetic renders are in `docs/evidence/2026-11-21-matter-work/` at 1440, 768 and 390 pixels. Reviewer: Codex agent `/root/matter_reviews`. Inspected desktop and mobile, corrected the owner alignment, and recaptured. Browser checks cover keyboard activation of the issue link, no horizontal overflow and axe with color contrast excluded. Scope mismatch and unavailable decision states are covered by component tests.
+
+The isolated PostgreSQL `TestMatterExactReadReceiptResolvesTenantAndEntityAliases` verifies canonical tenant/entity identifiers, a legal-entity code, tenant slug plus entity code, and another-entity denial against an issue created with an alias. Component tests reject mismatched or missing receipts and accept an authorized alias receipt with canonical record identifiers. These checks cover the exact read, not a decision command.
+
+This is a minimal source-backed detail, not a whole-screen reference cutover or a named decision workflow. Full keyboard and touch review, contrast, dark mode, production operational acceptance and the material action flow remain unverified. No new design tokens are introduced.

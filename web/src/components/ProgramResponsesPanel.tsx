@@ -11,8 +11,10 @@ import { DocumentBrowser } from "./documents/DocumentBrowser";
 import { EmptyState as RecordEmptyState } from "./EmptyState";
 import { concernText, concernTone, coverageText, scorePresentation } from "./forms/responseScorePresentation";
 import { ResponseAssessment } from "./forms/ResponseAssessment";
+import { responseSubmitter } from "./forms/responseSubjectName";
+import { responseRecipientLabel } from "./forms/responseRecipient";
 import { hasResponseFilters, ResponseBrowser, responseDateError, sortableResponseColumns, useResponseColumns } from "./forms/ResponseBrowser";
-import { Button, DataTable, EmptyState, FocusedSheet, Notice, StatusBadge, Tabs, type DataColumn } from "./ui";
+import { Button, CheckboxField, DataTable, EmptyState, FocusedSheet, Notice, StatusBadge, Tabs, type DataColumn } from "./ui";
 
 type ListState = "loading" | "live" | "unavailable";
 type DetailState = "idle" | "loading" | "live" | "error";
@@ -25,6 +27,7 @@ export function ProgramResponsesPanel({ programID, requestedResponse }: {
   requestedResponse?: RequestedResponse;
 }) {
   const [query, setQuery] = useState<CompletedResponseQuery>({ sort: "COMPLETED_DESC", limit: 20 });
+  const [includeHistory, setIncludeHistory] = useState(false);
   const [items, setItems] = useState<CompletedResponseSummary[]>([]);
   const [listState, setListState] = useState<ListState>("loading");
   const [nextCursor, setNextCursor] = useState<string>();
@@ -44,7 +47,7 @@ export function ProgramResponsesPanel({ programID, requestedResponse }: {
     if (!cursor) setListState("loading");
     setError(undefined);
     try {
-      const page = await loadCompletedResponses({ ...query, subject_type: "PROGRAM", subject_id: programID, current_only: true, cursor });
+      const page = await loadCompletedResponses({ ...query, subject_type: "PROGRAM", subject_id: programID, current_only: !includeHistory, cursor });
       if (sequence !== listSequence.current) return;
       // An authorized query is not proof that each returned row belongs to
       // the routed Program. Never mix cross-subject results into review.
@@ -66,7 +69,7 @@ export function ProgramResponsesPanel({ programID, requestedResponse }: {
     } finally {
       if (sequence === listSequence.current) setLoadingMore(false);
     }
-  }, [programID, query]);
+  }, [programID, query, includeHistory]);
 
   useEffect(() => {
     detailSequence.current++;
@@ -75,6 +78,7 @@ export function ProgramResponsesPanel({ programID, requestedResponse }: {
     setItems([]);
     setNextCursor(undefined);
     setQuery({ sort: "COMPLETED_DESC", limit: 20 });
+    setIncludeHistory(false);
     return () => { detailSequence.current++; };
   }, [programID]);
 
@@ -146,6 +150,8 @@ export function ProgramResponsesPanel({ programID, requestedResponse }: {
   const columns: readonly DataColumn<CompletedResponseSummary>[] = [
     { id: "form", header: "Form", render: (value) => <div className="program-responses__form"><strong>{value.title}</strong><span>Revision {value.revision}{value.current ? " · Current" : " · Historical"} · Form revision {value.form_template_version}</span></div>, accessibleText: (value) => `${value.title}, response revision ${value.revision}, form revision ${value.form_template_version}` },
     { id: "completed", header: "Submitted", render: (value) => <time dateTime={value.completed_at}>{formatDateTime(value.completed_at)}</time>, accessibleText: (value) => formatDateTime(value.completed_at) },
+    { id: "submitter", header: "Submitted by", render: responseSubmitter, accessibleText: responseSubmitter },
+    { id: "recipient", header: "Recipient", render: (value) => responseRecipientLabel(value.submission_recipient), accessibleText: (value) => responseRecipientLabel(value.submission_recipient) },
     { id: "score", header: "Assessment result", render: (value) => <div className="program-response-result"><ConcernBadge score={value.score}/><ScoreCell score={value.score}/></div>, accessibleText: (value) => `${concernText(value.score)} · ${scoreAccessibleText(value.score)}` },
     { id: "action", header: "Review", kind: "action", render: (value) => <Button variant="quiet" aria-label={`Review ${value.title} response`} onPress={() => void openResponse(value.id)}>Review response</Button>, accessibleText: (value) => `Review ${value.title} response` },
   ];
@@ -154,6 +160,7 @@ export function ProgramResponsesPanel({ programID, requestedResponse }: {
   return <article className="program-record-panel program-wide-panel program-responses-panel" aria-labelledby="program-responses-heading">
     <div className="program-panel-heading"><div><span className="eyebrow">Responses</span><h2 id="program-responses-heading">Submitted data</h2><p>Scores do not confirm document validity.</p></div></div>
 
+    <CheckboxField label="Include historical responses" isSelected={includeHistory} onChange={(checked) => { listSequence.current++; setItems([]); setNextCursor(undefined); setLoadingMore(false); setIncludeHistory(checked); }}/>
     <ResponseBrowser query={query} onChange={updateQuery} count={listState === "live" ? items.length : undefined} hasMore={!!nextCursor} loading={listState === "loading" && !responseDateError(query)} columns={visible.picker}>
 
     {listState === "loading" && items.length === 0 && <p role="status">Loading submitted responses for this Program…</p>}

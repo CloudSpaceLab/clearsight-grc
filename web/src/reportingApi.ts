@@ -172,6 +172,12 @@ export async function createReportRun(definitionId: string, expectedDefinitionVe
   }
 }
 
+export async function createIdempotentReportRun(definitionId: string, expectedDefinitionVersion: number, idempotencyKey: string): Promise<ReportRun> {
+  try {
+    return await requestJSON<ReportRun>(apiBase, `${reportBase}/runs`, { method: "POST", body: JSON.stringify({ definition_id: definitionId, expected_definition_version: expectedDefinitionVersion, parameters: {}, idempotency_key: idempotencyKey }) });
+  } catch (error) { throw reportFailure(error, commandFailure); }
+}
+
 export async function downloadReportRun(id: string, signal?: AbortSignal): Promise<{ blob: Blob; filename?: string }> {
   try {
     return await reportBlob(await scopedPath(`${reportBase}/runs/${encodeURIComponent(id)}/download`), signal ? { signal } : undefined);

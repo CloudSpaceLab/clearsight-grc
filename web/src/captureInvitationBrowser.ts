@@ -1,7 +1,8 @@
 export function consumeCaptureInvitation(browser: Pick<Window, "history" | "location">): string | null {
   const url = new URL(browser.location.href);
   const fragment = new URLSearchParams(url.hash.replace(/^#/, ""));
-  const fragmentToken = fragment.get("form_access");
+  const tokens = fragment.getAll("form_access");
+  const fragmentToken = tokens.length === 1 ? tokens[0]! : tokens.length ? "" : null;
   if (fragmentToken !== null) {
     fragment.delete("form_access");
     const remainingFragment = fragment.toString();

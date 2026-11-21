@@ -27,8 +27,8 @@ export function reviewNotificationsCaptures(captures) {
     if (["route", "fixture", "state", "theme"].some((key) => capture[key] !== scenario[key])
       || !same(capture.viewport, scenario.viewport) || !layout || layout.kind !== view
       || layout.evidenceKind !== "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION"
-      || capture.navigation?.activePage?.join("|") !== "Work & Approvals") {
-      failures.push(`${scenario.name}: Notifications metadata, fixture identity or Work navigation owner is inconsistent`);
+      || capture.navigation?.activePage?.join("|") !== "Inbox") {
+      failures.push(`${scenario.name}: Notifications metadata, fixture identity or Inbox navigation owner is inconsistent`);
       if (!layout) continue;
     }
     if (layout.headingText !== "Notifications" || !rectangle(layout.heading) || !rectangle(layout.tablist)
@@ -75,7 +75,7 @@ export function reviewNotificationsCaptures(captures) {
       failures.push(`${scenario.name}: Inbox must distinguish delivered rows, selected context and the server unread total`);
     }
     if (view === "activity" && scenario.fixture === "notifications-loaded" && (layout.recordCount !== 3 || layout.activityEvents?.length !== 3
-      || !layout.activityVersionLimitation?.includes("Record versions are not recorded in this history.")
+      || !layout.activityVersionLimitation?.includes("Activity events omit record versions.")
       || layout.activityEvents.some((event, index) => {
         const expected = expectedActivityEvents[index];
         return event.id !== expected.id || !event.action?.includes("Sample") || event.actor !== expected.actor || event.outcome !== expected.outcome

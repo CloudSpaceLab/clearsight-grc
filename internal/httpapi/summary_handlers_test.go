@@ -16,6 +16,17 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
+func TestUnavailableSummaryRepositoryReturnsServiceUnavailable(t *testing.T) {
+	response := httptest.NewRecorder()
+	writeSummaryError(response, continuity.ErrSummaryUnavailable, "Programs could not be loaded.")
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("got status %d, want %d", response.Code, http.StatusServiceUnavailable)
+	}
+	if !bytes.Contains(response.Body.Bytes(), []byte("summary_unavailable")) {
+		t.Fatalf("unexpected response: %s", response.Body.String())
+	}
+}
+
 func TestProgramSummaryEndpointIsBoundedAndCursorBased(t *testing.T) {
 	handler := continuityTestHandler()
 	for index, code := range []string{"ALPHA", "BETA"} {

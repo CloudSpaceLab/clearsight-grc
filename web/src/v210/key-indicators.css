@@ -1,0 +1,17 @@
+.v-indicator-filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+.v-indicator-filters label { display: grid; gap: 6px; color: #536c90; font-size: 12px; font-weight: 700; }
+.v-indicator-filters input, .v-indicator-filters select { min-height: 44px; padding: 0 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-indicator-register ul { list-style: none; margin: 0; padding: 0; }
+.v-indicator-register li { display: grid; grid-template-columns: 2fr 1fr 1fr 1.3fr; gap: 16px; padding: 16px 0; border-bottom: 1px solid #e5edf7; }
+.v-indicator-register li > div { min-width: 0; overflow-wrap: anywhere; }
+.v-indicator-register strong, .v-indicator-register small { display: block; }
+.v-indicator-register small { margin-top: 5px; color: #627b9f; }
+.v-indicator-register > button { margin-top: 16px; }
+.v-indicator-mobile-label { display: block; margin-bottom: 5px; color: #627b9f; font-size: 11px; }
+.v-indicator-state { display: inline-block; border-radius: 6px; padding: 5px 8px; font-size: 12px; font-weight: 700; }
+.v-indicator-state.is-breach { color: #a03535; background: #fff0ee; }
+.v-indicator-state.is-watch { color: #87540b; background: #fff2d7; }
+.v-indicator-state.is-normal { color: #14604d; background: #e4f6ef; }
+.v-indicator-state.is-unknown { color: #536c90; background: #edf2f8; }
+@media (max-width: 760px) { .v-indicator-register li { grid-template-columns: repeat(2, minmax(0, 1fr)); } .v-indicator-register li > div:first-child { grid-column: 1 / -1; } }
+@media (max-width: 420px) { .v-indicator-filters label { flex: 1 1 100%; } }

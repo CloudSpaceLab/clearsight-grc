@@ -11,6 +11,34 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 )
 
+// StorageKey is required internally but is never an API locator or capability.
+type publicDocumentImport struct {
+	documentimport.Document
+	StorageKey *string `json:"storage_key,omitempty"`
+}
+
+func documentImportResponse(value documentimport.Document) publicDocumentImport {
+	return publicDocumentImport{Document: value}
+}
+
+// Import creation and derived actions lack transaction-bound authority.
+// Keep these operations unavailable until the protected operation and current
+// authority decision share a transaction and all authority writers are fenced.
+func documentImportNeedsAuthorityGate(method, path string) bool {
+	return (method == http.MethodPost && path == "/api/v1/document-imports") || strings.HasPrefix(path, "/api/v1/document-imports/{id}/")
+}
+
+func (a *API) requireDocumentImportRead(_ http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		documentProtection(w)
+		if _, err := identity.Require(r.Context()); err != nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+			return
+		}
+		httpx.WriteError(w, http.StatusServiceUnavailable, "document_action_unavailable", "Document actions are unavailable. Try again later.")
+	}
+}
+
 func (a *API) documentImportService(w http.ResponseWriter) (*documentimport.Service, bool) {
 	if a.deps.DocumentImports == nil {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "document_import_unavailable", "Document import is unavailable.")
@@ -20,17 +48,22 @@ func (a *API) documentImportService(w http.ResponseWriter) (*documentimport.Serv
 }
 
 func (a *API) listDocumentImports(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.documentImportService(w)
 	if !ok {
 		return
 	}
-	actor, err := identity.Require(r.Context())
+	_, err := identity.Require(r.Context())
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := service.ListVisible(r.Context(), actor.TenantID, actor.LegalEntityID, limit)
+	values, err := service.ListVisibleForActor(r.Context(), limit)
+	if errors.Is(err, documentimport.ErrNotFound) {
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "Imported documents unavailable.")
+		return
+	}
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "document_imports_failed", "Imported documents could not be loaded.")
 		return
@@ -39,6 +72,7 @@ func (a *API) listDocumentImports(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) createDocumentImport(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.documentImportService(w)
 	if !ok {
 		return
@@ -82,11 +116,12 @@ func (a *API) createDocumentImport(w http.ResponseWriter, r *http.Request) {
 				a.deps.Logger.WarnContext(r.Context(), "document coverage comparison failed after import", "document_id", value.ID, "error", coverageErr)
 			}
 		}
-		httpx.WriteJSON(w, http.StatusCreated, value)
+		httpx.WriteJSON(w, http.StatusCreated, documentImportResponse(value))
 	}
 }
 
 func (a *API) getDocumentImport(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.documentImportService(w)
 	if !ok {
 		return
@@ -96,7 +131,7 @@ func (a *API) getDocumentImport(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
 		return
 	}
-	value, err := service.GetVisible(r.Context(), actor.TenantID, actor.LegalEntityID, r.PathValue("id"))
+	value, err := service.GetVisibleForActor(r.Context(), r.PathValue("id"))
 	if errors.Is(err, documentimport.ErrNotFound) {
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Imported document not found.")
 		return
@@ -105,10 +140,11 @@ func (a *API) getDocumentImport(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusInternalServerError, "document_import_failed", "The imported document could not be loaded.")
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, a.withDocumentHandoffRoutes(r, actor, value))
+	httpx.WriteJSON(w, http.StatusOK, documentImportResponse(a.withDocumentHandoffRoutes(r, actor, value)))
 }
 
 func (a *API) reviewDocumentProposal(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.documentImportService(w)
 	if !ok {
 		return
@@ -150,6 +186,6 @@ func (a *API) reviewDocumentProposal(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		httpx.WriteError(w, http.StatusInternalServerError, "review_failed", "The review could not be recorded.")
 	default:
-		httpx.WriteJSON(w, http.StatusOK, a.withDocumentHandoffRoutes(r, actor, value))
+		httpx.WriteJSON(w, http.StatusOK, documentImportResponse(a.withDocumentHandoffRoutes(r, actor, value)))
 	}
 }

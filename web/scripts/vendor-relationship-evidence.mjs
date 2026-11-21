@@ -232,7 +232,7 @@ export async function assertVendorRelationshipLayout(page, scenario) {
   const expectedPlacement = scenario.viewport.width > 840 ? "beside" : "stacked";
   if (reading.localTabs.join("|") !== labels.join("|") || reading.selectedTab !== viewLabel(scenario.vendorRelationshipView)
     || reading.selectedRelationshipID !== fixtureRelationshipID || !reading.selectedPanelControlsMatch
-    || reading.menuMode === "select" && reading.compactValue !== reading.selectedTab
+    || reading.menuMode !== "tabs"
     || !reading.selectedTabVisible || !reading.titleContained || reading.parentHeadingVisible || reading.parentMenuVisible || reading.registerVisible
     || reading.scrollWidth > reading.documentWidth + 1 || reading.heading.bottom > reading.tablist.y + 1
     || scenario.vendorRelationshipMatrix && !reading.firstUsefulContentVisible) {

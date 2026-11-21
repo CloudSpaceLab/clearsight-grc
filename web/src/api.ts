@@ -82,7 +82,7 @@ export type EmployeeProfile = { person: { id: string; display_name: string; stat
 export type EmployeeWorkItem = { id: string; record_type: string; record_id: string; responsibility: string; title: string; status: string; due_at?: string; updated_at: string };
 export type EmployeeActivityItem = { event_id: string; occurred_at: string; action: string; record_type: string; record_id: string; title: string; source: string };
 export type AuthorityResolveInput = {
-  object_type: "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST" | "THIRD_PARTY_RELATIONSHIP";
+  object_type: "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST" | "THIRD_PARTY_RELATIONSHIP" | "LEGAL_ENTITY" | "FORM_TEMPLATE" | "REPORT_RUN";
   object_id: string;
   responsibility: string;
   decision_type?: string;

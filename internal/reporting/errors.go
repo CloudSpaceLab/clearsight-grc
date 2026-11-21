@@ -26,6 +26,8 @@ var (
 	// ErrReportDownloadForbidden is returned when an in-scope actor may view
 	// report history but is not permitted to retrieve this run's artefact.
 	ErrReportDownloadForbidden = errors.New("reporting: report download forbidden")
+	// ErrPrivacyReadForbidden protects privacy-dataset report creation and files.
+	ErrPrivacyReadForbidden = errors.New("reporting: privacy report access forbidden")
 	// ErrReportExpired is returned only after download authorization and exact
 	// legal-entity scope have been checked.
 	ErrReportExpired = errors.New("reporting: report file expired")

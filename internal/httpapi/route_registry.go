@@ -58,6 +58,12 @@ func (a *API) registerRoutes(mux *http.ServeMux) {
 				handler = a.command(spec.Command.Name, spec.Command.Policy, handler)
 			}
 		}
+		if documentImportNeedsAuthorityGate(spec.Method, spec.Path) {
+			handler = a.requireDocumentImportRead(handler)
+		}
+		if strings.HasPrefix(spec.Path, "/api/v1/forms/proposals/{id}") {
+			handler = a.requireFormProposalSourceRead(handler)
+		}
 		handler = a.routeAccess(spec, handler)
 		mux.HandleFunc(spec.Method+" "+spec.Path, handler)
 	}
@@ -139,6 +145,7 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/framework-catalog/program-usage", a.listFrameworkProgramUsage),
 		read("/api/v1/framework-catalog/reference-templates/{code}/requirements", a.listFrameworkStarterRequirements),
 		material("/api/v1/framework-catalog/reference-templates/{code}/requirements/{requirement_code}", "framework.starter.requirement.update", a.updateFrameworkStarterRequirement, commandPolicy{ObjectType: "LEGAL_ENTITY", Responsibility: authority.ResponsibilityOwner, Materiality: 3, BindLegalEntity: true, ActorField: noActorField}),
+		read("/api/v1/framework-catalog/editions/{id}/clauses", a.listFrameworkClauses),
 		read("/api/v1/programs/{id}/standards/{adoption_id}/candidates", a.listProgramFrameworkCandidates),
 		read("/api/v1/programs/{id}/standards/{adoption_id}/mappings", a.listProgramFrameworkMappings),
 		read("/api/v1/programs", a.listPrograms),
@@ -247,6 +254,7 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/forms/templates/{id}", a.getLibraryForm),
 		material("/api/v1/forms/templates", "forms.template.create", a.createLibraryForm, commandPolicy{ObjectType: "LEGAL_ENTITY", Responsibility: authority.ResponsibilityOwner, Materiality: 2, BindLegalEntity: true, ActorField: noActorField}),
 		read("/api/v1/forms/templates/{id}/revisions/{version}", a.getLibraryFormRevision),
+		withPermission(operation("/api/v1/forms/templates/{id}/revisions/{version}/questions/{field_id}/test", a.TestAPIQuestion, nil), identity.PermissionConfigWrite),
 		material("/api/v1/forms/templates/{id}/revisions", "forms.template.revise", a.createLibraryFormRevision, commandPolicy{ObjectType: "FORM_TEMPLATE", ObjectIDPath: "id", Responsibility: authority.ResponsibilityOwner, Materiality: 2, ActorField: noActorField}),
 		material("/api/v1/forms/templates/{id}/transition", "forms.template.transition", a.transitionLibraryForm, commandPolicy{ObjectType: "FORM_TEMPLATE", ObjectIDPath: "id", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}),
 		read("/api/v1/forms/starter-templates", a.listStarterForms),

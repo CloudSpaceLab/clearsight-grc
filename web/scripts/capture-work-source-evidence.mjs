@@ -65,7 +65,14 @@ async function observeLayout(page) {
     const bounds = (selector) => { const box = root.querySelector(selector)?.getBoundingClientRect(); return box ? { x: box.x, y: box.y, width: box.width, height: box.height, bottom: box.bottom } : null; };
     const tabs = bounds(".cs-tabs__list"), measures = bounds(".assigned-workspace__signals"), heading = bounds("#assigned-work-heading"), filters = bounds(".cs-filter-bar"), firstRecord = bounds("tbody tr");
     const controls = [...root.querySelectorAll('.cs-metric-card, .cs-filter-bar button, .cs-filter-bar input')].filter((node) => node.getBoundingClientRect().width > 0);
+    const row = root.querySelector("tbody tr"), tableViewport = root.querySelector(".cs-data-table__viewport");
+    const queue = root.querySelector(".assigned-workspace__queue");
+    const queueBounds = bounds(".assigned-workspace__queue");
     return { tabs, measures, heading, filters, firstRecord, context: bounds(".assigned-workspace__context"),
+      queue: queueBounds, queueFramed: Boolean(queue && parseFloat(getComputedStyle(queue).borderTopWidth) > 0
+        && queue.contains(root.querySelector(".cs-filter-bar")) && queue.contains(row)),
+      rowDisplay: row ? getComputedStyle(row).display : null,
+      tableClientWidth: tableViewport?.clientWidth, tableScrollWidth: tableViewport?.scrollWidth,
       tabLabels: [...root.querySelectorAll('[role="tab"]')].map((node) => node.textContent.trim()),
       measureLabels: [...root.querySelectorAll('.cs-metric-card')].map((node) => node.getAttribute("aria-label")),
       measureColumns: [...root.querySelectorAll('.cs-metric-card')].filter((node) => Math.abs(node.getBoundingClientRect().y - measures.y) < 2).length,
@@ -180,7 +187,11 @@ try {
         if (!baseline) {
           assert.ok(geometry.scrollWidth <= geometry.clientWidth + 1, `Work overflow at ${viewport.width}`);
           assert.ok(geometry.sourceOrder, `Work source anatomy changed at ${viewport.width}`);
+          assert.ok(geometry.queueFramed, `Work heading, filters and records must share a framed queue at ${viewport.width}`);
+          if (geometry.context && geometry.context.width > 0) assert.ok(geometry.context.x >= geometry.queue.x + geometry.queue.width - 1, `Selected work must remain beside the queue at ${viewport.width}`);
           assert.ok(geometry.firstRecordInViewport, `First assignment below viewport at ${viewport.width}`);
+          assert.equal(geometry.rowDisplay, viewport.width > 700 ? "table-row" : "grid", `Work row replacement differs at ${viewport.width}`);
+          assert.ok(geometry.tableScrollWidth <= geometry.tableClientWidth + 1, `Fixture Work table overflows at ${viewport.width}`);
           assert.equal(geometry.measureColumns, sourceGeometry.measureColumns, `Work measure columns differ from approved HTML at ${viewport.width}`);
           assert.deepEqual(geometry.tabLabels, ["My work", "Approvals"]);
           assert.ok(geometry.controls.every((box) => box.height >= 44 && box.width >= 44), "Undersized primary control");

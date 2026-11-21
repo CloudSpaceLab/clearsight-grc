@@ -1,0 +1,102 @@
+{
+  "version": "2.7",
+  "tests": [
+    {
+      "name": "Canonical identities, source-backed evidence labels, stable hashes and metadata reconstruction",
+      "status": "PASS",
+      "seconds": 0.86
+    },
+    {
+      "name": "Real file upload, partial batch errors, duplicate contents, SHA-256 and safe CSV/text preview",
+      "status": "PASS",
+      "seconds": 0.96
+    },
+    {
+      "name": "Empty, oversized, disguised, binary-text and invalid Office uploads are rejected",
+      "status": "PASS",
+      "seconds": 0.28
+    },
+    {
+      "name": "Sequential independent review and explicit typed sign-off; one shared Work item; immutable receipts",
+      "status": "PASS",
+      "seconds": 1.3
+    },
+    {
+      "name": "Requester and file contributor cannot be assigned to approve their own submission",
+      "status": "PASS",
+      "seconds": 0.59
+    },
+    {
+      "name": "Replacement supersedes pending approval without retargeting earlier document links",
+      "status": "PASS",
+      "seconds": 1.3
+    },
+    {
+      "name": "Pinned attachments retain their version-specific approval instead of inheriting the latest state",
+      "status": "PASS",
+      "seconds": 1.48
+    },
+    {
+      "name": "Session-only byte loss remains explicit and blocks approval after metadata reconstruction",
+      "status": "PASS",
+      "seconds": 1.21
+    },
+    {
+      "name": "Assessment uploads and evidence review use the same file version without auto-approving compliance",
+      "status": "PASS",
+      "seconds": 0.96
+    },
+    {
+      "name": "Scope, search and exports use the same query; cross-location links fail validation",
+      "status": "PASS",
+      "seconds": 0.68
+    },
+    {
+      "name": "Form evidence fields use a controlled document picker and submitted response links are locked",
+      "status": "PASS",
+      "seconds": 0.72
+    },
+    {
+      "name": "Published report output is saved as a versioned document without changing its source snapshot",
+      "status": "PASS",
+      "seconds": 0.99
+    },
+    {
+      "name": "Change requests, rejection and withdrawal retain prior decisions and separate request episodes",
+      "status": "PASS",
+      "seconds": 1.78
+    },
+    {
+      "name": "Changed approval snapshots and repeated approval attempts cannot create accepted decisions",
+      "status": "PASS",
+      "seconds": 1.09
+    },
+    {
+      "name": "Folder moves and archive/restore preserve file versions, source links and completed reviews",
+      "status": "PASS",
+      "seconds": 1.68
+    },
+    {
+      "name": "Custom form submissions feed canonical requirement evaluations, independent review and shared Work",
+      "status": "PASS",
+      "seconds": 2.16
+    },
+    {
+      "name": "Technical source uncertainty and heuristics cannot silently produce satisfied requirements",
+      "status": "PASS",
+      "seconds": 1.72
+    },
+    {
+      "name": "Assessment-to-requirement bridge rejects cross-target sources and changed submitted snapshots",
+      "status": "PASS",
+      "seconds": 1.36
+    },
+    {
+      "name": "Document explorer, previews, version history and populated approval/upload flows at four widths",
+      "status": "PASS",
+      "seconds": 4.42
+    }
+  ],
+  "layouts": 52,
+  "pageErrors": []
+}

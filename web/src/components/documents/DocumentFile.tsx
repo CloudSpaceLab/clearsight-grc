@@ -8,6 +8,7 @@ export function fileKindLabel(kind: FileKind) { return ({ PDF: "PDF", IMAGE: "Im
 export function fileSize(bytes: number) { return Number.isFinite(bytes) && bytes >= 0 ? bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB` : "Size not recorded"; }
 export function documentDate(value?: string) { return value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Not recorded"; }
 export function fileStatus(file: DocumentOccurrence) { return demoUnscannedAllowed(file) ? "Unscanned · Demo" : documentEligibility(file) === "demo" ? "Unscanned · Demo preview" : ({ AVAILABLE: "Ready to view", STORED_UNSCANNED: "Safety check pending", QUARANTINED: "Quarantined", DELETED: "Removed" })[file.artifact_status] ?? "File unavailable"; }
+export function assessmentReviewStatus(file: DocumentOccurrence) { return file.review ? ({ VALIDATED: "Validated by reviewer", REJECTED: "Rejected", EXPIRED: "Expired", SUBMITTED: "Awaiting review", SUPERSEDED: "Replaced" })[file.review.status] ?? "Review status unavailable" : "No review recorded"; }
 
 export function DocumentDemoNotice({ file }: { file: DocumentAvailability }) {
   if (demoUnscannedAllowed(file)) return <Notice tone="warning"><strong>Unscanned · Demo</strong><p>Unscanned file. Review is enabled in demo mode.</p></Notice>;
@@ -20,7 +21,7 @@ export function DocumentFacts({ file }: { file: DocumentOccurrence }) {
     <div><dt>Last submitted</dt><dd><DocumentTime value={file.submitted_at}/></dd></div><div><dt>Submitted by</dt><dd>{file.submitted_by || "Not recorded"}</dd></div>
     <div><dt>Uploaded</dt><dd><DocumentTime value={file.uploaded_at}/></dd></div><div><dt>Uploaded by</dt><dd>{file.uploaded_by || "Not recorded"}</dd></div>
     <div><dt>Expiry date</dt><dd>{documentDate(file.expires_on)}</dd></div><div><dt>Submitted version</dt><dd>{file.current ? "Current" : "Previous"}</dd></div>
-    <div><dt>Document review</dt><dd>{file.review ? ({ VALIDATED: "Validated by reviewer", REJECTED: "Rejected", EXPIRED: "Expired", SUBMITTED: "Awaiting review", SUPERSEDED: "Replaced" })[file.review.status] ?? "Review status unavailable" : "No review recorded"}</dd></div>
+    <div><dt>Assessment review</dt><dd>{assessmentReviewStatus(file)}</dd></div>
     {file.review && <><div><dt>Reviewed by</dt><dd>{file.review.reviewed_by || "Not recorded"}</dd></div><div><dt>Reviewed</dt><dd><DocumentTime value={file.review.reviewed_at}/></dd></div></>}
   </dl>;
 }

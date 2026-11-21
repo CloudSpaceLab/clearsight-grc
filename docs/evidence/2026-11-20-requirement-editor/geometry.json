@@ -1,0 +1,184 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "choice": {
+        "x": 281,
+        "y": 521.765625,
+        "right": 537,
+        "bottom": 565.765625
+      },
+      "reason": {
+        "x": 549,
+        "y": 521.765625
+      },
+      "overlaps": false,
+      "minButtonHeight": 45,
+      "overflow": 0,
+      "editFocus": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "choice": {
+        "x": 281,
+        "y": 521.765625,
+        "right": 537,
+        "bottom": 565.765625
+      },
+      "reason": {
+        "x": 549,
+        "y": 521.765625
+      },
+      "overlaps": false,
+      "minButtonHeight": 45,
+      "overflow": 0,
+      "editFocus": true
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "choice": {
+        "x": 281,
+        "y": 521.765625,
+        "right": 497,
+        "bottom": 565.765625
+      },
+      "reason": {
+        "x": 509,
+        "y": 521.765625
+      },
+      "overlaps": false,
+      "minButtonHeight": 45,
+      "overflow": 0,
+      "editFocus": true
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "choice": {
+        "x": 281,
+        "y": 521.765625,
+        "right": 497,
+        "bottom": 565.765625
+      },
+      "reason": {
+        "x": 509,
+        "y": 521.765625
+      },
+      "overlaps": false,
+      "minButtonHeight": 45,
+      "overflow": 0,
+      "editFocus": true
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "choice": {
+        "x": 125,
+        "y": 522.4375,
+        "right": 316,
+        "bottom": 566.4375
+      },
+      "reason": {
+        "x": 328,
+        "y": 522.4375
+      },
+      "overlaps": false,
+      "minButtonHeight": 45,
+      "overflow": 0,
+      "editFocus": true
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "choice": {
+        "x": 125,
+        "y": 522.4375,
+        "right": 316,
+        "bottom": 566.4375
+      },
+      "reason": {
+        "x": 328,
+        "y": 522.4375
+      },
+      "overlaps": false,
+      "minButtonHeight": 45,
+      "overflow": 0,
+      "editFocus": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "choice": {
+        "x": 101,
+        "y": 416.109375,
+        "right": 414,
+        "bottom": 460.109375
+      },
+      "reason": {
+        "x": 426,
+        "y": 416.109375
+      },
+      "overlaps": false,
+      "minButtonHeight": 45,
+      "overflow": 0,
+      "editFocus": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "choice": {
+        "x": 101,
+        "y": 416.109375,
+        "right": 414,
+        "bottom": 460.109375
+      },
+      "reason": {
+        "x": 426,
+        "y": 416.109375
+      },
+      "overlaps": false,
+      "minButtonHeight": 45,
+      "overflow": 0,
+      "editFocus": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "choice": {
+        "x": 25,
+        "y": 388.015625,
+        "right": 365,
+        "bottom": 432.015625
+      },
+      "reason": {
+        "x": 25,
+        "y": 468.734375
+      },
+      "overlaps": false,
+      "minButtonHeight": 44,
+      "overflow": 0,
+      "editFocus": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "choice": {
+        "x": 25,
+        "y": 388.015625,
+        "right": 365,
+        "bottom": 432.015625
+      },
+      "reason": {
+        "x": 25,
+        "y": 468.734375
+      },
+      "overlaps": false,
+      "minButtonHeight": 44,
+      "overflow": 0,
+      "editFocus": true
+    }
+  ]
+}

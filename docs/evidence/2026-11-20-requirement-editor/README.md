@@ -1,0 +1,7 @@
+# Program requirement form evidence
+
+`user-reference-requirement.png` and `user-reference-adoption.png` are the user's before examples. The 2.9 source `framework-adoption.html` SHA-256 is `e6f06ddeab4fd5e3ce66e43492e702eea4fc5443c886cda3b2c0ae1780483cbf`; `assets/app.js` is `4265584a2591cd09db5391403f3c25c5b65176b9a4fdc200806834acf999e1b1` and `assets/forms.js` is `3c500f38ea8e6898f651ee0b88540791588bbf192d0b1f557409be2ded20f2b9`. The source remains unchanged.
+
+`applicability-{theme}-{width}.png` and `edit-{theme}-{width}.png` show the actual Program workspace in the isolated non-production sample environment at 1440, 1280, 1024, 768 and 390px in light and dark themes. The browser script switches between the sample CRO and DPO accounts through the existing demo controls. `geometry.json` records control layout and verifies that form buttons do not overlap, meet 44px minimum height, and the page has no horizontal overflow. The script also checks conditional fields, disabled incomplete decisions, required reasons, input focus and focus restoration.
+
+Codex AI inspected the desktop light edit and phone dark applicability renders. These are synthetic presentation and interaction checks; they do not prove production role authorization or PostgreSQL transactions, nor do they represent a completed 2.9 adoption-wizard cutover. The reference image and runtime capture show related workflows, not identical full-screen implementations.

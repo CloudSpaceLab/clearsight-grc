@@ -1,0 +1,16 @@
+{
+  "version": "2.7",
+  "screenshots": [
+    "01-reports-copilot.png",
+    "02-risk-proposal.png",
+    "03-review-action.png",
+    "04-form-checks.png",
+    "05-document-gaps.png",
+    "06-exact-version.png",
+    "07-program-gaps.png",
+    "08-mobile-report.png",
+    "09-tablet-assessment.png",
+    "10-dark-risk.png"
+  ],
+  "errors": []
+}

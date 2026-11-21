@@ -21,7 +21,8 @@ type assessmentFieldRead struct {
 }
 type responseAssessmentRead struct {
 	evidence.ResponseAssessment
-	Fields []assessmentFieldRead `json:"fields"`
+	Fields                 []assessmentFieldRead `json:"fields"`
+	SubmittedByDisplayName string                `json:"submitted_by_display_name,omitempty"`
 }
 type responseApplicationReceiptRead struct {
 	thirdparty.ResponseApplicationReceipt
@@ -38,13 +39,15 @@ type vendorAssessmentApplicationRead struct {
 
 func (a *API) responseAssessmentWithLabels(ctx context.Context, actor identity.Actor, entity string, value evidence.ResponseAssessment) responseAssessmentRead {
 	result := responseAssessmentRead{ResponseAssessment: value, Fields: make([]assessmentFieldRead, 0, len(value.Fields))}
-	ids := make([]string, 0, len(value.Fields))
+	ids := make([]string, 0, len(value.Fields)+1)
+	ids = append(ids, value.SubmittedBy)
 	for _, field := range value.Fields {
 		if field.Decision != nil {
 			ids = append(ids, field.Decision.ReviewerID)
 		}
 	}
 	labels := a.exactAssessmentLabels(ctx, actor, entity, ids)
+	result.SubmittedByDisplayName = labels[value.SubmittedBy]
 	for _, field := range value.Fields {
 		read := assessmentFieldRead{ResponseAssessmentField: field}
 		if field.Decision != nil {

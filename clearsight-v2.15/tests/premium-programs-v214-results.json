@@ -1,0 +1,20 @@
+{
+  "suite": "V2.14 premium programs source preservation",
+  "browserLayoutValidated": false,
+  "passed": 3,
+  "failed": 0,
+  "results": [
+    {
+      "name": "The eight-route marker resets without rewriting content, sibling markers or state",
+      "status": "PASS"
+    },
+    {
+      "name": "Actual catalog, adoption, program, editor, history and setup routes retain source controls",
+      "status": "PASS"
+    },
+    {
+      "name": "Draft navigation and repeated module loading preserve field IDs, values and render identity",
+      "status": "PASS"
+    }
+  ]
+}

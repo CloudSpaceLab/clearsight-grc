@@ -219,6 +219,10 @@ func (r *PostgresRepository) ListActivationCandidates(ctx context.Context, scope
 		if scanErr != nil {
 			return ActivationCandidatePage{}, scanErr
 		}
+		value, scanErr = relationshipWithScope(value, scope)
+		if scanErr != nil {
+			return ActivationCandidatePage{}, scanErr
+		}
 		items = append(items, value.Relationship)
 	}
 	if err = rows.Err(); err != nil {
@@ -276,6 +280,10 @@ func (r *PostgresRepository) CommitRelationshipActivation(ctx context.Context, c
 	if err != nil {
 		return Relationship{}, ActivationReceipt{}, err
 	}
+	stored, err = relationshipWithScope(stored, Scope{TenantID: commit.TenantID, LegalEntityID: commit.LegalEntityID})
+	if err != nil {
+		return Relationship{}, ActivationReceipt{}, err
+	}
 	receipt := ActivationReceipt{ID: commit.ReceiptID, TenantID: commit.TenantID, LegalEntityID: commit.LegalEntityID, RelationshipID: stored.Relationship.ID, RelationshipVersion: stored.Relationship.Version, PolicyID: policy.ID, PolicyVersion: policy.Version, AssessmentID: facts.AssessmentID, AssessmentVersion: facts.AssessmentVersion, DecisionIDs: facts.DecisionIDs, AddressMatterID: facts.AddressMatterID, VerificationResultID: facts.VerificationResultID, ActivatedBy: commit.ActorID, ActivatedAt: commit.EffectiveAt, Rationale: commit.Rationale}
 	_, err = tx.Exec(ctx, `INSERT INTO third_party_activation_receipts(id,tenant_id,legal_entity_id,relationship_id,relationship_version,policy_id,policy_version,assessment_id,assessment_version,decision_ids,address_matter_id,verification_result_id,activated_by,activated_at,rationale) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6::uuid,$7,$8::uuid,$9,$10::uuid[],NULLIF($11,'')::uuid,NULLIF($12,'')::uuid,$13::uuid,$14,$15)`, receipt.ID, tenantID, receipt.LegalEntityID, receipt.RelationshipID, receipt.RelationshipVersion, receipt.PolicyID, receipt.PolicyVersion, receipt.AssessmentID, receipt.AssessmentVersion, receipt.DecisionIDs, receipt.AddressMatterID, receipt.VerificationResultID, receipt.ActivatedBy, receipt.ActivatedAt, receipt.Rationale)
 	if err != nil {
@@ -301,6 +309,10 @@ func readActivationFacts(ctx context.Context, q activationQuerier, tenant, entit
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Relationship{}, ActivationFacts{}, ErrNotFound
 	}
+	if err != nil {
+		return Relationship{}, ActivationFacts{}, err
+	}
+	aggregate, err = relationshipWithScope(aggregate, Scope{TenantID: tenant, LegalEntityID: entity})
 	if err != nil {
 		return Relationship{}, ActivationFacts{}, err
 	}

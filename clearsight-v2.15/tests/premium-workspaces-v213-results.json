@@ -1,0 +1,44 @@
+{
+  "suite": "V2.13 actual-source premium workspace presentation",
+  "browserLayoutValidated": false,
+  "passed": 9,
+  "failed": 0,
+  "results": [
+    {
+      "name": "All thirteen decorated routes retain their actual source/action targets and registered commands",
+      "status": "PASS"
+    },
+    {
+      "name": "Work filters retain owner, query and kind while the selected queue is announced",
+      "status": "PASS"
+    },
+    {
+      "name": "Primary queue tables have exact heading references without changing their rows",
+      "status": "PASS"
+    },
+    {
+      "name": "An empty personal queue cannot label a subsequent owned-program table",
+      "status": "PASS"
+    },
+    {
+      "name": "Notification accessibility names remain unique and escape source content",
+      "status": "PASS"
+    },
+    {
+      "name": "Reading and acknowledging a notification never presents its open source as resolved",
+      "status": "PASS"
+    },
+    {
+      "name": "The notification next action still opens the exact task and rejects a different recipient",
+      "status": "PASS"
+    },
+    {
+      "name": "Presentation does not change effective access, saved policies or current source records",
+      "status": "PASS"
+    },
+    {
+      "name": "Repeated module loading is inert and never creates a second main landmark",
+      "status": "PASS"
+    }
+  ]
+}

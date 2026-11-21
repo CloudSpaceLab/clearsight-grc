@@ -24,6 +24,9 @@ func TestDocumentCoverageHandlersExposeReviewAndRecompare(t *testing.T) {
 	if getResponse.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", getResponse.Code, getResponse.Body.String())
 	}
+	if getResponse.Header().Get("Cache-Control") != "private, no-store" {
+		t.Fatal("coverage response must not be cached")
+	}
 	var view documentcoverage.View
 	if err := json.NewDecoder(getResponse.Body).Decode(&view); err != nil {
 		t.Fatal(err)

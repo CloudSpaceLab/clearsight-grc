@@ -30,6 +30,13 @@ func (s *MemoryDistributionStore) ListCompletedResponses(ctx context.Context, qu
 				continue
 			}
 			value := completedResponseSummary(distribution, revision)
+			if revision.SubmissionID != "" && s.repo != nil {
+				if submission, err := s.repo.GetSubmission(ctx, query.TenantID, revision.SubmissionID); err == nil {
+					value.SubmittedBy = submission.SubmittedBy
+				} else if !errors.Is(err, ErrNotFound) {
+					return CompletedResponsePage{}, err
+				}
+			}
 			if completedResponseMatches(value, query) {
 				values = append(values, value)
 			}
@@ -73,7 +80,15 @@ func (s *MemoryDistributionStore) GetCompletedResponse(ctx context.Context, tena
 				} else if !allowed && !s.responseDiscoveryVisible(ctx, principalID, distribution, revision) {
 					return CompletedResponseSummary{}, ResponseRevision{}, ErrNotFound
 				}
-				return completedResponseSummary(distribution, revision), cloneResponseRevision(revision), nil
+				value := completedResponseSummary(distribution, revision)
+				if revision.SubmissionID != "" && s.repo != nil {
+					if submission, err := s.repo.GetSubmission(ctx, tenantID, revision.SubmissionID); err == nil {
+						value.SubmittedBy = submission.SubmittedBy
+					} else if !errors.Is(err, ErrNotFound) {
+						return CompletedResponseSummary{}, ResponseRevision{}, err
+					}
+				}
+				return value, cloneResponseRevision(revision), nil
 			}
 		}
 	}

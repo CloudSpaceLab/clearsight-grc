@@ -1,0 +1,73 @@
+{
+  "suite": "V2.11 operational interactions",
+  "runtime": "Actual application sources with a minimal DOM shell",
+  "browserLayoutValidated": false,
+  "results": [
+    {
+      "name": "KRI attention distinguishes unavailable observations from submission blockers and links to the exact question",
+      "status": "PASS"
+    },
+    {
+      "name": "KRI contradictions and missing exception detail remain governed by the original validator",
+      "status": "PASS"
+    },
+    {
+      "name": "Accepted KRI snapshots stay fixed across focused review and explicit full-detail navigation",
+      "status": "PASS"
+    },
+    {
+      "name": "Loss checks save the current step before jumping to the exact incomplete field",
+      "status": "PASS"
+    },
+    {
+      "name": "Loss validation destinations cover conditional date, investigation and correction requirements",
+      "status": "PASS"
+    },
+    {
+      "name": "Loss correction review compares changed facts without affecting accepted financial figures",
+      "status": "PASS"
+    },
+    {
+      "name": "Pending recovery decisions surface before long source details while verification remains independent",
+      "status": "PASS"
+    },
+    {
+      "name": "Pending reversals remain separate from retained verified recovery amounts",
+      "status": "PASS"
+    },
+    {
+      "name": "RCSA comparison shows the retained first-line draft without changing effective posture",
+      "status": "PASS"
+    },
+    {
+      "name": "Concurrent RCSA source drift is visible and cannot overwrite a newer effective rating",
+      "status": "PASS"
+    },
+    {
+      "name": "Control test review separates current effectiveness, proposed conclusion and historical source drift",
+      "status": "PASS"
+    },
+    {
+      "name": "Risk and control draft comparisons expose changed fields and escape entered content",
+      "status": "PASS"
+    },
+    {
+      "name": "Loss chart drilldowns preserve date basis, currency and exact reviewed source IDs",
+      "status": "PASS"
+    },
+    {
+      "name": "Unavailable report drill selections fail closed and frozen annex output does not acquire live links",
+      "status": "PASS"
+    },
+    {
+      "name": "Board publication checks navigate to the actual draft field and retain the captured source",
+      "status": "PASS"
+    },
+    {
+      "name": "Operational views register their actionable links without rendering invalid values",
+      "status": "PASS"
+    }
+  ],
+  "passed": 16,
+  "failed": 0
+}

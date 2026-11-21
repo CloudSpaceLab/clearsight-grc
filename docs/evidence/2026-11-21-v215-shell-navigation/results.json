@@ -1,0 +1,23 @@
+{
+  "evidence": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "results": [
+    {
+      "width": 390,
+      "trappedFocus": true,
+      "outsideInert": true,
+      "escapeRestore": true,
+      "destinationFocus": true,
+      "resizeUnlock": true,
+      "sessionEndUnlock": true,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "overflow": false
+    }
+  ]
+}

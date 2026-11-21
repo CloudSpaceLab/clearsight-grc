@@ -2,7 +2,9 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"mime/multipart"
@@ -15,7 +17,89 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
+
+type failingSourceRegistrar struct{ sourceaccess.CatalogRepository }
+
+func (failingSourceRegistrar) RegisterSourceScope(context.Context, sourceaccess.SourceScope) error {
+	return errors.New("registration unavailable")
+}
+
+func TestCreateSourceAcknowledgesCommittedSourceWhenCatalogRegistrationFails(t *testing.T) {
+	repo := evidence.NewMemoryRepository(nil, nil)
+	service := evidence.NewService(repo, evidence.NewMemoryObjectStore())
+	catalog := sourceaccess.NewCatalogService(failingSourceRegistrar{sourceaccess.NewMemoryCatalogRepository(nil)}, nil, nil)
+	api := &API{deps: Dependencies{Evidence: service, SourceCatalog: catalog}}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/sources", strings.NewReader(`{"tenant_id":"bank","legal_entity_id":"entity","code":"API","name":"API source","type":"SYSTEM","authority_class":"INTERNAL_CONTROL","expected_freshness_minutes":60}`))
+	response := httptest.NewRecorder()
+	api.createEvidenceSource(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("committed source returned %d: %s", response.Code, response.Body.String())
+	}
+	var created evidence.Source
+	if err := json.Unmarshal(response.Body.Bytes(), &created); err != nil || created.ID == "" {
+		t.Fatalf("missing source receipt: %+v %v", created, err)
+	}
+	items, err := repo.ListSources(context.Background(), "bank", 10)
+	if err != nil || len(items) != 1 || items[0].ID != created.ID {
+		t.Fatalf("source=%+v err=%v", items, err)
+	}
+}
+
+func TestCreatedSourceIsAvailableToMemoryCatalogWithoutRegistration(t *testing.T) {
+	repo := evidence.NewMemoryRepository(nil, nil)
+	service := evidence.NewService(repo, evidence.NewMemoryObjectStore())
+	catalog := sourceaccess.NewCatalogService(sourceaccess.NewMemoryCatalogRepository(nil), nil, sourceaccess.DefaultCatalogAdapters())
+	_ = New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Evidence: service, SourceCatalog: catalog})
+	api := &API{deps: Dependencies{Evidence: service, SourceCatalog: catalog}}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/sources", strings.NewReader(`{"tenant_id":"bank","legal_entity_id":"entity","code":"API","name":"API source","type":"SYSTEM","authority_class":"INTERNAL_CONTROL","expected_freshness_minutes":60}`))
+	response := httptest.NewRecorder()
+	api.createEvidenceSource(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("source create %d: %s", response.Code, response.Body.String())
+	}
+	var created evidence.Source
+	if err := json.Unmarshal(response.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+	input := sourceaccess.CreateConnectionDraftInput{Code: "API-REST", Name: "API endpoint", AdapterKind: sourceaccess.AdapterRESTJSON, AdapterVersion: sourceaccess.RESTJSONAdapterVersion, Definition: json.RawMessage(`{"base_url":"https://example.test","authentication":{"kind":"NONE"}}`), DeclaredCapabilities: []sourceaccess.Capability{sourceaccess.CapabilityInspect, sourceaccess.CapabilityPage}}
+	value, err := catalog.CreateConnectionDraft(context.Background(), sourceaccess.CatalogActor{TenantID: "bank", PrincipalID: "owner"}, created.ID, input)
+	if err != nil || value.SourceID != created.ID {
+		t.Fatalf("created source unavailable to catalog: %+v %v", value, err)
+	}
+	_, err = catalog.CreateConnectionDraft(context.Background(), sourceaccess.CatalogActor{TenantID: "other", PrincipalID: "owner"}, created.ID, input)
+	if !errors.Is(err, sourceaccess.ErrCatalogNotFound) {
+		t.Fatalf("cross-tenant source accepted: %v", err)
+	}
+}
+
+func TestSourceAndConnectionCreationUseVerifiedTenantThroughHTTP(t *testing.T) {
+	repo := evidence.NewMemoryRepository(nil, nil)
+	service := evidence.NewService(repo, evidence.NewMemoryObjectStore())
+	catalog := sourceaccess.NewCatalogService(sourceaccess.NewMemoryCatalogRepository(nil), nil, sourceaccess.DefaultCatalogAdapters())
+	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "owner", "entity", "SYSTEM_ADMIN"), Evidence: service, SourceCatalog: catalog})
+	sourceRequest := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/sources", strings.NewReader(`{"code":"API","name":"API source","type":"SYSTEM","authority_class":"INTERNAL_CONTROL","expected_freshness_minutes":60}`))
+	sourceResponse := httptest.NewRecorder()
+	handler.ServeHTTP(sourceResponse, sourceRequest)
+	if sourceResponse.Code != http.StatusCreated {
+		t.Fatalf("source create %d: %s", sourceResponse.Code, sourceResponse.Body.String())
+	}
+	var created evidence.Source
+	if err := json.Unmarshal(sourceResponse.Body.Bytes(), &created); err != nil || created.TenantID != "bank" {
+		t.Fatalf("source=%+v err=%v", created, err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/config/sources/"+created.ID+"/connections", strings.NewReader(`{"code":"API-REST","name":"API endpoint","adapter_kind":"REST_JSON","adapter_version":"rest-json-v1","definition":{"base_url":"https://example.test","authentication":{"kind":"NONE"}},"declared_capabilities":["INSPECT","PAGE"]}`))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("connection create %d: %s", response.Code, response.Body.String())
+	}
+	var connection sourceaccess.ConnectionRevision
+	if err := json.Unmarshal(response.Body.Bytes(), &connection); err != nil || connection.SourceID != created.ID || connection.TenantID != "bank" || connection.Status != sourceaccess.RevisionDraft {
+		t.Fatalf("connection=%+v err=%v", connection, err)
+	}
+}
 
 const demoEvidenceRequestID = "019fd333-3333-7333-8333-333333333333"
 

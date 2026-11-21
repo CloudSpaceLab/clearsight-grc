@@ -79,6 +79,33 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	ctx = identity.WithActor(ctx, identity.Actor{TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: now.Add(time.Hour)})
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+	// A recipient change must not race a review after its conflict check.
+	entered, release, done := make(chan struct{}), make(chan struct{}), make(chan error, 1)
+	go func() {
+		_, writeErr := service.store.(responseAssessmentStore).WriteResponseAssessment(ctx, tenant, entity, reviewer, response, func(context.Context, assessmentMaterial) bool { return true }, func(context.Context, assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error) {
+			close(entered)
+			<-release
+			return assessmentSnapshot{}, nil, ErrAssessmentForbidden
+		})
+		done <- writeErr
+	}()
+	select {
+	case <-entered:
+	case err := <-done:
+		t.Fatalf("assessment lock failed: %v", err)
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	changeCtx, changeCancel := context.WithTimeout(ctx, 250*time.Millisecond)
+	_, changeErr := pool.Exec(changeCtx, `UPDATE capture_requests SET title=title WHERE tenant_id=$1::uuid`, tenant)
+	changeCancel()
+	close(release)
+	if err := <-done; !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("assessment rollback: %v", err)
+	}
+	if !errors.Is(changeErr, context.DeadlineExceeded) {
+		t.Fatalf("request change did not wait on the assessment lock: %v", changeErr)
+	}
 	input := RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report does not identify tested systems."}}}
 	v, err := service.RecordResponseAssessment(ctx, tenant, entity, response, input)
 	if err != nil {
@@ -170,6 +197,29 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 	if err != nil || len(page.Items) != 1 {
 		t.Fatalf("reviewer inventory %+v %v", page, err)
 	}
+	for _, view := range []DocumentView{DocumentViewAwaitingReview, DocumentViewReviewHistory, DocumentViewNeedsRefresh} {
+		q.View = view
+		filtered, filterErr := service.ListDocuments(ctx, q)
+		if filterErr != nil || len(filtered.Items) != 0 {
+			t.Fatalf("unknown review in %s: %+v %v", view, filtered, filterErr)
+		}
+	}
+	if _, err = pool.Exec(ctx, `UPDATE capture_submissions SET answers=jsonb_set(answers,'{file,document}', '{"expires_on":"2020-01-01"}'::jsonb) WHERE tenant_id=$1::uuid`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	q.View = DocumentViewNeedsRefresh
+	filtered, filterErr := service.ListDocuments(ctx, q)
+	if filterErr != nil || len(filtered.Items) != 1 {
+		t.Fatalf("expired document: %+v %v", filtered, filterErr)
+	}
+	if _, err = pool.Exec(ctx, `UPDATE capture_submissions SET answers=jsonb_set(answers,'{file,document}', '{"expires_on":"2020-02-30"}'::jsonb) WHERE tenant_id=$1::uuid`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	filtered, filterErr = service.ListDocuments(ctx, q)
+	if filterErr != nil || len(filtered.Items) != 0 {
+		t.Fatalf("invalid expiry: %+v %v", filtered, filterErr)
+	}
+	q.View = ""
 	q.SubmissionID = page.Items[0].SubmissionID
 	q.FieldID = page.Items[0].FieldID
 	q.ArtifactID = page.Items[0].ArtifactID

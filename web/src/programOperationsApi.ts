@@ -148,6 +148,16 @@ export type FrameworkEditionPage = {
   next_after_id: string;
 };
 
+export type FrameworkClause = { code: string; parent_code?: string; title: string; source_anchor: string; summary?: string; ordinal: number };
+export type FrameworkClausePage = { edition_id: string; items: FrameworkClause[]; next_after_code: string };
+
+export async function loadFrameworkClauses(editionID: string, afterCode = ""): Promise<FrameworkClausePage> {
+  const query = new URLSearchParams({ limit: "100" });
+  if (afterCode) query.set("after_code", afterCode);
+  const path = await tenantPath(`/api/v1/framework-catalog/editions/${encodeURIComponent(editionID)}/clauses`);
+  return requestJSON<FrameworkClausePage>(apiBase, `${path}&${query.toString()}`);
+}
+
 // The catalog endpoint supports an ID cursor, not global text search.
 // Request one extra row so the UI never infers that a full page is the end.
 export async function loadFrameworkEditionPage(

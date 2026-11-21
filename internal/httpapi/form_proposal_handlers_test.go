@@ -8,9 +8,9 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
@@ -104,7 +104,7 @@ func TestAIFormProposalRouteFailsCleanlyWhenGatewayIsNotConfigured(t *testing.T)
 	}
 }
 
-func TestFormProposalHTTPCreateGetAcceptAndIdempotentRetry(t *testing.T) {
+func TestDocumentFormProposalHTTPReadsAndWritesFailClosed(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	guard, err := commandauth.New(nil, commandauth.ModeOff, logger)
 	if err != nil {
@@ -125,62 +125,52 @@ func TestFormProposalHTTPCreateGetAcceptAndIdempotentRetry(t *testing.T) {
 		},
 	}}
 	proposals := monitoring.NewFormProposalService(monitoring.NewMemoryFormProposalStore(), documents, forms)
+	readRepo := &authorizedImportTestRepo{documentimport.NewMemoryRepository()}
+	if _, err := readRepo.Create(context.Background(), documents.documents["doc-1"]); err != nil {
+		t.Fatal(err)
+	}
 	handler := New(Dependencies{
-		Logger:        logger,
-		Identity:      identity.NewDevelopmentAuthenticator("bank-a", "maker-a", "entity-a"),
-		CommandGuard:  guard,
-		Monitoring:    forms,
-		FormProposals: proposals,
+		Logger:          logger,
+		Identity:        identity.NewDevelopmentAuthenticator("bank-a", "maker-a", "entity-a"),
+		CommandGuard:    guard,
+		Monitoring:      forms,
+		FormProposals:   proposals,
+		DocumentImports: documentimport.NewService(readRepo, nil),
 	})
 
 	create := httptest.NewRecorder()
 	handler.ServeHTTP(create, httptest.NewRequest(http.MethodPost, "/api/v1/document-imports/doc-1/form-template-proposals", bytes.NewBufferString(`{"expected_document_version":3}`)))
-	if create.Code != http.StatusAccepted {
-		t.Fatalf("create returned %d: %s", create.Code, create.Body.String())
+	if create.Code != http.StatusServiceUnavailable {
+		t.Fatalf("source-backed create must fail closed: %d %s", create.Code, create.Body.String())
 	}
-	var proposal monitoring.FormTemplateProposal
-	if err := json.Unmarshal(create.Body.Bytes(), &proposal); err != nil {
-		t.Fatal(err)
-	}
-	if proposal.Status != monitoring.FormProposalReviewRequired || proposal.Version != 2 || len(proposal.FieldChanges) != 1 {
-		t.Fatalf("unexpected proposal: %#v", proposal)
-	}
-
-	get := httptest.NewRecorder()
-	handler.ServeHTTP(get, httptest.NewRequest(http.MethodGet, "/api/v1/forms/proposals/"+proposal.ID, nil))
-	if get.Code != http.StatusOK || !bytes.Contains(get.Body.Bytes(), []byte(proposal.ID)) {
-		t.Fatalf("get returned %d: %s", get.Code, get.Body.String())
-	}
-
-	acceptPayload, err := json.Marshal(monitoring.AcceptFormProposalInput{ExpectedVersion: proposal.Version, ChangeIDs: []string{proposal.FieldChanges[0].ID}})
+	actor := identity.Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "maker-a", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}
+	ctx := identity.WithActor(context.Background(), actor)
+	proposal, err := proposals.RequestFromDocument(ctx, "doc-1", monitoring.RequestDocumentFormProposalInput{ExpectedDocumentVersion: 3})
 	if err != nil {
 		t.Fatal(err)
 	}
+	get := httptest.NewRecorder()
+	handler.ServeHTTP(get, httptest.NewRequest(http.MethodGet, "/api/v1/forms/proposals/"+proposal.ID, nil))
+	if get.Code != http.StatusServiceUnavailable || bytes.Contains(get.Body.Bytes(), []byte(proposal.ID)) {
+		t.Fatalf("source-backed read must fail closed: %d %s", get.Code, get.Body.String())
+	}
 	accept := httptest.NewRecorder()
-	handler.ServeHTTP(accept, httptest.NewRequest(http.MethodPost, "/api/v1/forms/proposals/"+proposal.ID+"/accept", bytes.NewReader(acceptPayload)))
-	if accept.Code != http.StatusOK {
-		t.Fatalf("accept returned %d: %s", accept.Code, accept.Body.String())
+	handler.ServeHTTP(accept, httptest.NewRequest(http.MethodPost, "/api/v1/forms/proposals/"+proposal.ID+"/accept", bytes.NewBufferString(`{}`)))
+	if accept.Code != http.StatusServiceUnavailable {
+		t.Fatalf("source-backed accept must fail closed: %d %s", accept.Code, accept.Body.String())
 	}
-	var accepted monitoring.FormTemplateProposal
-	if err := json.Unmarshal(accept.Body.Bytes(), &accepted); err != nil {
-		t.Fatal(err)
-	}
-	if accepted.Status != monitoring.FormProposalAccepted || accepted.ResultTemplateID == "" || accepted.ResultTemplateVersion != 1 || !slices.Equal(accepted.AcceptedChangeIDs, []string{proposal.FieldChanges[0].ID}) {
-		t.Fatalf("unexpected accepted proposal: %#v", accepted)
-	}
+}
 
-	// Retrying the exact command is idempotent even though the original expected
-	// version is now stale; a different selected-change set is not treated as the
-	// same command.
-	retry := httptest.NewRecorder()
-	handler.ServeHTTP(retry, httptest.NewRequest(http.MethodPost, "/api/v1/forms/proposals/"+proposal.ID+"/accept", bytes.NewReader(acceptPayload)))
-	if retry.Code != http.StatusOK {
-		t.Fatalf("idempotent retry returned %d: %s", retry.Code, retry.Body.String())
-	}
-
-	draft := httptest.NewRecorder()
-	handler.ServeHTTP(draft, httptest.NewRequest(http.MethodGet, "/api/v1/forms/templates/"+accepted.ResultTemplateID+"/revisions/1", nil))
-	if draft.Code != http.StatusOK || !bytes.Contains(draft.Body.Bytes(), []byte(`"status":"DRAFT"`)) {
-		t.Fatalf("resulting draft returned %d: %s", draft.Code, draft.Body.String())
+func TestSourceBackedAIProposalIsUnavailableBeforeGateway(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	forms := monitoring.NewService(monitoring.NewMemoryRepository(), nil)
+	proposals := monitoring.NewFormProposalService(monitoring.NewMemoryFormProposalStore(), formProposalHTTPDocuments{}, forms)
+	handler := New(Dependencies{Logger: logger, Identity: identity.NewDevelopmentAuthenticator("bank-a", "maker-a", "entity-a"), FormProposals: proposals})
+	for _, url := range []string{"/api/v1/forms/proposals/ai", "/api/v1/forms/templates/form-1/revisions/1/ai-proposals"} {
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, url, bytes.NewBufferString(`{"objective":"Review","source_document_id":"private"}`)))
+		if response.Code != http.StatusServiceUnavailable || !bytes.Contains(response.Body.Bytes(), []byte(`"document_action_unavailable"`)) {
+			t.Fatalf("%s returned %d %s", url, response.Code, response.Body.String())
+		}
 	}
 }

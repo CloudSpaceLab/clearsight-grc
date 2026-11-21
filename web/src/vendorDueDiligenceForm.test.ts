@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { vendorDueDiligenceStarterForm } from "./vendorDueDiligenceForm";
-import { keepVisibleAnswers, validateCaptureFields, visibleCaptureFields } from "./components/capture/contract";
+import { keepVisibleAnswers, validateCaptureFields, visibleCaptureFields } from "./captureContract";
 import type { CaptureAnswers, CaptureFormContract } from "./types";
 
 const contract = vendorDueDiligenceStarterForm as CaptureFormContract;

@@ -1,0 +1,27 @@
+.v-work-tabs { display: flex; border-bottom: 1px solid #dce7f5; margin-bottom: 20px; }
+.v-work-tabs button { min-height: 44px; padding: 12px 16px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #536b8e; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.v-work-tabs button[aria-pressed="true"] { border-bottom-color: #246cf0; color: #246cf0; }
+.v-approval-sections { display: grid; gap: 16px; }
+.v-work-search { margin-bottom: 16px; }
+.v-work-search label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+.v-work-search div { display: flex; gap: 8px; }
+.v-work-search input { width: min(400px, 100%); min-height: 44px; padding: 0 12px; border: 1px solid #dce7f5; border-radius: 8px; }
+.v-work-search button, .v-work-more, .v-actor-work .v-panel > button { min-height: 44px; padding: 0 16px; border: 1px solid #dce7f5; border-radius: 8px; background: white; color: #18335e; }
+.v-work-list-heading { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+.v-work-list-heading h2 { margin: 0; }
+.v-work-list-heading p { margin: 0; color: #627b9f; font-size: 12px; }
+.v-work-list ul { list-style: none; margin: 16px 0 0; padding: 0; }
+.v-work-list li { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: 16px; padding: 16px 0; border-top: 1px solid #e5edf7; }
+.v-work-list li div { display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.v-work-list li span { color: #627b9f; font-size: 13px; }
+.v-work-list li .v-work-status { color: #246cf0; }
+.v-program-reviews li { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.v-work-empty { margin: 20px 0 0; }
+.v-form-approvals li { align-items: center; }
+.v-form-approvals li a { display: inline-flex; align-items: center; min-height: 44px; color: #145bd8; font-size: 13px; font-weight: 600; padding: 12px 0; }
+.v-matter-work .v-panel + .v-panel { margin-top: 16px; }
+.v-matter-work dl { margin: 16px 0 0; }
+.v-matter-work dt { font-size: 13px; font-weight: 600; }
+.v-matter-work dd { margin: 6px 0 0; }
+.v-work-list li a { display: inline-flex; align-items: center; min-height: 44px; color: #145bd8; font-weight: 600; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .v-work-list-heading { display: block; } .v-work-list-heading p { margin-top: 8px; } .v-work-list li { grid-template-columns: minmax(0, 1fr) auto; } .v-work-list li div:nth-child(2) { grid-column: 1; grid-row: 2; } }

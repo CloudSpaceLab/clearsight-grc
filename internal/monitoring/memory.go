@@ -297,6 +297,9 @@ func (r *MemoryRepository) ListFormRevisions(_ context.Context, tenant, legalEnt
 }
 
 func (r *MemoryRepository) TransitionForm(_ context.Context, input LifecycleTransition) (FormTemplate, error) {
+	if input.BindingImpact != nil {
+		return FormTemplate{}, ErrBindingTransitionUnavailable
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	key := revisionKey(input.TenantID, input.ID, input.ExpectedVersion)

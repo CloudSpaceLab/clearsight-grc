@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadActorWorkDueCounts, type ActorWorkDueCounts, type ActorWorkScope } from "../api";
-import { validWorkCounts } from "./workSourceReceipt";
+import { validWorkCounts } from "../workSourceReceipt";
 
 type CountState = { key: string; value?: ActorWorkDueCounts; unavailable: boolean };
 

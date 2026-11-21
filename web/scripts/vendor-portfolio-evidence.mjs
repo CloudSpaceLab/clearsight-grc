@@ -12,12 +12,15 @@ export async function selectVendorPortfolioView(page, view) {
   const label = labelFor(view);
   if (!label) throw new Error(`Unknown Vendor portfolio view: ${view}`);
   const tab = menu(page).getByRole("tab", { name: label, exact: true });
-  if (await tab.isVisible()) await tab.click();
-  else {
-    await root(page).locator('.vendor-portfolio-navigation > .cs-tabs > .cs-tabs__compact .cs-select-field__trigger').click();
-    await page.getByRole("option", { name: label, exact: true }).click();
-  }
+  await tab.click();
   await page.waitForFunction((view) => location.hash === `#vendors/${view}`, view);
+  await page.waitForFunction(() => {
+    const list = document.querySelector('.vendor-portfolio-navigation [role="tablist"]');
+    const selected = list?.querySelector('[role="tab"][aria-selected="true"]');
+    if (!list || !selected) return false;
+    const outer = list.getBoundingClientRect(), current = selected.getBoundingClientRect();
+    return current.left >= outer.left - 1 && current.right <= outer.right + 1;
+  });
 }
 
 export async function prepareVendorPortfolio(page, scenario) {
@@ -204,8 +207,6 @@ export async function assertVendorPortfolioLayout(page, scenario) {
     const selected = tabs.find((node) => node.getAttribute("aria-selected") === "true");
     const selectedPanelID = selected?.getAttribute("aria-controls");
     const selectedPanel = selectedPanelID ? document.getElementById(selectedPanelID) : null;
-    const compact = nav?.querySelector(":scope > .cs-tabs__compact .cs-select-field__trigger");
-    const menuNode = visible(list) ? list : nav?.querySelector(":scope > .cs-tabs__compact");
     const first = (selector) => [...root.querySelectorAll(selector)].find(visible);
     const main = first(".vendor-portfolio-main"); const rail = first(".vendor-portfolio-rail");
     const mainBounds = rect(main); const railBounds = rect(rail);
@@ -216,7 +217,7 @@ export async function assertVendorPortfolioLayout(page, scenario) {
     const records = [...(recordOwner?.querySelectorAll(".cs-selectable-record") ?? [])].filter(visible);
     const firstRecord = rect(records[0]);
     const firstUseful = rect(view === "overview" ? first(".vendor-summary-counts") : records[0]);
-    const navBounds = rect(menuNode); const selectedBounds = rect(visible(selected) ? selected : compact);
+    const navBounds = rect(list); const selectedBounds = rect(selected);
     const controls = [...new Set([...root.querySelectorAll('button,input:not([type="hidden"]),select,textarea,summary,[role="tab"]')]
       .map((node) => node.closest(".cs-checkbox-field") ?? node))].filter(visible).map((node) => ({ text: node.getAttribute("aria-label") ?? node.textContent?.trim().slice(0, 80), ...rect(node) }));
     const heading = rect(header); const title = rect(header?.querySelector("h1"));
@@ -224,7 +225,7 @@ export async function assertVendorPortfolioLayout(page, scenario) {
     return { kind: view, route: location.hash, heading, title, headingText: header?.querySelector("h1")?.textContent.trim(),
       localTabs: tabs.map((node) => node.textContent.trim()), selectedTab: selected?.textContent.trim(),
       selectedPanelID, visiblePanelIDs: visiblePanels.map((node) => node.id), selectedPanelControlsMatch: visiblePanels.length === 1 && visiblePanels[0] === selectedPanel,
-      menuMode: visible(list) ? "tabs" : "select", compactValue: compact?.querySelector(".cs-select-field__value")?.textContent.trim(),
+      menuMode: visible(list) ? "tabs" : "missing",
       tablist: navBounds, selectedTabBounds: selectedBounds,
       selectedTabVisible: Boolean(navBounds && selectedBounds && selectedBounds.x >= navBounds.x - 1 && selectedBounds.right <= navBounds.right + 1),
       titleContained: Boolean(title && heading && title.x >= heading.x - 1 && title.right <= heading.right + 1),
@@ -250,7 +251,7 @@ export async function assertVendorPortfolioLayout(page, scenario) {
   }, scenario.vendorPortfolioView);
   if (reading.headingText !== "Vendors" || !reading.titleContained || reading.localTabs.join("|") !== labels.join("|")
     || reading.selectedTab !== labelFor(scenario.vendorPortfolioView) || !reading.selectedPanelControlsMatch || !reading.selectedTabVisible
-    || reading.menuMode === "select" && reading.compactValue !== reading.selectedTab
+    || reading.menuMode !== "tabs"
     || reading.heading.bottom > reading.tablist.y + 1 || reading.route !== `#vendors/${scenario.vendorPortfolioView}`
     || reading.scrollWidth > scenario.viewport.width + 1 || reading.selectedRelationshipVisible) {
     throw new Error(`${scenario.name}: portfolio heading, full menu, selected panel or overflow failed: ${JSON.stringify(reading)}`);
@@ -283,25 +284,21 @@ export async function verifyVendorPortfolioScenario(page, scenario) {
     }
     await selectVendorPortfolioView(page, "overview");
     const keyboard = { options: labels, sequence: [], complete: false };
-    if (scenario.viewport.width > 760) {
       await menu(page).getByRole("tab", { name: "Overview", exact: true }).focus();
       for (const label of [...labels.slice(1), labels[0]]) {
         await page.keyboard.press("ArrowRight");
         await menu(page).getByRole("tab", { name: label, exact: true }).waitFor();
         const selected = await menu(page).getByRole("tab", { name: label, exact: true }).getAttribute("aria-selected");
         if (selected !== "true") throw new Error(`${scenario.name}: keyboard did not activate ${label}`);
+        await page.waitForFunction(() => {
+          const list = document.querySelector('.vendor-portfolio-navigation [role="tablist"]');
+          const tab = list?.querySelector('[role="tab"][aria-selected="true"]');
+          if (!list || !tab) return false;
+          const outer = list.getBoundingClientRect(), current = tab.getBoundingClientRect();
+          return current.left >= outer.left - 1 && current.right <= outer.right + 1;
+        });
         keyboard.sequence.push(label);
       }
-    } else {
-      const trigger = root(page).locator('.vendor-portfolio-navigation > .cs-tabs > .cs-tabs__compact .cs-select-field__trigger');
-      await trigger.focus(); await page.keyboard.press("Space");
-      await page.getByRole("option", { name: "Overview", exact: true }).waitFor();
-      const options = (await page.locator(".cs-select-field__listbox").getByRole("option").allTextContents()).map((label) => label.trim());
-      if (options.join("|") !== labels.join("|")) throw new Error(`${scenario.name}: compact menu lost a Vendor destination: ${JSON.stringify(options)}`);
-      await page.keyboard.press("ArrowDown"); await page.keyboard.press("Enter");
-      await page.waitForFunction(() => location.hash === "#vendors/register"); keyboard.sequence.push("Register");
-      await selectVendorPortfolioView(page, "overview");
-    }
     keyboard.complete = true; result.keyboard = keyboard;
     await waitForPortfolio(page, scenario); await resetScroll(page); result.baselineRestored = true;
     if (scenario.viewport.width === 1440) result.exceptionReturn = await verifyVendorPortfolioExceptionReturn(page);
