@@ -9,7 +9,7 @@ vi.mock("../captureApi", () => api);
 
 const workspace = { workspace: { id: "w", distribution_id: "d", status: "OPEN", version: 3 }, answers: {}, field_sequences: {}, presentation_mode: "AUTOMATIC" };
 const payload = { session: { id: "s", distribution_id: "d", request_id: "r", audience_hint: "a***@example.com", assurance: "LINK_POSSESSION" }, request: { id: "r", status: "READY", title: "Access review", purpose: "Review service access", fields: [{ id: "q", type: "yes_no", label: "Is access reviewed?", required: true }] }, workspace };
-beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); api.startFormAccess.mockResolvedValue({ policy: "DIRECT_MAGIC_LINK" }); api.redeemFormAccess.mockResolvedValue({ session_id: "s", session_token: "session-secret", request_id: "r", distribution_id: "d" }); api.loadFormResponseWorkspace.mockResolvedValue(payload); });
+beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); api.startFormAccess.mockResolvedValue({ policy: "DIRECT_MAGIC_LINK" }); api.redeemFormAccess.mockResolvedValue({ session_id: "s", session_token: "session-secret", request_id: "r", distribution_id: "d", assurance: "LINK_POSSESSION" }); api.loadFormResponseWorkspace.mockResolvedValue(payload); });
 
 it("opens a direct invitation without persisting its credentials", async () => {
   render(<StrictMode><Capture invitationToken="invitation-secret"/></StrictMode>);
@@ -26,7 +26,8 @@ it("opens a direct invitation without persisting its credentials", async () => {
 it("verifies a code for a masked recipient", async () => {
   api.startFormAccess.mockResolvedValue({ policy: "SHARED_LINK_EMAIL_OTP", recipients: [{ selector_id: "recipient", hint: "a***@example.com" }] });
   api.sendFormAccessOTP.mockResolvedValue({ challenge_id: "challenge", hint: "a***@example.com" });
-  api.verifyFormAccessOTP.mockResolvedValue({ session_id: "s", session_token: "session-secret", request_id: "r", distribution_id: "d" });
+  api.verifyFormAccessOTP.mockResolvedValue({ session_id: "s", session_token: "session-secret", request_id: "r", distribution_id: "d", assurance: "EMAIL_VERIFIED" });
+  api.loadFormResponseWorkspace.mockResolvedValue({ ...payload, session: { ...payload.session, assurance: "EMAIL_VERIFIED" } });
   render(<Capture invitationToken="invitation-secret"/>);
   fireEvent.click(screen.getByRole("button", { name: "Open request" }));
   fireEvent.click(await screen.findByLabelText("a***@example.com"));
@@ -35,6 +36,84 @@ it("verifies a code for a masked recipient", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Verify code" }));
   expect(await screen.findByRole("heading", { name: "Access review" })).toBeTruthy();
   expect(api.verifyFormAccessOTP).toHaveBeenCalledWith("invitation-secret", "challenge", "123456");
+});
+
+it("uses only a selected masked recipient for shared-link verification", async () => {
+  api.startFormAccess.mockResolvedValue({ policy: "SHARED_LINK_EMAIL_OTP", recipients: [{ selector_id: "first", hint: "a***@example.com" }, { selector_id: "second", hint: "b***@example.com" }] });
+  api.sendFormAccessOTP.mockResolvedValue({ challenge_id: "challenge", hint: "b***@example.com" });
+  api.verifyFormAccessOTP.mockResolvedValue({ session_id: "s", session_token: "session-secret", request_id: "r", distribution_id: "d", assurance: "EMAIL_VERIFIED" });
+  api.loadFormResponseWorkspace.mockResolvedValue({ ...payload, session: { ...payload.session, assurance: "EMAIL_VERIFIED" } });
+  render(<Capture invitationToken="invitation-secret"/>);
+  fireEvent.click(screen.getByRole("button", { name: "Open request" }));
+  expect(await screen.findByLabelText("a***@example.com")).toBeTruthy();
+  expect(screen.queryByRole("textbox", { name: /email|phone/i })).toBeNull();
+  fireEvent.click(screen.getByLabelText("b***@example.com"));
+  fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+  expect((await screen.findByLabelText("Verification code")).getAttribute("autocomplete")).toBe("one-time-code");
+  expect(api.sendFormAccessOTP).toHaveBeenCalledWith("invitation-secret", "second");
+  fireEvent.change(screen.getByLabelText("Verification code"), { target: { value: "123456" } });
+  fireEvent.click(screen.getByRole("button", { name: "Verify code" }));
+  expect(await screen.findByRole("heading", { name: "Access review" })).toBeTruthy();
+  expect(sessionStorage.length).toBe(0);
+});
+
+it("does not expose access errors when an invitation cannot be started", async () => {
+  api.startFormAccess.mockRejectedValueOnce(new Error("internal provider diagnostic"));
+  render(<Capture invitationToken="invitation-secret"/>);
+  fireEvent.click(screen.getByRole("button", { name: "Open request" }));
+  expect(await screen.findByRole("heading", { name: "Request unavailable" })).toBeTruthy();
+  expect(screen.getByText("Contact the requester for a new invitation.")).toBeTruthy();
+  expect(screen.queryByText(/internal provider diagnostic/)).toBeNull();
+  expect(api.redeemFormAccess).not.toHaveBeenCalled();
+});
+
+it("saves and submits an email-verified response with its current workspace version", async () => {
+  api.startFormAccess.mockResolvedValue({ policy: "DIRECT_LINK_EMAIL_OTP", recipients: [{ selector_id: "recipient", hint: "a***@example.com" }] });
+  api.sendFormAccessOTP.mockResolvedValue({ challenge_id: "challenge", hint: "a***@example.com" });
+  api.verifyFormAccessOTP.mockResolvedValue({ session_id: "s", session_token: "session-secret", request_id: "r", distribution_id: "d", assurance: "EMAIL_VERIFIED" });
+  api.loadFormResponseWorkspace.mockResolvedValue({ ...payload, session: { ...payload.session, assurance: "EMAIL_VERIFIED" } });
+  api.saveFormResponseWorkspace.mockResolvedValue({ ...workspace, workspace: { ...workspace.workspace, version: 4 }, answers: { q: { text: "Yes" } }, field_sequences: { q: 1 } });
+  api.submitFormResponseWorkspace.mockResolvedValue({ workspace: { ...workspace.workspace, version: 5 }, revision: { ID: "revision", SubmissionID: "submission", Current: true }, submission: { submission_id: "submission", request_id: "r", status: "SUBMITTED" } });
+  render(<Capture invitationToken="invitation-secret"/>);
+  fireEvent.click(screen.getByRole("button", { name: "Open request" }));
+  fireEvent.change(await screen.findByLabelText("Verification code"), { target: { value: "123456" } });
+  fireEvent.click(screen.getByRole("button", { name: "Verify code" }));
+  fireEvent.change(await screen.findByLabelText("Is access reviewed?"), { target: { value: "Yes" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save response" }));
+  await screen.findByText("Response saved.");
+  fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
+  expect(await screen.findByRole("heading", { name: "Response submitted" })).toBeTruthy();
+  expect(api.saveFormResponseWorkspace).toHaveBeenCalledWith("session-secret", expect.objectContaining({ expected_version: 3, edits: [{ field_id: "q", value: { text: "Yes" }, base_sequence: 0 }] }));
+  expect(api.submitFormResponseWorkspace).toHaveBeenCalledWith("session-secret", { expected_version: 4, attestation_field_ids: [] });
+  expect(sessionStorage.length).toBe(0);
+});
+
+it("does not open a workspace whose assurance differs from the verified invitation", async () => {
+  api.startFormAccess.mockResolvedValue({ policy: "DIRECT_LINK_EMAIL_OTP", recipients: [{ selector_id: "recipient", hint: "a***@example.com" }] });
+  api.sendFormAccessOTP.mockResolvedValue({ challenge_id: "challenge", hint: "a***@example.com" });
+  api.verifyFormAccessOTP.mockResolvedValue({ session_id: "s", session_token: "session-secret", request_id: "r", distribution_id: "d", assurance: "EMAIL_VERIFIED" });
+  render(<Capture invitationToken="invitation-secret"/>);
+  fireEvent.click(screen.getByRole("button", { name: "Open request" }));
+  fireEvent.change(await screen.findByLabelText("Verification code"), { target: { value: "123456" } });
+  fireEvent.click(screen.getByRole("button", { name: "Verify code" }));
+  expect(await screen.findByRole("heading", { name: "Request unavailable" })).toBeTruthy();
+  expect(screen.queryByText("Is access reviewed?")).toBeNull();
+});
+
+it("offers another code without exposing diagnostics after a generic verification failure", async () => {
+  api.startFormAccess.mockResolvedValue({ policy: "DIRECT_LINK_EMAIL_OTP", recipients: [{ selector_id: "recipient", hint: "a***@example.com" }] });
+  api.sendFormAccessOTP.mockResolvedValue({ challenge_id: "challenge", hint: "a***@example.com" });
+  api.verifyFormAccessOTP.mockRejectedValueOnce(new ApiError(401, "internal provider diagnostic", "form_access_failed"));
+  render(<Capture invitationToken="invitation-secret"/>);
+  fireEvent.click(screen.getByRole("button", { name: "Open request" }));
+  fireEvent.change(await screen.findByLabelText("Verification code"), { target: { value: "123456" } });
+  fireEvent.click(screen.getByRole("button", { name: "Verify code" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("Code could not be verified.");
+  expect(screen.queryByText(/internal provider diagnostic/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Request another code" }));
+  fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+  expect(await screen.findByLabelText("Verification code")).toBeTruthy();
+  expect(api.sendFormAccessOTP).toHaveBeenCalledTimes(2);
 });
 
 it("sends a direct invitation code to its sole selected recipient", async () => {

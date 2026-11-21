@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { loadFrameworkClauses, loadFrameworkEditionPage, type FrameworkClause, type FrameworkEditionOption } from "../programOperationsApi";
 import { FrameworkAdoption } from "./FrameworkAdoption";
+import { apiErrorKind } from "../http";
 import "./frameworks.css";
 
 export function Frameworks() {
@@ -17,8 +18,9 @@ export function Frameworks() {
   const [moreError, setMoreError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const generation = useRef(0);
+  const moreLock = useRef(false);
   useEffect(() => {
-    const token = ++generation.current;
+    const token = ++generation.current; moreLock.current = false;
     setState("loading"); setItems([]); setSelected(undefined); setAdopting(false); setCursor(""); setMoreError(false); setBusy(false);
     loadFrameworkEditionPage(jurisdiction, "").then((page) => {
       if (token === generation.current) { setItems(page.items); setCursor(page.next_after_id); setState("ready"); }
@@ -26,13 +28,13 @@ export function Frameworks() {
     return () => { generation.current++; };
   }, [jurisdiction, attempt]);
   async function more() {
-    if (!cursor || busy) return;
-    const token = generation.current; setBusy(true); setMoreError(false);
+    if (!cursor || moreLock.current) return;
+    moreLock.current = true; const token = generation.current; setBusy(true); setMoreError(false);
     try {
       const page = await loadFrameworkEditionPage(jurisdiction, cursor);
-      if (token === generation.current) { setItems((current) => [...current, ...page.items]); setCursor(page.next_after_id); }
-    } catch { if (token === generation.current) setMoreError(true); }
-    finally { if (token === generation.current) setBusy(false); }
+      if (token === generation.current) { if (page.next_after_id === cursor) { setMoreError(true); return; } setItems((current) => { const ids = new Set(current.map((item) => item.id)); return [...current, ...page.items.filter((item) => { if (ids.has(item.id)) return false; ids.add(item.id); return true; })]; }); setCursor(page.next_after_id); }
+    } catch (error) { if (token === generation.current) { if (["unauthorized", "forbidden"].includes(apiErrorKind(error))) { setItems([]); setSelected(undefined); setAdopting(false); setCursor(""); setState("error"); } else setMoreError(true); } }
+    finally { if (token === generation.current) { moreLock.current = false; setBusy(false); } }
   }
   const filtered = items.filter((item) => [item.title, item.framework_code, item.edition_code, item.publisher_code].some((value) => value.toLowerCase().includes(search.trim().toLowerCase())));
   const detail = items.find((item) => item.id === selected);
@@ -67,8 +69,9 @@ function FrameworkClauses({ editionID }: { editionID: string }) {
   const [busy, setBusy] = useState(false);
   const [moreError, setMoreError] = useState(false);
   const generation = useRef(0);
+  const moreLock = useRef(false);
   useEffect(() => {
-    const token = ++generation.current; setState("loading"); setItems([]); setCursor(""); setMoreError(false);
+    const token = ++generation.current; moreLock.current = false; setBusy(false); setState("loading"); setItems([]); setCursor(""); setMoreError(false);
     loadFrameworkClauses(editionID, "").then((page) => {
       if (token !== generation.current) return;
       if (page.edition_id !== editionID || !Array.isArray(page.items)) { setState("error"); return; }
@@ -77,15 +80,15 @@ function FrameworkClauses({ editionID }: { editionID: string }) {
     return () => { generation.current++; };
   }, [editionID, attempt]);
   async function more() {
-    if (!cursor || busy) return;
-    const token = generation.current; setBusy(true); setMoreError(false);
+    if (!cursor || moreLock.current) return;
+    moreLock.current = true; const token = generation.current; setBusy(true); setMoreError(false);
     try {
       const page = await loadFrameworkClauses(editionID, cursor);
       if (token !== generation.current) return;
-      if (page.edition_id !== editionID || !Array.isArray(page.items)) throw new Error("mismatch");
-      setItems((current) => [...current, ...page.items]); setCursor(page.next_after_code);
-    } catch { if (token === generation.current) setMoreError(true); }
-    finally { if (token === generation.current) setBusy(false); }
+      if (page.edition_id !== editionID || !Array.isArray(page.items) || page.next_after_code === cursor) throw new Error("mismatch");
+      setItems((current) => { const codes = new Set(current.map((item) => item.code)); return [...current, ...page.items.filter((item) => { if (codes.has(item.code)) return false; codes.add(item.code); return true; })]; }); setCursor(page.next_after_code);
+    } catch (error) { if (token === generation.current) { if (["unauthorized", "forbidden"].includes(apiErrorKind(error))) { setItems([]); setCursor(""); setState("error"); } else setMoreError(true); } }
+    finally { if (token === generation.current) { moreLock.current = false; setBusy(false); } }
   }
   return <section className="v-framework-clauses"><h3>Requirements</h3>
     {state === "loading" && <p role="status">Loading requirements…</p>}

@@ -19,7 +19,7 @@ try {
         if (sends === 1) return route.fulfill({ status: 503, json: { error: 'unavailable', message: 'Unavailable' } });
         return route.fulfill({ json: { challenge_id: 'sample-challenge', hint: 'a***@example.com', expires_at: '2027-01-01T00:00:00Z' } });
       }
-      return route.fulfill({ status: 404, json: { error: 'not_found' } });
+      return route.fulfill({ status: 401, json: { error: 'form_access_failed', message: 'The secure form link could not be verified.' } });
     });
     await page.goto(`${process.env.PAGE_URL ?? 'http://127.0.0.1:43117/'}?view=sample#form_access=sample-invitation`, { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Open request' }).click();
@@ -35,6 +35,11 @@ try {
     assert.equal(await page.evaluate(() => sessionStorage.length), 0);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: path.join(output, `code-${width}.png`), fullPage: true });
+    await page.getByLabel('Verification code').fill('123456');
+    await page.getByRole('button', { name: 'Verify code' }).click();
+    await page.getByRole('alert').getByText(/Code could not be verified/).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: path.join(output, `verification-failed-${width}.png`), fullPage: true });
     results.push({ width, overflow: false, retry: true, masked_recipient: true });
     await page.close();
   }

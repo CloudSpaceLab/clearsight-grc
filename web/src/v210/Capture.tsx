@@ -30,7 +30,7 @@ export function Capture({ invitationToken }: { invitationToken: string }) {
 
   async function openSession(value: RedeemedFormAccessSession) {
     const result = await loadFormResponseWorkspace(value.session_token);
-    if (!value.session_id || result.session.id !== value.session_id || result.session.request_id !== value.request_id || result.session.distribution_id !== value.distribution_id || result.workspace.workspace.distribution_id !== value.distribution_id || result.workspace.workspace.status !== "OPEN" || result.request.id !== value.request_id || !["READY", "INVITED", "VIEWED", "IN_PROGRESS"].includes(result.request.status)) throw new Error("unavailable");
+    if (!value.session_id || result.session.id !== value.session_id || result.session.assurance !== value.assurance || result.session.request_id !== value.request_id || result.session.distribution_id !== value.distribution_id || result.workspace.workspace.distribution_id !== value.distribution_id || result.workspace.workspace.status !== "OPEN" || result.request.id !== value.request_id || !["READY", "INVITED", "VIEWED", "IN_PROGRESS"].includes(result.request.status)) throw new Error("unavailable");
     setSession(value.session_token); setPayload(result); setAnswers(result.workspace.answers); setDirty(new Set()); setUncertain(false); setSaved(false); setPhase("response");
   }
 
@@ -38,7 +38,7 @@ export function Capture({ invitationToken }: { invitationToken: string }) {
     if (lock.current) return; lock.current = true; setBusy(true); setPhase("loading"); setError("");
     try {
       const result = await startFormAccess(invitationToken); setAccess(result);
-      if (result.policy === "DIRECT_MAGIC_LINK") await openSession(await redeemFormAccess(invitationToken));
+      if (result.policy === "DIRECT_MAGIC_LINK") { const session = await redeemFormAccess(invitationToken); if (session.assurance !== "LINK_POSSESSION") throw new Error("unavailable"); await openSession(session); }
       else if (result.policy === "DIRECT_LINK_EMAIL_OTP" && result.recipients?.length === 1 && result.recipients[0]?.selector_id) {
         const selected = result.recipients[0].selector_id; setRecipient(selected);
         try { setChallenge(await sendFormAccessOTP(invitationToken, selected)); setCode(""); setPhase("code"); }
@@ -58,7 +58,11 @@ export function Capture({ invitationToken }: { invitationToken: string }) {
   }
   async function verifyCode(event: FormEvent) {
     event.preventDefault(); if (!challenge || !/^\d{6}$/.test(code) || lock.current) return; lock.current = true; setBusy(true); setError("");
-    try { await openSession(await verifyFormAccessOTP(invitationToken, challenge.challenge_id, code)); }
+    try {
+      const verified = await verifyFormAccessOTP(invitationToken, challenge.challenge_id, code);
+      try { if (verified.assurance !== "EMAIL_VERIFIED") throw new Error("unavailable"); await openSession(verified); }
+      catch { setPhase("unavailable"); }
+    }
     catch { setError("Code could not be verified. Check the code or contact the requester."); }
     finally { lock.current = false; setBusy(false); }
   }
@@ -95,7 +99,7 @@ export function Capture({ invitationToken }: { invitationToken: string }) {
     if (!payload || lock.current) return; lock.current = true; setBusy(true); setError("");
     try {
       const result = await loadFormResponseWorkspace(session);
-      if (result.session.id !== payload.session.id || result.workspace.workspace.id !== payload.workspace.workspace.id || result.workspace.workspace.distribution_id !== payload.session.distribution_id || result.request.id !== payload.session.request_id || result.workspace.workspace.status !== "OPEN" || result.session.request_id !== payload.session.request_id || result.session.distribution_id !== payload.session.distribution_id) throw new Error("unavailable");
+      if (result.session.id !== payload.session.id || result.session.assurance !== payload.session.assurance || result.workspace.workspace.id !== payload.workspace.workspace.id || result.workspace.workspace.distribution_id !== payload.session.distribution_id || result.request.id !== payload.session.request_id || result.workspace.workspace.status !== "OPEN" || result.session.request_id !== payload.session.request_id || result.session.distribution_id !== payload.session.distribution_id) throw new Error("unavailable");
       setPayload(result); setAnswers(result.workspace.answers); setDirty(new Set()); setUncertain(false); setSaved(false);
     } catch { setError("Request unavailable. Contact the requester."); }
     finally { lock.current = false; setBusy(false); }
@@ -104,7 +108,7 @@ export function Capture({ invitationToken }: { invitationToken: string }) {
     if (!payload || lock.current) return; lock.current = true; setBusy(true);
     try {
       const result = await loadFormResponseWorkspace(session);
-      if (result.session.id !== payload.session.id || result.workspace.workspace.id !== payload.workspace.workspace.id || result.workspace.workspace.distribution_id !== payload.session.distribution_id || result.request.id !== payload.session.request_id || result.workspace.workspace.status !== "OPEN" || result.session.request_id !== payload.session.request_id || result.session.distribution_id !== payload.session.distribution_id) throw new Error("unavailable");
+      if (result.session.id !== payload.session.id || result.session.assurance !== payload.session.assurance || result.workspace.workspace.id !== payload.workspace.workspace.id || result.workspace.workspace.distribution_id !== payload.session.distribution_id || result.request.id !== payload.session.request_id || result.workspace.workspace.status !== "OPEN" || result.session.request_id !== payload.session.request_id || result.session.distribution_id !== payload.session.distribution_id) throw new Error("unavailable");
       setLatest(result); setChoices({}); setError("");
     } catch { setError("Latest answers unavailable. Try again."); }
     finally { lock.current = false; setBusy(false); }
