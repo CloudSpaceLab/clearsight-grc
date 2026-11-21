@@ -50,6 +50,22 @@ it("retains four measures without treating an empty risk population as clear", (
   expect(screen.getByRole("article", { name: /Net operational loss: —.*Unavailable/ })).toBeTruthy();
 });
 
+it("shows a percentage and its population for complete current posture metrics", () => {
+  render(<DomainPostureSummary bundle={bundle()} state="live"/>);
+  expect(screen.getByRole("button", { name: /Outside appetite: 1.*10%.*1 of 10 risks/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Indicator breaches: 0.*0%.*0 of 10 linked indicators/ })).toBeTruthy();
+});
+
+it("does not present a percentage when the population is unknown or incomplete", () => {
+  const current = bundle();
+  current.items[0]!.unknown = 2;
+  current.items[0]!.completeness = "PARTIAL";
+  current.items[1]!.excluded = undefined;
+  render(<DomainPostureSummary bundle={current} state="live"/>);
+  expect(screen.getByRole("button", { name: /Outside appetite: 1/ }).textContent).not.toContain("%");
+  expect(screen.getByRole("button", { name: /Indicator breaches: 0/ }).textContent).not.toContain("%");
+});
+
 it("keeps assessed risk cards actionable when another measure has no population", () => {
   const current = bundle();
   current.items[1]!.population = 0;

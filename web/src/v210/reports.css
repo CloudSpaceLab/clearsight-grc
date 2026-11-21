@@ -1,0 +1,10 @@
+.v-reports-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 20px; align-items: start; }
+.v-reports-stack { display: grid; gap: 20px; min-width: 0; }
+.v-reports-list { list-style: none; margin: 0; padding: 0; }
+.v-reports-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid var(--border, #e3eaf4); }
+.v-reports-list li div { min-width: 0; }
+.v-reports-list small { display: block; margin-top: 4px; color: var(--muted, #697e9e); }
+.v-reports-detail dl { margin: 0; }
+.v-reports-detail dl div { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; }
+.v-reports-detail dd { margin: 0; text-align: right; }
+@media (max-width: 900px) { .v-reports-layout { grid-template-columns: 1fr; } }

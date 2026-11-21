@@ -49,7 +49,7 @@ const task22Capabilities = [
   "communication-rotated", "communication-superseded", "communication-revoked",
   "access-direct-link", "access-shared-otp", "access-direct-otp", "otp-expired", "otp-exhausted",
   "recovery-server-saved", "recovery-device-only", "recovery-conflict", "recovery-recovered", "recovery-file-reselection",
-  "response-first", "response-amended",
+  "response-first", "response-amended", "response-review-decision", "response-review-changes",
   "vendor-confirm", "vendor-correct", "vendor-replace", "vendor-review", "vendor-conflict", "vendor-applied",
   "library-mobile-records", "builder-mobile-actions", "builder-pointer-reorder", "builder-large-performance", "builder-themed-select",
   "viewport-desktop", "viewport-mobile", "viewport-reflow-320", "zoom-200", "theme-light", "theme-dark",

@@ -138,8 +138,14 @@ func (b Binding) Validate(view View) error {
 	if err := validateFields(b.KeyFields, HardMaxStableKeyFields); err != nil {
 		return err
 	}
+	definition, definitionErr := decodeRESTJSONView(view)
+	singleton := definitionErr == nil && definition.Singleton
+	if singleton && (len(b.Operations) != 1 || !b.Allows(OperationPage) || len(b.KeyFields) != 0) {
+		return fmt.Errorf("%w: singleton bindings permit only a keyless page read", ErrDefinitionInvalid)
+	}
 	if b.Allows(OperationPage) || b.Allows(OperationLookup) {
-		if len(b.KeyFields) == 0 {
+		singletonPage := singleton && len(b.Operations) == 1 && b.Allows(OperationPage)
+		if len(b.KeyFields) == 0 && !singletonPage {
 			return fmt.Errorf("%w: page and lookup bindings require a key field", ErrDefinitionInvalid)
 		}
 		for _, key := range b.KeyFields {

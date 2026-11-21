@@ -45,6 +45,20 @@ async function assertLocalTabs(page, selected, name) {
       || await page.locator(".reports-workspace .cs-tabs__compact").count()) {
     throw new Error(`${name}: Reports local navigation must expose ${expected.join(" / ")} with ${selected} selected`);
   }
+  const tabOverflow = await tablist.evaluate((node) => ({ clientHeight: node.clientHeight, scrollHeight: node.scrollHeight }));
+  if (tabOverflow.scrollHeight > tabOverflow.clientHeight) {
+    throw new Error(`${name}: Reports tabs must not scroll vertically (${tabOverflow.scrollHeight}/${tabOverflow.clientHeight})`);
+  }
+  if (page.viewportSize()?.width === 390 && selected !== "Build report") {
+    const fit = await tablist.evaluate((node) => {
+      const bounds = node.getBoundingClientRect();
+      return [...node.querySelectorAll('[role="tab"]')].every((tab) => {
+        const rect = tab.getBoundingClientRect();
+        return rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1 && rect.width >= 44 && rect.height >= 44;
+      });
+    });
+    if (!fit) throw new Error(`${name}: all primary Reports tabs must fit and retain 44px targets at 390px`);
+  }
   return { localTabs: labels, selectedTab: selected };
 }
 

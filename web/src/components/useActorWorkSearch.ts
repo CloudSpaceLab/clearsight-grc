@@ -3,7 +3,7 @@ import { loadActorWorkPage, type ActorWorkScope } from "../api";
 import { apiErrorKind } from "../http";
 import type { AttentionItem } from "../types";
 import { workDeadlineFilters, workSourceFilters, type WorkDeadlineDrill } from "./workSourceFilters";
-import { validWorkPage } from "./workSourceReceipt";
+import { validWorkPage } from "../workSourceReceipt";
 import type { WorkDueWindow } from "./workQueuePresentation";
 
 type SearchResult = {

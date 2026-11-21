@@ -60,20 +60,30 @@ type ResponseAssessmentSummary struct {
 	Score                 *ResponseScoreResult `json:"score"`
 }
 type ResponseAssessment struct {
-	MayReview             bool                       `json:"may_review"`
-	ScoreProfile          *formcontract.ScoreProfile `json:"score_profile,omitempty"`
-	ResponseID            string                     `json:"response_id"`
-	FormTemplateID        string                     `json:"form_template_id"`
-	FormTemplateVersion   int64                      `json:"form_template_version"`
-	Version               int64                      `json:"version"`
-	Current               bool                       `json:"current"`
-	State                 string                     `json:"state"`
-	RequiredCount         int                        `json:"required_count"`
-	ReviewedRequiredCount int                        `json:"reviewed_required_count"`
-	ReviewedCount         int                        `json:"reviewed_count"`
-	Fields                []ResponseAssessmentField  `json:"fields"`
-	AutomaticScore        *ResponseScoreResult       `json:"automatic_score"`
-	AssessedScore         *ResponseScoreResult       `json:"assessed_score"`
+	SubmittedBy           string                       `json:"submitted_by,omitempty"`
+	SubmissionRecipient   *ResponseSubmissionRecipient `json:"submission_recipient,omitempty"`
+	MayReview             bool                         `json:"may_review"`
+	ScoreProfile          *formcontract.ScoreProfile   `json:"score_profile,omitempty"`
+	ResponseID            string                       `json:"response_id"`
+	FormTemplateID        string                       `json:"form_template_id"`
+	FormTemplateVersion   int64                        `json:"form_template_version"`
+	Version               int64                        `json:"version"`
+	Current               bool                         `json:"current"`
+	State                 string                       `json:"state"`
+	RequiredCount         int                          `json:"required_count"`
+	ReviewedRequiredCount int                          `json:"reviewed_required_count"`
+	ReviewedCount         int                          `json:"reviewed_count"`
+	Fields                []ResponseAssessmentField    `json:"fields"`
+	AutomaticScore        *ResponseScoreResult         `json:"automatic_score"`
+	AssessedScore         *ResponseScoreResult         `json:"assessed_score"`
+}
+
+// A recipient identifies the access route assigned to a person or external
+// audience; it is not an assertion about who held a link at submission time.
+type ResponseSubmissionRecipient struct {
+	Type        RecipientType `json:"type"`
+	PrincipalID string        `json:"principal_id,omitempty"`
+	Label       string        `json:"label,omitempty"`
 }
 
 func (v ResponseAssessment) Summary() *ResponseAssessmentSummary {
@@ -87,11 +97,12 @@ type assessmentSnapshot struct {
 	Result    ResponseAssessmentSummary
 }
 type assessmentMaterial struct {
-	Summary    CompletedResponseSummary
-	Revision   ResponseRevision
-	Request    Request
-	Submission Submission
-	Snapshot   assessmentSnapshot
+	Summary                       CompletedResponseSummary
+	Revision                      ResponseRevision
+	Request                       Request
+	Submission                    Submission
+	SubmittedRecipientPrincipalID string
+	Snapshot                      assessmentSnapshot
 }
 type assessmentReadAuthorizer func(context.Context, assessmentMaterial) bool
 
@@ -137,7 +148,7 @@ func (s *DistributionService) RecordResponseAssessment(ctx context.Context, tena
 	}
 	var committed ResponseAssessment
 	_, err := store.WriteResponseAssessment(ctx, tenant, entity, actor.PrincipalID, response, s.assessmentReadAuthority(ctx, tenant, entity, actor.PrincipalID), func(ctx context.Context, m assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error) {
-		if m.Submission.SubmittedBy == actor.PrincipalID {
+		if assessmentRespondentConflict(m, actor.PrincipalID) {
 			return assessmentSnapshot{}, nil, ErrAssessmentForbidden
 		}
 		if !m.Revision.Current || m.Snapshot.Version != input.ExpectedVersion {
@@ -223,7 +234,8 @@ func buildAssessment(m assessmentMaterial) (ResponseAssessment, error) {
 	if err != nil {
 		return ResponseAssessment{}, err
 	}
-	v := ResponseAssessment{ResponseID: m.Revision.ID, FormTemplateID: m.Summary.FormTemplateID, FormTemplateVersion: m.Summary.FormTemplateVersion, Current: m.Revision.Current, Version: m.Snapshot.Version, State: "NOT_REQUIRED", Fields: []ResponseAssessmentField{}, AutomaticScore: cloneResponseRevision(m.Revision).Score}
+	v := ResponseAssessment{SubmittedBy: m.Submission.SubmittedBy, ResponseID: m.Revision.ID, FormTemplateID: m.Summary.FormTemplateID, FormTemplateVersion: m.Summary.FormTemplateVersion, Current: m.Revision.Current, Version: m.Snapshot.Version, State: "NOT_REQUIRED", Fields: []ResponseAssessmentField{}, AutomaticScore: cloneResponseRevision(m.Revision).Score}
+	v.SubmissionRecipient = responseSubmissionRecipient(m.Revision)
 	v.ScoreProfile = contract.ScoreProfile
 	outcomes := map[string]string{}
 	reviewFields := 0
@@ -335,8 +347,14 @@ func (s *DistributionService) WithAssessedResponseForExecution(ctx context.Conte
 func (s *DistributionService) assessmentReadAuthority(ctx context.Context, tenant, entity, principal string) assessmentReadAuthorizer {
 	return func(ctx context.Context, m assessmentMaterial) bool {
 		actor, ok := identity.FromContext(ctx)
-		if !ok || actor.Valid(s.currentTime()) != nil || actor.TenantID != tenant || actor.PrincipalID != principal || (actor.LegalEntityID != entity && actor.LegalEntityID != "*") || (s.assessmentAuthorizer == nil && s.responseDiscoveryAuthorizer == nil) || m.Submission.SubmittedBy == principal {
+		if !ok || actor.Valid(s.currentTime()) != nil || actor.TenantID != tenant || actor.PrincipalID != principal || (actor.LegalEntityID != entity && actor.LegalEntityID != "*") || (s.assessmentAuthorizer == nil && s.responseDiscoveryAuthorizer == nil && s.responseReviewAuthorizer == nil) || assessmentRespondentConflict(m, principal) {
 			return false
+		}
+		if s.responseReviewAuthorizer != nil {
+			route, err := s.responseReviewAuthorizer(ctx, actor, m.Summary)
+			if err == nil && strings.TrimSpace(route) != "" {
+				return true
+			}
 		}
 		if s.responseDiscoveryAuthorizer != nil {
 			reviewable := false
@@ -347,6 +365,9 @@ func (s *DistributionService) assessmentReadAuthority(ctx context.Context, tenan
 				}
 			}
 			return reviewable && s.responseDiscoveryAuthorizer(ctx, actor, m.Summary) == nil
+		}
+		if s.assessmentAuthorizer == nil {
+			return false
 		}
 		v, err := buildAssessment(m)
 		if err != nil {
@@ -366,7 +387,7 @@ func (s *DistributionService) assessmentReadAuthority(ctx context.Context, tenan
 }
 func (s *DistributionService) applyAssessmentPermissions(ctx context.Context, m assessmentMaterial, v *ResponseAssessment) {
 	actor, ok := identity.FromContext(ctx)
-	if !ok || actor.Valid(s.currentTime()) != nil || actor.TenantID != m.Summary.TenantID || (actor.LegalEntityID != m.Summary.LegalEntityID && actor.LegalEntityID != "*") || s.assessmentAuthorizer == nil || m.Submission.SubmittedBy == actor.PrincipalID || !v.Current {
+	if !ok || actor.Valid(s.currentTime()) != nil || actor.TenantID != m.Summary.TenantID || (actor.LegalEntityID != m.Summary.LegalEntityID && actor.LegalEntityID != "*") || s.assessmentAuthorizer == nil || assessmentRespondentConflict(m, actor.PrincipalID) || !v.Current {
 		return
 	}
 	for i := range v.Fields {
@@ -378,4 +399,11 @@ func (s *DistributionService) applyAssessmentPermissions(ctx context.Context, m 
 		f.MayReview = err == nil && strings.TrimSpace(route) != ""
 		v.MayReview = v.MayReview || f.MayReview
 	}
+}
+
+// A link proves a bounded access route, not the personal identity of its holder.
+// The recorded internal recipient must nevertheless not review that response.
+func assessmentRespondentConflict(m assessmentMaterial, principal string) bool {
+	principal = strings.TrimSpace(principal)
+	return principal != "" && (m.Submission.SubmittedBy == principal || m.SubmittedRecipientPrincipalID == principal || (m.Request.Recipient.Type == RecipientInternalPrincipal && m.Request.Recipient.PrincipalID == principal))
 }

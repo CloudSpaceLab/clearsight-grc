@@ -23,6 +23,7 @@ const (
 	PermissionAuditExport             = "AUDIT_EXPORT"
 	PermissionReportDownload          = "REPORT_DOWNLOAD"
 	PermissionOversightRead           = "OVERSIGHT_READ"
+	PermissionPrivacyRead             = "PRIVACY_READ"
 )
 
 type DepartmentGrant struct {

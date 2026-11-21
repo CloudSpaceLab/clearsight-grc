@@ -13,7 +13,7 @@ import (
 // CountActorWorkDue counts authorized workflow and document-proposal rows
 // under one PostgreSQL MVCC snapshot. Both subqueries use the exact source
 // selection as ListActorWorkPage; there is no page LIMIT or offset.
-func (r *PostgresRepository) CountActorWorkDue(ctx context.Context, filter ListFilter, asOf time.Time) (ActorWorkDueCounts, error) {
+func (r *PostgresRepository) CountActorWorkDue(ctx context.Context, filter ListFilter) (ActorWorkDueCounts, error) {
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly,
 	})
@@ -22,7 +22,27 @@ func (r *PostgresRepository) CountActorWorkDue(ctx context.Context, filter ListF
 	}
 	defer tx.Rollback(ctx)
 
-	var counts ActorWorkDueCounts
+	var asOf time.Time
+	var snapshot string
+	if err := tx.QueryRow(ctx, `SELECT statement_timestamp(), pg_current_snapshot()::text`).Scan(&asOf, &snapshot); err != nil {
+		return ActorWorkDueCounts{}, fmt.Errorf("establish authorized work snapshot: %w", err)
+	}
+	if snapshot == "" {
+		return ActorWorkDueCounts{}, ErrActorWorkCountsUnavailable
+	}
+	counts, err := countActorWorkDueAtSnapshot(ctx, tx, filter, asOf.UTC())
+	if err != nil {
+		return ActorWorkDueCounts{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return ActorWorkDueCounts{}, fmt.Errorf("complete authorized work counts: %w", err)
+	}
+	return counts, nil
+}
+
+// Caller must establish the read-only repeatable-read snapshot before this call.
+func countActorWorkDueAtSnapshot(ctx context.Context, tx pgx.Tx, filter ListFilter, asOf time.Time) (ActorWorkDueCounts, error) {
+	counts := ActorWorkDueCounts{AsOf: asOf}
 	soon := asOf.Add(7 * 24 * time.Hour)
 	accumulate := func(sql string, args ...any) error {
 		var total, overdue, dueSoon, undated int64
@@ -46,7 +66,7 @@ func (r *PostgresRepository) CountActorWorkDue(ctx context.Context, filter ListF
 		WHERE $9::integer > 0`
 	if err := accumulate(workflowSQL,
 		filter.TenantID, filter.PrincipalID, "", "", true, false, true,
-		filter.LegalEntityID, 1, "", nil, nil, filter.UpdatedThrough,
+		filter.LegalEntityID, 1, "", nil, nil, nil,
 		false, nil, nil, "", asOf, soon,
 	); err != nil {
 		return ActorWorkDueCounts{}, fmt.Errorf("count authorized workflow assignments: %w", err)
@@ -64,13 +84,10 @@ func (r *PostgresRepository) CountActorWorkDue(ctx context.Context, filter ListF
 		WHERE $7::integer > 0`
 	if err := accumulate(proposalSQL,
 		filter.TenantID, filter.PrincipalID, filter.LegalEntityID, "", DocumentProposalWorkflowKind,
-		true, 1, "", nil, nil, filter.UpdatedThrough,
+		true, 1, "", nil, nil, nil,
 		false, nil, nil, "", asOf, soon,
 	); err != nil {
 		return ActorWorkDueCounts{}, fmt.Errorf("count authorized document proposal assignments: %w", err)
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return ActorWorkDueCounts{}, fmt.Errorf("complete authorized work counts: %w", err)
 	}
 	return counts, nil
 }

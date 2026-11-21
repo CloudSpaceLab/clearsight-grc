@@ -1,0 +1,51 @@
+{
+  "suite": "V2.14 shared utility interactions",
+  "runtime": "Actual source with controlled DOM/browser shells",
+  "browserLayoutValidated": false,
+  "results": [
+    {
+      "name": "Mobile navigation contains focus, exposes its state and restores the original background",
+      "status": "PASS"
+    },
+    {
+      "name": "Navigation links keep their destination while releasing the drawer without a form render",
+      "status": "PASS"
+    },
+    {
+      "name": "Desktop resize restores pre-existing inert/role attributes and does not focus a hidden opener",
+      "status": "PASS"
+    },
+    {
+      "name": "Mobile navigation cannot replace an open dialog and redirects stray focus while active",
+      "status": "PASS"
+    },
+    {
+      "name": "Search opened from the drawer retains a visible focus-return target",
+      "status": "PASS"
+    },
+    {
+      "name": "Search protects an unsaved decision and follows the existing Keep editing / Discard choice",
+      "status": "PASS"
+    },
+    {
+      "name": "Search never replaces a dialog while its asynchronous save is pending",
+      "status": "PASS"
+    },
+    {
+      "name": "Search presentation retains exact role-scoped results, record URLs and canonical state",
+      "status": "PASS"
+    },
+    {
+      "name": "Search live context uses plain text and announces the selected existing result",
+      "status": "PASS"
+    },
+    {
+      "name": "Settings reading order moves the original nodes and route markers reset without state changes",
+      "status": "PASS"
+    },
+    {
+      "name": "Document folder selection is exposed without changing availability or document state",
+      "status": "PASS"
+    }
+  ]
+}

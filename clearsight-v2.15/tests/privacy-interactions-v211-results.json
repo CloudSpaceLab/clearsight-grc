@@ -1,0 +1,48 @@
+{
+  "suite": "V2.11 privacy and local monitoring interactions",
+  "runtime": "Actual source; browser/DOM shell substituted",
+  "passed": 10,
+  "failed": 0,
+  "results": [
+    {
+      "name": "One privacy draft list resumes the exact saved activity, DPIA and case steps",
+      "status": "PASS"
+    },
+    {
+      "name": "Draft discovery respects selected organizational scope without deleting hidden drafts",
+      "status": "PASS"
+    },
+    {
+      "name": "Privacy completeness reuses source validators and links each issue to its step and field",
+      "status": "PASS"
+    },
+    {
+      "name": "Invalid forward navigation shows correction links and does not submit or lose the draft",
+      "status": "PASS"
+    },
+    {
+      "name": "Final DPIA review links missing facts while preserving the recommendation editor",
+      "status": "PASS"
+    },
+    {
+      "name": "Case preparation exposes separate Save progress and Submit for review actions",
+      "status": "PASS"
+    },
+    {
+      "name": "Enter-key/default case submission saves progress; only explicit review intent advances it",
+      "status": "PASS"
+    },
+    {
+      "name": "Returned case comments remain visible and escaped beside the correction form",
+      "status": "PASS"
+    },
+    {
+      "name": "Running one local integration check records one source observation and no conclusion",
+      "status": "PASS"
+    },
+    {
+      "name": "Privacy and monitoring interaction controls register real actions and destination routes",
+      "status": "PASS"
+    }
+  ]
+}

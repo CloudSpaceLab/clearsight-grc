@@ -1,0 +1,68 @@
+{
+  "suite": "V2.10 actual-source vendor onboarding",
+  "browserLayoutValidated": false,
+  "passed": 15,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Every first-time creation entry opens the dossier flow without creating supplier records",
+      "status": "PASS"
+    },
+    {
+      "name": "Drafts retain exact location and named respondent, and resume only under their preparer",
+      "status": "PASS"
+    },
+    {
+      "name": "Missing named contact and duplicate legal suppliers are rejected before mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "Existing service onboarding pins both supplier identity and organizational location",
+      "status": "PASS"
+    },
+    {
+      "name": "Scoped preparation authority and explicit denies apply to intake and owner lifecycle commands",
+      "status": "PASS"
+    },
+    {
+      "name": "Owner confirmation and independent risk review are distinct assigned decisions",
+      "status": "PASS"
+    },
+    {
+      "name": "Risk approval creates real scoped assignments and document requests without activating service",
+      "status": "PASS"
+    },
+    {
+      "name": "Mandatory diligence cannot be silently removed and scoped reviewer permission is rechecked",
+      "status": "PASS"
+    },
+    {
+      "name": "Returned intake remains actionable through draft correction and preserves the prior submission",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy setup resumes as a dossier and cannot directly create an unreviewed service",
+      "status": "PASS"
+    },
+    {
+      "name": "A linked document becomes ready only after exact independent file approval",
+      "status": "PASS"
+    },
+    {
+      "name": "Expired, newer, or mismatched document sources cannot satisfy readiness",
+      "status": "PASS"
+    },
+    {
+      "name": "Activation requires accepted named responses, current reviewed documents and requirement decisions",
+      "status": "PASS"
+    },
+    {
+      "name": "Lifecycle commands bind the acting identity and do not accept a name-only reviewer",
+      "status": "PASS"
+    },
+    {
+      "name": "All onboarding screens render named assignments, readable locations and registered actions",
+      "status": "PASS"
+    }
+  ]
+}

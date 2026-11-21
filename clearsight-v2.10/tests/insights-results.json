@@ -1,0 +1,67 @@
+{
+  "version": "2.7",
+  "tests": [
+    {
+      "name": "Scope and logo share a single header row at four widths; selections persist",
+      "status": "PASS",
+      "seconds": 1.48
+    },
+    {
+      "name": "Approved-only KRI consolidation, ratio-of-sums, strict boundaries and absent population",
+      "status": "PASS",
+      "seconds": 0.39
+    },
+    {
+      "name": "Branch totals, loss-driver source reconciliation and separate posture/loss/KRI clocks",
+      "status": "PASS",
+      "seconds": 0.66
+    },
+    {
+      "name": "Return submit/change/resubmit/independent approval, immutable versions and shared Work",
+      "status": "PASS",
+      "seconds": 1.14
+    },
+    {
+      "name": "Missing is not zero; ratio validation; approved unknowns remain coverage gaps; scope guard",
+      "status": "PASS",
+      "seconds": 0.94
+    },
+    {
+      "name": "Cycle wizard pins unit population/definitions and prevents duplicates/self-review/early submission",
+      "status": "PASS",
+      "seconds": 1.26
+    },
+    {
+      "name": "Saved live view restores scope, periods, perspective and grouping",
+      "status": "PASS",
+      "seconds": 0.77
+    },
+    {
+      "name": "Guided management report captures fixed source/scope snapshot unaffected by later approvals",
+      "status": "PASS",
+      "seconds": 1.08
+    },
+    {
+      "name": "KRI CSV payload is accepted-only, scoped and traceable to numerator/denominator/source/version",
+      "status": "PASS",
+      "seconds": 0.45
+    },
+    {
+      "name": "All 50 routes plus insights/return/source states and scoped perspectives at four widths",
+      "status": "PASS",
+      "seconds": 12.05
+    },
+    {
+      "name": "Populated KRI and report wizards, editable return grid and dark mode at four widths",
+      "status": "PASS",
+      "seconds": 3.02
+    }
+  ],
+  "layoutChecks": 312,
+  "pageErrors": [],
+  "limitations": [
+    "Inline browser rendering with explicit Storage-API test double.",
+    "Export payloads checked; native download transport not exercised.",
+    "Synthetic records; no live backend or production authorization."
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "release": "2.10",
+  "date": "2026-11-20",
+  "scenarioAsOf": "2026-11-13",
+  "runtime": "Actual application JavaScript; Node with substituted browser/DOM shell",
+  "modelWorkflowChecks": {
+    "passed": 204,
+    "failed": 0,
+    "suites": [
+      {
+        "suite": "Branch KRI source model",
+        "script": "kri_v28_checks.js",
+        "results": "kri-v28-results.json",
+        "passed": 11,
+        "failed": 0
+      },
+      {
+        "suite": "KRI reviews and corrected actions",
+        "script": "kri_review_v28_checks.js",
+        "results": "kri-review-v28-results.json",
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "suite": "Roles, access and escalation",
+        "script": "governance_v28_checks.js",
+        "results": "governance-v28-results.json",
+        "passed": 14,
+        "failed": 0
+      },
+      {
+        "suite": "Detailed Inbox",
+        "script": "inbox_v28_model_checks.js",
+        "results": "inbox-v28-model-results.json",
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "suite": "Existing board reports",
+        "script": "board_reports_v28_model_checks.js",
+        "results": "board-reports-v28-model-results.json",
+        "passed": 11,
+        "failed": 0
+      },
+      {
+        "suite": "Loss capture and workbook import",
+        "script": "loss_v29_checks.js",
+        "results": "loss-v29-results.json",
+        "passed": 12,
+        "failed": 0
+      },
+      {
+        "suite": "Independent loss edge review",
+        "script": "loss_edge_review_v29_checks.js",
+        "results": "loss-edge-review-v29-results.json",
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "suite": "Controls, RCSA, vendor lifecycle and risk editing",
+        "script": "workflow_v29_checks.js",
+        "results": "workflow-v29-results.json",
+        "passed": 14,
+        "failed": 0
+      },
+      {
+        "suite": "Forms, Documents, privacy, Work and source handoffs",
+        "script": "flow_v29_checks.js",
+        "results": "flow-v29-results.json",
+        "passed": 25,
+        "failed": 0
+      },
+      {
+        "suite": "Loss reporting and captured context",
+        "script": "loss_reports_v29_checks.js",
+        "results": "loss-reports-v29-results.json",
+        "passed": 18,
+        "failed": 0
+      },
+      {
+        "suite": "Named assessment identity, history and review",
+        "script": "assessment_v210_checks.js",
+        "results": "assessment-v210-results.json",
+        "passed": 22,
+        "failed": 0
+      },
+      {
+        "suite": "Unified Documents and contextual review",
+        "script": "documents_v210_checks.js",
+        "results": "documents-v210-results.json",
+        "passed": 12,
+        "failed": 0
+      },
+      {
+        "suite": "Vendor intake through reviewed activation",
+        "script": "vendor_onboarding_v210_checks.js",
+        "results": "vendor-onboarding-v210-results.json",
+        "passed": 15,
+        "failed": 0
+      },
+      {
+        "suite": "Independent V2.10 crossflow and reporting review",
+        "script": "v210_crossflow_checks.js",
+        "results": "v210-crossflow-results.json",
+        "passed": 16,
+        "failed": 0
+      }
+    ]
+  },
+  "routeActionChecks": {
+    "passed": 83,
+    "failed": 0,
+    "entryRoutes": 73,
+    "reportPerspectives": 10
+  },
+  "compilation": {
+    "javascriptModules": 26,
+    "standaloneScriptBlocks": 2,
+    "status": "PASS"
+  },
+  "build": {
+    "entryPoints": 73,
+    "linkedAssetReferences": 3358,
+    "standaloneBytes": 1494159,
+    "externalStandaloneJsCss": false,
+    "defaultRoute": "programs"
+  },
+  "browserValidation": {
+    "status": "BLOCKED",
+    "limitations": [
+      "Chromium process/socket restrictions",
+      "Cloud browser local-file navigation policy"
+    ],
+    "notClaimed": [
+      "Rendered visual/mobile layout",
+      "Browser file storage",
+      "Browser downloads",
+      "Print-to-PDF"
+    ]
+  },
+  "historicalArtifacts": "V2.9 handoff documents, pre-V2.10 flow/workflow fixtures, V2.7 screenshots and older browser results are retained explicitly as history; current authoritative suites are listed above."
+}

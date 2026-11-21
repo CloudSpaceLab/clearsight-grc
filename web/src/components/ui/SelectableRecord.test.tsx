@@ -4,6 +4,16 @@ import { SelectableRecord } from "./SelectableRecord";
 import { StatusBadge } from "./StatusBadge";
 
 describe("SelectableRecord", () => {
+  it("provides a surface record without changing its selection action", () => {
+    const onPress = vi.fn();
+    render(<SelectableRecord variant="surface" title="Published edition" metadata="Global" onPress={onPress}/>);
+    const record = screen.getByRole("button", { name: /Published edition/ });
+    expect(record.classList.contains("cs-selectable-record--surface")).toBe(true);
+    expect(record.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(record);
+    expect(onPress).toHaveBeenCalledOnce();
+  });
+
   it("announces selection and preserves the record hierarchy", () => {
     const onPress = vi.fn();
     render(<SelectableRecord

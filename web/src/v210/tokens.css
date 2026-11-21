@@ -1,0 +1,80 @@
+/* Ordered token cascade for the active v2.15 runtime. */
+@layer v210-tokens.primitive, v210-tokens.semantic, v210-tokens.component;
+@layer v210-tokens.primitive {
+  :root {
+    --v-primitive-canvas: #f2f6fc;
+    --v-primitive-surface: #fff;
+    --v-primitive-ink: #18335e;
+    --v-primitive-border: #e0e9f5;
+    --v-primitive-panel-border: #dce7f5;
+    --v-primitive-panel-radius: 14px;
+    --v-primitive-panel-shadow: 0 8px 18px #24477308;
+    --v-primitive-focus: #70a7ff;
+    --v-primitive-action: #246cf0;
+    --v-primitive-control-height: 44px;
+    --v-primitive-control-radius: 8px;
+    --v-primitive-overlay: #10295088;
+    --v-primitive-layer-sheet-header: 2;
+    --v-primitive-status-text: #577292;
+    --v-primitive-status-background: #f1f5fb;
+    --v-primitive-danger-text: #a03535;
+    --v-primitive-danger-background: #fff0ee;
+  }
+}
+@layer v210-tokens.semantic {
+  :root {
+    --v-color-canvas: var(--v-primitive-canvas);
+    --v-color-surface: var(--v-primitive-surface);
+    --v-color-text: var(--v-primitive-ink);
+    --v-color-border: var(--v-primitive-border);
+    --v-color-panel-border: var(--v-primitive-panel-border);
+    --v-radius-panel: var(--v-primitive-panel-radius);
+    --v-shadow-panel: var(--v-primitive-panel-shadow);
+    --v-color-focus: var(--v-primitive-focus);
+    --v-color-action: var(--v-primitive-action);
+    --v-color-action-text: var(--v-primitive-surface);
+    --v-control-height: var(--v-primitive-control-height);
+    --v-radius-control: var(--v-primitive-control-radius);
+    --v-color-overlay: var(--v-primitive-overlay);
+    --v-layer-sheet-header: var(--v-primitive-layer-sheet-header);
+    --v-color-status-text: var(--v-primitive-status-text);
+    --v-color-status-background: var(--v-primitive-status-background);
+    --v-color-danger-text: var(--v-primitive-danger-text);
+    --v-color-danger-background: var(--v-primitive-danger-background);
+  }
+}
+@layer v210-tokens.component {
+  :root {
+    --v-shell-background: var(--v-color-canvas);
+    --v-shell-surface: var(--v-color-surface);
+    --v-shell-text: var(--v-color-text);
+    --v-shell-border: var(--v-color-border);
+    --v-panel-border: var(--v-color-panel-border);
+    --v-panel-background: var(--v-color-surface);
+    --v-panel-radius: var(--v-radius-panel);
+    --v-panel-shadow: var(--v-shadow-panel);
+    --v-focus-color: var(--v-color-focus);
+    --v-button-primary-background: var(--v-color-action);
+    --v-button-primary-text: var(--v-color-action-text);
+    --v-button-height: var(--v-control-height);
+    --v-button-radius: var(--v-radius-control);
+    --v-button-secondary-border: var(--v-color-panel-border);
+    --v-button-secondary-background: var(--v-color-surface);
+    --v-button-secondary-text: var(--v-color-text);
+    --v-field-border: var(--v-color-panel-border);
+    --v-field-background: var(--v-color-surface);
+    --v-field-text: var(--v-color-text);
+    --v-field-height: var(--v-control-height);
+    --v-field-radius: var(--v-radius-control);
+    --v-sheet-background: var(--v-color-surface);
+    --v-sheet-text: var(--v-color-text);
+    --v-sheet-border: var(--v-color-border);
+    --v-sheet-backdrop: var(--v-color-overlay);
+    --v-sheet-close-size: var(--v-control-height);
+    --v-sheet-header-layer: var(--v-layer-sheet-header);
+    --v-status-text: var(--v-color-status-text);
+    --v-status-background: var(--v-color-status-background);
+    --v-status-high-text: var(--v-color-danger-text);
+    --v-status-high-background: var(--v-color-danger-background);
+  }
+}

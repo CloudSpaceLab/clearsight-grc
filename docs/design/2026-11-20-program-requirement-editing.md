@@ -1,0 +1,19 @@
+# Program requirement editing and applicability
+
+Status: partial 2.9 integration; the production Program workspace retains its existing layout and authority routes.
+
+An authorized owner opens **Edit requirement** from the requirement itself. The title and text are editable, with existing source and obligation fields retained. Saving uses the existing supersession command: the old requirement remains in history, the new version receives its own effective date, and the reason for the change remains required. The editing form receives keyboard focus and returns focus to its entry point on cancellation. Other requirement actions are hidden while the form is open.
+
+An authorized applicability decision starts with no answer selected. **Not applicable** reveals a required reason beside the choice; partial, deferred and undecided outcomes retain a separately labelled required reason. **Yes** does not ask for a reason. Changing the selected status clears the previous reason. The backend accepts a blank `rationale` only for `APPLICABLE`; it continues to require a reason for other statuses, verifies identity and authority through the existing material-command route, and retains the decision and actor in the existing event. No new table or migration is required. Deploy this compatible backend change before the new UI; the previous UI still sends reasons and remains compatible. Rolling the frontend back does not remove recorded decisions.
+
+The attached examples are from the 2.9 local prototype. Its `assets/forms.js` appends the assessment-form panel after the adoption view has already emitted its step footer; that source structure explains why those controls appear in a confusing order. The source is hash-pinned and remains immutable, and that prototype adoption wizard is not yet the production workflow. The runtime changes prevent competing requirement actions and the recorded browser checks verify non-overlapping form buttons, but they do not claim that the separate prototype footer has been changed.
+
+`docs/evidence/2026-11-20-requirement-editor/` records the user-provided before references, synthetic runtime captures and responsive checks. Production visual acceptance and a real authorization/transaction review remain separate.
+
+## V2.10 Program requirement configuration
+
+The new Program view now reads allowed operations for the exact Program version. Authorized users can change the title or text as a versioned supersession, preserving the existing source, modality and actor/action/object fields, or record an applicability decision with optional scope. Not applicable, partial, pending assessment and applies later require a reason; yes does not. Recorded decisions remain visible as history and do not imply a current scoped conclusion. A failed or stale authority read hides commands. A lost command result requires a Program reload instead of an automatic retry.
+
+An active framework adoption can show source clause matches and request a link to a suggested existing requirement. Creating a link requires a complete loaded link list, current matching Program version, current operation authority and a reason; independent approval or rejection uses the corresponding authority and Program version. Clause matches are suggestions, not applicability or compliance conclusions. Program updates are serialized within the component. The user-facing form does not expose the incomplete API/manual adoption question draft.
+
+The isolated sample Program forms and link proposal were captured at 1440, 1280, 1024, 768 and 390 pixels under `docs/evidence/2026-11-20-v210-program-requirements/`. The script checks conditional rationale, focus return and horizontal overflow. The 390px applicability and link renders were inspected. Captures do not establish live command execution, authority routing, source reconciliation, dark mode or full-screen acceptance.

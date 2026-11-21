@@ -1,0 +1,9 @@
+# v2.10 Documents replacement — partial
+
+The standalone Documents workspace adopts the v2.10 heading, local review navigation, file-type rail, search and results composition. It uses existing authorized submitted-document reads and shared controls. The file-type rail is backed by actual MIME filtering; it does not reproduce the prototype's synthetic folders. Upload and universal review actions remain absent until their backend contracts exist. The embedded document picker retains its existing scope.
+
+Reference: `clearsight-v2.10/documents.html`, SHA-256 `951644972ad207e8f69d42eb5e7521a5bb26c5007dbc14e65b1aa7018e8157d2`. Reference data is synthetic. The existing runtime before replacement was captured as `compare-docs-app-1440.png` and `compare-docs-app-390.png`; matching reference captures are `compare-docs-ref-1440.png` and `compare-docs-ref-390.png` in the 2026-11-20 Codex visualization directory. The post-change captures and interaction results are in its `documents-after` directory.
+
+The evidence fixture contains six submitted sample files and intentionally does not claim a complete document catalog or universal assessment-review coverage. The review tabs disclose that only recorded vendor assessment reviews are available. Current and historical occurrences remain distinct. Missing review and invalid expiry are unknown.
+
+The updated browser check covers light and dark themes at 1440, 1280, 1024, 768 and 390 pixels, first-record visibility, horizontal overflow, search, keyboard preview and focus return, review navigation, and empty/unavailable states. Desktop and mobile renders were inspected by Codex; the shell and record density still differ from v2.10, and this is not screen acceptance or production cutover approval. Authorization, access revocation and production-scale query performance require their existing independent release evidence.

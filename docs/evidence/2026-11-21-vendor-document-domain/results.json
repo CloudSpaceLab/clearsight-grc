@@ -1,0 +1,29 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "emptyDocumentLinkDisabled": true
+    },
+    {
+      "width": 1280,
+      "overflow": false,
+      "emptyDocumentLinkDisabled": true
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "emptyDocumentLinkDisabled": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "emptyDocumentLinkDisabled": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "emptyDocumentLinkDisabled": true
+    }
+  ]
+}

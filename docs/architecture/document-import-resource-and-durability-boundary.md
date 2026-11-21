@@ -3,6 +3,17 @@
 **Status:** implemented by #32 P1.5  
 **Scope:** governed document intake, bounded extraction, proposal review, restart/retry truth
 
+**21 November 2026 authority correction:** the HTTP import creation route is
+temporarily unavailable. A verified identity alone does not establish the
+current authority required for this material operation, and the artifact write,
+authority decision and durable import receipt do not yet share a complete
+transaction and recovery contract. The same gate applies to source-derived
+actions. Actor-scoped list and detail reads remain separately available through
+their bounded authorized queries. Re-enable creation only after transaction-bound
+authority, time validity, all authority writers and artifact compensation have
+been verified. The earlier flow description below describes the processing
+implementation, not current production availability.
+
 ## 1. Canonical flow
 
 Production PostgreSQL document intake uses the existing artifact store and runtime outbox rather than a second document-job framework:

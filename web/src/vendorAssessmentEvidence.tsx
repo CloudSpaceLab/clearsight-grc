@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormTemplate } from "./monitoringTypes";
 import type { ResponseAssessmentDetail } from "./formAssessmentApi";
+import type { ResponseReviewRecord } from "./responseReviewApi";
 import type { VendorFormRow, VendorRequestInput } from "./vendorFormsApi";
 import { FormBuilder } from "./components/FormBuilder";
 import { ResponseAssessment } from "./components/forms/ResponseAssessment";
@@ -37,6 +38,7 @@ export function installVendorAssessmentEvidence() {
   if (!params.get("fixture")?.startsWith("vendor-form-assessment") && params.get("fixture") !== "field-assessment-builder" && params.get("fixture") !== "field-assessment-review") return;
   const previousFetch = globalThis.fetch.bind(globalThis);
   const assessments = new Map<string, ResponseAssessmentDetail>();
+  const responseReviews = new Map<string, ResponseReviewRecord[]>();
   const attempts = new Map<string, number>();
   globalThis.fetch = async (input, init) => {
     const raw = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -77,6 +79,19 @@ export function installVendorAssessmentEvidence() {
       const rows = sampleRows.filter((row) => !selectedFilter || selectedFilter === "AWAITING_VENDOR" && row.response_state !== "SUBMITTED" || selectedFilter === "AWAITING_REVIEW" && row.assessment_state === "AWAITING_REVIEW" || selectedFilter === "OVERDUE" && row.request_id === "sample-missing-request" || selectedFilter === "NOT_ASSESSED" && row.assessment_state !== "ASSESSED" || (selectedFilter === "WITH_RISKS" || selectedFilter === "HIGH_RISK") && row.response_state === "SUBMITTED");
       const relationshipID = decodeURIComponent(path.split("/")[4]!);
       return json({ items: empty ? [] : rows.map((row) => ({ ...row, response_currency: partial && row.request_id === "sample-certificate-request" ? "PARTIALLY_REPLACED" : "CURRENT", relationship_id: relationshipID, response_id: row.response_id ? `${row.response_id}:${relationshipID}` : undefined })), observed_at: now });
+    }
+    const review = /^\/api\/v1\/forms\/responses\/([^/]+)\/review$/.exec(path);
+    if (review) {
+      const id = decodeURIComponent(review[1]!);
+      const entries = responseReviews.get(id) ?? [];
+      if (method === "POST") {
+        const body = JSON.parse(String(init?.body ?? "{}"));
+        if (body.expected_version !== entries.length) return json({ error: "response_review_changed", message: "Review changed. Reload before saving." }, 409);
+        const entry: ResponseReviewRecord = { id: `sample-response-review-${entries.length + 1}`, version: entries.length + 1, decision: body.decision, comment: body.comment, reviewer_id: "sample-risk-reviewer", reviewer_display_name: "Sample Risk Reviewer", reviewed_at: now };
+        responseReviews.set(id, [entry, ...entries]);
+        return json(entry);
+      }
+      return json({ version: entries.length, may_review: !id.includes("historical"), items: entries });
     }
     const match = /^\/api\/v1\/forms\/responses\/([^/]+)\/assessment$/.exec(path);
     if (match) {

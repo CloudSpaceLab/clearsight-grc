@@ -5,6 +5,8 @@ import { ResponsesView } from "./ResponsesView";
 vi.mock("../documents/DocumentBrowser", () => ({ DocumentBrowser: ({ responseRevisionID }: { responseRevisionID?: string }) => <section aria-label={`Documents for ${responseRevisionID}`}/> }));
 const assessmentApi = vi.hoisted(() => ({ loadResponseAssessment: vi.fn(), recordResponseAssessment: vi.fn() }));
 vi.mock("../../formAssessmentApi", () => assessmentApi);
+const reviewApi = vi.hoisted(() => ({ loadResponseReviews: vi.fn(), recordResponseReview: vi.fn() }));
+vi.mock("../../responseReviewApi", () => reviewApi);
 
 it("opens documents belonging to the selected submitted version", async () => {
   render(<ResponsesView/>);
@@ -33,6 +35,7 @@ const completedResponse = {
 } as const;
 
 beforeEach(() => {
+  reviewApi.loadResponseReviews.mockReset().mockResolvedValue({ version: 0, may_review: true, items: [] });
   Object.values(subjects).forEach((mock) => mock.mockReset().mockRejectedValue(new Error("Subject unavailable")));
   window.history.replaceState(null, "", "/#forms");
   for (const value of Object.values(distributionApi)) value.mockReset();
@@ -49,6 +52,16 @@ beforeEach(() => {
 });
 
 describe("completed response portfolio", () => {
+  it("shows response review beside submitted answers and retains one review panel across tabs", async () => {
+    render(<ResponsesView/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Review Vendor certification refresh response" }));
+    expect(await screen.findByRole("region", { name: "Response review" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Mark reviewed" })).toBeTruthy();
+    expect(await screen.findByText("Certificate")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Review" }));
+    await screen.findByRole("region", { name: "Assessment" });
+    expect(screen.getAllByRole("region", { name: "Response review" })).toHaveLength(1);
+  });
   it("refreshes results when the already-active sort header is pressed", async () => {
     render(<ResponsesView/>);
     await screen.findByText(completedResponse.title);

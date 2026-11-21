@@ -1,0 +1,55 @@
+{
+  "results": [
+    {
+      "name": "Hierarchical selection, exact scope totals, descendant resets and child-to-parent resolution",
+      "status": "PASS",
+      "seconds": 1.5
+    },
+    {
+      "name": "Loss drill-down, period/navigation consistency and persisted scope serialization",
+      "status": "PASS",
+      "seconds": 0.99
+    },
+    {
+      "name": "Zero-loss and zero-risk scopes, out-of-scope detail guard, shared template exception",
+      "status": "PASS",
+      "seconds": 0.73
+    },
+    {
+      "name": "Create a blank form, edit questions/grid directly, publish and preview",
+      "status": "PASS",
+      "seconds": 1.64
+    },
+    {
+      "name": "Direct table headings, one-column editor and published-version isolation",
+      "status": "PASS",
+      "seconds": 0.98
+    },
+    {
+      "name": "Focused connected-data setup, sample test, saved threshold and unknown-source semantics",
+      "status": "PASS",
+      "seconds": 1.02
+    },
+    {
+      "name": "Per-column automation and cancel-safe staged column edits",
+      "status": "PASS",
+      "seconds": 1.1
+    },
+    {
+      "name": "Progressive question rules, conditional visibility and existing calculated grid answers",
+      "status": "PASS",
+      "seconds": 0.63
+    },
+    {
+      "name": "Grid, column editor, technical-source dialog and dark theme across four widths",
+      "status": "PASS",
+      "seconds": 2.0
+    }
+  ],
+  "javascript_errors": [],
+  "passed": 9,
+  "failed": 0,
+  "browser": "Chromium",
+  "origin": "inline set_content; storage test double",
+  "scope_route_viewport_combinations": 0
+}

@@ -64,6 +64,71 @@ jobs:
           done
           cat /tmp/clearsight-ui-preview.log
           exit 1
+      - name: Capture v2.10 form and vendor document states
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210
+        run: node scripts/v210-form-choices-vendor-evidence.mjs
+      - name: Capture v2.10 framework library
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/frameworks
+        run: node scripts/v210-framework-evidence.mjs
+      - name: Capture v2.10 requirement configuration
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/requirements
+        run: node scripts/v210-program-requirements-evidence.mjs
+      - name: Capture v2.10 domain workspaces
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/domains
+        run: node scripts/v210-domain-evidence.mjs
+      - name: Capture v2.10 vendor intake
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/vendor-intake
+        run: node scripts/v210-vendor-intake-wizard-evidence.mjs
+      - name: Capture v2.10 shell focus and wrapping
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/shell-contract
+        run: node scripts/v210-shell-contract-evidence.mjs
+      - name: Verify v2.15 mobile navigation
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/shell-navigation
+        run: node scripts/v215-shell-navigation-evidence.mjs
+      - name: Verify v2.15 focused sheet
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/focused-sheet
+        run: node scripts/v215-focused-sheet-evidence.mjs
+      - name: Verify v2.15 shared field tokens
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/field-tokens
+        run: node scripts/v215-field-tokens-evidence.mjs
+      - name: Verify v2.15 status tokens
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/status-tokens
+        run: node scripts/v215-status-tokens-evidence.mjs
+      - name: Verify v2.15 admin dashboard
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/admin-dashboard
+        run: node scripts/v215-admin-dashboard-evidence.mjs
+      - name: Capture v2.10 API question guidance
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/api-question
+        run: node scripts/v210-api-question-wizard-evidence.mjs
+      - name: Capture v2.10 key indicators
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence-v210/indicators
+        run: node scripts/v210-indicators-evidence.mjs
       - name: Run deterministic UI/UX flow review
         env:
           PAGE_URL: http://127.0.0.1:4173
@@ -103,6 +168,26 @@ jobs:
         with:
           name: ui-ux-flow-review-${{ github.sha }}
           path: |
+            web/ui-evidence-v210/*.png
+            web/ui-evidence-v210/*.json
+            web/ui-evidence-v210/frameworks/*.png
+            web/ui-evidence-v210/frameworks/*.json
+            web/ui-evidence-v210/requirements/*.png
+            web/ui-evidence-v210/requirements/*.json
+            web/ui-evidence-v210/domains/**
+            web/ui-evidence-v210/indicators/*.png
+            web/ui-evidence-v210/indicators/*.json
+            web/ui-evidence-v210/api-question/*.png
+            web/ui-evidence-v210/api-question/*.json
+            web/ui-evidence-v210/vendor-intake/*.png
+            web/ui-evidence-v210/vendor-intake/*.json
+            web/ui-evidence-v210/shell-contract/*.png
+            web/ui-evidence-v210/shell-contract/*.json
+            web/ui-evidence-v210/shell-navigation/*.png
+            web/ui-evidence-v210/shell-navigation/*.json
+            web/ui-evidence-v210/status-tokens/**
+            web/ui-evidence-v210/field-tokens/**
+            web/ui-evidence-v210/admin-dashboard/**
             web/ui-evidence/*.png
             web/ui-evidence/configuration/*.png
             web/ui-evidence/approved-reference/*.png

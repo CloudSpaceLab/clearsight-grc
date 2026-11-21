@@ -1,0 +1,19 @@
+.v-vendor-review .v-local-nav span { min-height: 44px; padding: 13px 12px; border-bottom: 2px solid #246cf0; color: #246cf0; font-size: 13px; font-weight: 600; }
+.v-vendor-review-content { display: contents; }
+.v-vendor-review .v-vendor-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.v-vendor-review .v-vendor-answers { margin-top: 16px; }
+.v-vendor-review .v-vendor-answers ul { margin: 12px 0 24px; padding: 0; list-style: none; }
+.v-vendor-review .v-vendor-answers li { padding: 14px 0; border-top: 1px solid #e5edf7; }
+.v-vendor-review .v-vendor-answers li p { margin: 6px 0 0; }
+.v-vendor-review textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid #dce7f5; border-radius: 8px; resize: vertical; }
+.v-vendor-review .v-vendor-activation { margin-top: 16px; }
+.v-vendor-review .v-vendor-findings { margin-top: 16px; }
+.v-vendor-findings > ul { margin: 16px 0; padding: 0; list-style: none; }
+.v-vendor-findings > ul li { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid #e5edf7; font-size: 13px; }
+.v-vendor-findings > ul li span { color: #627b9f; }
+.v-vendor-findings form { margin-top: 16px; }
+.v-vendor-review button:not(.v-primary):not(.v-back-button) { min-height: 44px; padding: 0 14px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-vendor-clarification fieldset { margin: 0; padding: 8px 12px; border: 1px solid #dce7f5; border-radius: 8px; }
+.v-vendor-clarification fieldset label { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.v-vendor-clarification fieldset input { width: 18px; min-height: 18px; height: 18px; }
+@media (max-width: 600px) { .v-vendor-review .v-vendor-summary { flex-direction: column; } }

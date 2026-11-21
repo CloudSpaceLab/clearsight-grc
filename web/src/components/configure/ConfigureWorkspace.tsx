@@ -45,6 +45,7 @@ export function ConfigureWorkspace({ importsEnabled, canReconcileProjection, onO
   if (enterpriseSetupRoute(hash)) return <EnterpriseSetupSection hash={hash} onNavigate={navigate} runtimeContext={runtimeContext} importsEnabled={importsEnabled} onOpenImports={onOpenImports}/>;
   if (section === "access" || section === "authority") return <PeopleAccessSection hash={hash} onNavigate={navigate} runtimeContext={runtimeContext}/>;
   if (section === "automation") return <AutomationSection hash={hash} onNavigate={navigate} runtimeContext={runtimeContext}/>;
+  if (section === "data") return <DataIntegrationsSection hash={hash} onNavigate={navigate} importsEnabled={importsEnabled} onOpenImports={onOpenImports}/>;
 
   return <div className="configure-workspace" id="configure-workspace">
     <header className="topbar configure-topbar">
@@ -54,7 +55,6 @@ export function ConfigureWorkspace({ importsEnabled, canReconcileProjection, onO
       <ConfigureNavigation active={section} onSelect={select}/>
       <section className="configure-content" aria-label="Selected configuration area">
         {section === "overview" && <ConfigureOverview importsEnabled={importsEnabled} onOpen={select}/>} 
-        {section === "data" && <DataIntegrationsSection importsEnabled={importsEnabled} onOpenImports={onOpenImports}/>} 
         {section === "ai" && <AIGovernanceSection/>}
         {section === "operations" && <SystemOperationsSection canReconcile={canReconcileProjection}/>} 
       </section>

@@ -11,7 +11,6 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
 func (a *API) evidenceService(w http.ResponseWriter) (*evidence.Service, bool) {
@@ -68,12 +67,6 @@ func (a *API) createEvidenceSource(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "source_invalid", err.Error())
 		return
-	}
-	if a.deps.SourceCatalog != nil {
-		if err := a.deps.SourceCatalog.RegisterSourceScope(r.Context(), sourceaccess.SourceScope{TenantID: value.TenantID, SourceID: value.ID}); err != nil {
-			httpx.WriteError(w, http.StatusInternalServerError, "source_registration_failed", "The source was created but could not be prepared for connection setup.")
-			return
-		}
 	}
 	httpx.WriteJSON(w, http.StatusCreated, value)
 }

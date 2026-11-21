@@ -1,25 +1,12 @@
-import { lazy, StrictMode, Suspense } from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { consumeCaptureInvitation } from "./captureInvitationBrowser";
-import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
-import { DisplayPreferencesRoot } from "./components/DisplayPreferences";
-import { SessionGate } from "./components/SessionGate";
-import { runtimePresentation } from "./runtimePresentation";
-import "./appStyles";
+import { FreshApp } from "./v210/FreshApp";
+import { Capture } from "./v210/Capture";
+import "./v210/fresh.css";
 
-const App = lazy(() => import("./App"));
+const invitation = consumeCaptureInvitation(window);
+const root = document.getElementById("root");
+if (!root) throw new Error("Application root is missing");
 
-bootstrapApplication();
-
-function bootstrapApplication() {
-  const invitationToken = consumeCaptureInvitation(window);
-  const root = document.getElementById("root");
-  if (!root) throw new Error("Application root is missing");
-
-  const presentation = runtimePresentation(window.location.search);
-  const application = invitationToken !== null
-    ? <DisplayPreferencesRoot><ExternalCaptureApp invitationToken={invitationToken}/></DisplayPreferencesRoot>
-    : <SessionGate presentation={presentation}><DisplayPreferencesRoot><Suspense fallback={<p role="status">Loading the ClearSight workspace…</p>}><App presentation={presentation}/></Suspense></DisplayPreferencesRoot></SessionGate>;
-
-  createRoot(root).render(<StrictMode>{application}</StrictMode>);
-}
+createRoot(root).render(<StrictMode>{invitation !== null ? <Capture invitationToken={invitation}/> : <FreshApp/>}</StrictMode>);

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -22,7 +23,7 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close)
 
 	const (
 		tenantID          = "9f555555-5555-7555-8555-555555555551"
@@ -37,8 +38,8 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 	// Actor visibility uses database now(), so keep this integration fixture
 	// relative to the executing database clock rather than a wall-clock date.
 	now := time.Now().UTC().Truncate(time.Second)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	cleanupEvidenceWorkTenant(t, pool, tenantID)
+	t.Cleanup(func() { cleanupEvidenceWorkTenant(t, pool, tenantID) })
 
 	mustExecEvidenceWork(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'evidence-work-test','Evidence Work Test')`, tenantID)
 	mustExecEvidenceWork(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG',$3)`, entityID, tenantID, now.Add(-24*time.Hour))
@@ -155,6 +156,85 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 	assertEvidenceWorkCardinality(t, ctx, pool, tenantID, 1, 1)
 }
 
+func TestProgramFormWorkRespectsCurrentRestrictedScope(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+	const tenant = "9f666666-6666-7666-8666-666666666661"
+	const entity = "9f666666-6666-7666-8666-666666666662"
+	const owner = "9f666666-6666-7666-8666-666666666663"
+	const recipient = "9f666666-6666-7666-8666-666666666664"
+	const program = "9f666666-6666-7666-8666-666666666665"
+	const request = "9f666666-6666-7666-8666-666666666666"
+	now := time.Now().UTC().Truncate(time.Second)
+	cleanupEvidenceWorkTenant(t, pool, tenant)
+	t.Cleanup(func() { cleanupEvidenceWorkTenant(t, pool, tenant) })
+	mustExecEvidenceWork(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'program-response-work','Bank')`, tenant)
+	mustExecEvidenceWork(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'BANK','Bank','NG',$3)`, entity, tenant, now.Add(-time.Hour))
+	mustExecEvidenceWork(t, ctx, pool, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$3::uuid,'PERSON','Owner','ACTIVE',$4),($2::uuid,$3::uuid,'PERSON','Respondent','ACTIVE',$4)`, owner, recipient, tenant, now.Add(-time.Hour))
+	mustExecEvidenceWork(t, ctx, pool, `INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,scope,effective_from) VALUES($1::uuid,$2::uuid,$3::uuid,'SECURE','Restricted Program','COMPLIANCE','ACTIVE','Risk',$4::jsonb,$5)`, program, tenant, entity, restrictedScope(recipient), now.Add(-time.Hour))
+	mustExecEvidenceWork(t, ctx, pool, `INSERT INTO capture_requests(id,tenant_id,legal_entity_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,recipient_type,recipient_principal_id,recipient_state,recipient_revision,estimated_minutes,deadline,known_facts,fields,status,created_by,version,created_at,updated_at) VALUES($1::uuid,$2::uuid,$3::uuid,'PROGRAM',$4,'Provide a response','Review control results.','Assigned respondent.','RESTRICTED','INTERNAL','INTERNAL_PRINCIPAL',$5::uuid,'ASSIGNED',1,3,$6,'{}','[{"id":"answer","label":"Answer","type":"text"}]','READY',$7::uuid,1,$8,$8)`, request, tenant, entity, program, recipient, now.Add(time.Hour), owner, now)
+	repo := NewPostgresRepository(pool)
+	projector := &EvidenceRequestProjector{Repo: repo}
+	service := NewService(repo)
+	if count, err := projector.Maintain(ctx, now, 20); err != nil || count != 1 {
+		t.Fatalf("initial projection=%d err=%v", count, err)
+	}
+	query := ActorWorkPageQuery{TenantID: tenant, LegalEntityID: entity, PrincipalID: recipient, Limit: 10}
+	page, err := service.ListActorWorkPage(ctx, query)
+	if err != nil || len(page.Items) != 1 {
+		t.Fatalf("allowed work=%+v err=%v", page, err)
+	}
+	mustExecEvidenceWork(t, ctx, pool, `UPDATE programs SET scope=$2::jsonb WHERE id=$1::uuid`, program, restrictedScope(owner))
+	page, err = service.ListActorWorkPage(ctx, query)
+	if err != nil || len(page.Items) != 0 {
+		t.Fatalf("restricted work leaked before projection=%+v err=%v", page, err)
+	}
+	counts, err := service.ReadActorWorkDueCounts(ctx, tenant, entity, recipient)
+	if err != nil || counts.Total != 0 {
+		t.Fatalf("restricted count=%+v err=%v", counts, err)
+	}
+	if count, err := projector.Maintain(ctx, now, 20); err != nil || count != 1 {
+		t.Fatalf("scope loss projection=%d err=%v", count, err)
+	}
+	mustExecEvidenceWork(t, ctx, pool, `UPDATE programs SET scope=$2::jsonb WHERE id=$1::uuid`, program, restrictedScope(recipient))
+	if count, err := projector.Maintain(ctx, now, 20); err != nil || count != 1 {
+		t.Fatalf("scope restored projection=%d err=%v", count, err)
+	}
+	page, err = service.ListActorWorkPage(ctx, query)
+	if err != nil || len(page.Items) != 1 {
+		t.Fatalf("restored work=%+v err=%v", page, err)
+	}
+	mustExecEvidenceWork(t, ctx, pool, `UPDATE programs SET scope=$2::jsonb WHERE id=$1::uuid`, program, fmt.Sprintf(`{"access":"RESTRICTED","allowed_principal_ids":["%s",7]}`, recipient))
+	page, err = service.ListActorWorkPage(ctx, query)
+	if err != nil || len(page.Items) != 0 {
+		t.Fatalf("malformed restricted scope=%+v err=%v", page, err)
+	}
+	if count, err := projector.Maintain(ctx, now, 20); err != nil || count != 1 {
+		t.Fatalf("malformed scope projection=%d err=%v", count, err)
+	}
+	mustExecEvidenceWork(t, ctx, pool, `DELETE FROM programs WHERE id=$1::uuid`, program)
+	page, err = service.ListActorWorkPage(ctx, query)
+	if err != nil || len(page.Items) != 0 {
+		t.Fatalf("missing program work=%+v err=%v", page, err)
+	}
+	mustExecEvidenceWork(t, ctx, pool, `UPDATE capture_requests SET subject_id='invalid-program-id' WHERE id=$1::uuid`, request)
+	if _, err := projector.Maintain(ctx, now, 20); err != nil {
+		t.Fatalf("malformed program identifier: %v", err)
+	}
+	page, err = service.ListActorWorkPage(ctx, query)
+	if err != nil || len(page.Items) != 0 {
+		t.Fatalf("malformed program work=%+v err=%v", page, err)
+	}
+}
+
 func restrictedScope(principalID string) string {
 	return fmt.Sprintf("{\"access\":\"RESTRICTED\",\"allowed_principal_ids\":[\"%s\"]}", principalID)
 }
@@ -195,5 +275,19 @@ func mustExecEvidenceWork(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 	t.Helper()
 	if _, err := pool.Exec(ctx, query, args...); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func cleanupEvidenceWorkTenant(t *testing.T, pool *pgxpool.Pool, tenant string) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(), `BEGIN; SET LOCAL session_replication_role='replica'; SELECT set_config('clearsight.test_cleanup_tenant',$1,true);
+DO $$ DECLARE tab record; BEGIN
+ FOR tab IN SELECT c.table_schema,c.table_name FROM information_schema.columns c JOIN information_schema.tables t ON t.table_schema=c.table_schema AND t.table_name=c.table_name WHERE c.table_schema='public' AND c.column_name='tenant_id' AND t.table_type='BASE TABLE' LOOP
+ EXECUTE format('DELETE FROM %I.%I WHERE tenant_id=current_setting(''clearsight.test_cleanup_tenant'')::uuid',tab.table_schema,tab.table_name);
+ END LOOP;
+END $$;
+DELETE FROM tenants WHERE id=$1::uuid; COMMIT`, pgx.QueryExecModeSimpleProtocol, tenant)
+	if err != nil {
+		t.Fatalf("cleanup test tenant: %v", err)
 	}
 }

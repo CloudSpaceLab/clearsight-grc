@@ -1,0 +1,62 @@
+[
+  {
+    "name": "reference",
+    "width": 1440,
+    "heading": "Documents",
+    "overflow": false
+  },
+  {
+    "name": "before",
+    "width": 1440,
+    "heading": "Forms",
+    "overflow": false
+  },
+  {
+    "name": "reference",
+    "width": 1280,
+    "heading": "Documents",
+    "overflow": false
+  },
+  {
+    "name": "before",
+    "width": 1280,
+    "heading": "Forms",
+    "overflow": false
+  },
+  {
+    "name": "reference",
+    "width": 1024,
+    "heading": "Documents",
+    "overflow": false
+  },
+  {
+    "name": "before",
+    "width": 1024,
+    "heading": "Forms",
+    "overflow": false
+  },
+  {
+    "name": "reference",
+    "width": 768,
+    "heading": "Documents",
+    "overflow": false
+  },
+  {
+    "name": "before",
+    "width": 768,
+    "heading": "Forms",
+    "overflow": false
+  },
+  {
+    "name": "reference",
+    "width": 390,
+    "heading": "Documents",
+    "overflow": false
+  },
+  {
+    "name": "before",
+    "width": 390,
+    "heading": "Forms",
+    "overflow": false
+  }
+]

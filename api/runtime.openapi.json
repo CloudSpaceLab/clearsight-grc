@@ -1557,6 +1557,7 @@
       "get": {
         "operationId": "listRisks",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
         "parameters": [
           {
             "name": "status",
@@ -1664,6 +1665,7 @@
       "get": {
         "operationId": "getRisk",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
         "parameters": [
           {
             "name": "id",
@@ -1764,6 +1766,7 @@
       "get": {
         "operationId": "getRopaDashboard",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "PRIVACY_READ",
         "parameters": [
           {
             "name": "tenant_id",
@@ -1795,6 +1798,7 @@
       "get": {
         "operationId": "listRopaProcessingActivities",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "PRIVACY_READ",
         "parameters": [
           {
             "name": "tenant_id",
@@ -1913,13 +1917,15 @@
           "default": {
             "description": "The processing activity could not be created."
           }
-        }
+        },
+        "x-clearsight-permission": "PRIVACY_READ"
       }
     },
     "/api/v1/ropa/processing-activities/{id}": {
       "get": {
         "operationId": "getRopaProcessingActivity",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "PRIVACY_READ",
         "parameters": [
           {
             "name": "id",
@@ -1991,13 +1997,15 @@
           "default": {
             "description": "The processing activity could not be updated."
           }
-        }
+        },
+        "x-clearsight-permission": "PRIVACY_READ"
       }
     },
     "/api/v1/ropa/processing-activities/{id}/history": {
       "get": {
         "operationId": "getRopaProcessingActivityHistory",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "PRIVACY_READ",
         "parameters": [
           {
             "name": "id",
@@ -2091,7 +2099,8 @@
           "default": {
             "description": "The processing activity could not be transitioned."
           }
-        }
+        },
+        "x-clearsight-permission": "PRIVACY_READ"
       }
     },
     "/api/v1/reports/filter-fields": {
@@ -2112,6 +2121,7 @@
       "get": {
         "operationId": "listReportOwners",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "PRIVACY_READ",
         "parameters": [
           {
             "name": "tenant_id",
@@ -2575,6 +2585,7 @@
       "get": {
         "operationId": "listReportDefinitions",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "PRIVACY_READ",
         "parameters": [
           {
             "name": "tenant_id",
@@ -2622,13 +2633,15 @@
           "default": {
             "description": "The report definition could not be proposed."
           }
-        }
+        },
+        "x-clearsight-permission": "PRIVACY_READ"
       }
     },
     "/api/v1/reports/definitions/{id}": {
       "get": {
         "operationId": "getReportDefinition",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "PRIVACY_READ",
         "parameters": [
           {
             "name": "id",
@@ -2661,6 +2674,7 @@
       "get": {
         "operationId": "getReportDefinitionHistory",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "PRIVACY_READ",
         "parameters": [
           {
             "name": "id",
@@ -2720,7 +2734,8 @@
           "default": {
             "description": "The report definition could not be submitted."
           }
-        }
+        },
+        "x-clearsight-permission": "PRIVACY_READ"
       }
     },
     "/api/v1/reports/definitions/{id}/review": {
@@ -2754,7 +2769,8 @@
           "default": {
             "description": "The report definition could not be reviewed."
           }
-        }
+        },
+        "x-clearsight-permission": "PRIVACY_READ"
       }
     },
     "/api/v1/reports/definitions/{id}/activate": {
@@ -2788,7 +2804,8 @@
           "default": {
             "description": "The report definition could not be activated."
           }
-        }
+        },
+        "x-clearsight-permission": "PRIVACY_READ"
       }
     },
     "/api/v1/reports/definitions/{id}/reject": {
@@ -2822,7 +2839,8 @@
           "default": {
             "description": "The report definition could not be rejected."
           }
-        }
+        },
+        "x-clearsight-permission": "PRIVACY_READ"
       }
     },
     "/api/v1/reports/definitions/{id}/retire": {
@@ -2856,13 +2874,15 @@
           "default": {
             "description": "The report definition could not be retired."
           }
-        }
+        },
+        "x-clearsight-permission": "PRIVACY_READ"
       }
     },
     "/api/v1/reports/runs": {
       "get": {
         "operationId": "listReportRuns",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "PRIVACY_READ",
         "parameters": [
           {
             "name": "tenant_id",
@@ -2915,7 +2935,29 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "required": [
+                  "definition_id",
+                  "expected_definition_version"
+                ],
+                "properties": {
+                  "definition_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "expected_definition_version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "idempotency_key": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Reuse the same key only when retrying the same request."
+                  },
+                  "parameters": {
+                    "type": "object"
+                  }
+                }
               }
             }
           }
@@ -2934,6 +2976,7 @@
       "get": {
         "operationId": "getReportRun",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "PRIVACY_READ",
         "parameters": [
           {
             "name": "id",
@@ -3306,6 +3349,12 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/framework-catalog/editions/{id}/clauses": {
+      "get": {
+        "operationId": "listFrameworkClauses",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
     "/api/v1/programs/setup-candidates": {
       "get": {
         "operationId": "listProgramSetupCandidates",
@@ -3447,6 +3496,7 @@
     "/api/v1/programs/{id}/applicability": {
       "post": {
         "operationId": "determineProgramApplicability",
+        "description": "An APPLICABLE decision may omit rationale. Other applicability decisions require a non-blank rationale. Actor and legal-entity scope are derived from the verified request context.",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
@@ -3848,6 +3898,14 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/forms/templates/{id}/revisions/{version}/questions/{field_id}/test": {
+      "post": {
+        "operationId": "testFormQuestionResponseFormat",
+        "x-clearsight-route-class": "AUTHENTICATED_OPERATION",
+        "x-clearsight-permission": "CONFIG_WRITE",
+        "description": "Tests a sample or a public HTTPS endpoint response format. This operation does not configure or run an assessment. Private destinations and credentials are unsupported."
+      }
+    },
     "/api/v1/forms/templates/{id}/revisions/{version}/ai-proposals": {
       "post": {
         "operationId": "createAIFormRevisionProposal",
@@ -3949,6 +4007,22 @@
     "/api/v1/forms/documents": {
       "get": {
         "operationId": "listFormDocuments",
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "description": "Filter authorized occurrences before pagination. Review views include only recorded vendor assessment reviews; NEEDS_REFRESH includes current occurrences with a recorded expired review or an expiry date before today (UTC).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "AWAITING_REVIEW",
+                "NEEDS_REFRESH",
+                "REVIEW_HISTORY"
+              ]
+            }
+          }
+        ],
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
@@ -5138,6 +5212,119 @@
         "operationId": "getResponseAssessment"
       }
     },
+    "/api/v1/forms/responses/{revision_id}/review": {
+      "get": {
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "operationId": "getResponseReviews",
+        "parameters": [
+          {
+            "name": "revision_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "legal_entity_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before_version",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest review version, permission, and a bounded page of review decisions."
+          },
+          "404": {
+            "description": "Response not found in the permitted scope."
+          }
+        }
+      },
+      "post": {
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "operationId": "recordResponseReview",
+        "parameters": [
+          {
+            "name": "revision_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "expected_version",
+                  "decision"
+                ],
+                "properties": {
+                  "expected_version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "REVIEWED",
+                      "CHANGES_REQUESTED"
+                    ]
+                  },
+                  "comment": {
+                    "type": "string",
+                    "maxLength": 4000
+                  },
+                  "legal_entity_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "reviewer_id": {
+                    "type": "string",
+                    "description": "Ignored; the reviewer is the verified actor."
+                  },
+                  "actor_id": {
+                    "type": "string",
+                    "description": "Ignored; the actor is verified from the request."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recorded review decision."
+          },
+          "403": {
+            "description": "Current reviewer authority is unavailable."
+          },
+          "409": {
+            "description": "The response or review changed."
+          },
+          "422": {
+            "description": "Invalid decision or missing reason for changes."
+          }
+        }
+      }
+    },
     "/api/v1/config/form-response-policies/automation-choices": {
       "get": {
         "x-clearsight-permission": "CONFIG_READ",
@@ -5243,6 +5430,7 @@
       "get": {
         "operationId": "listOperationalLosses",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
         "parameters": [
           {
             "name": "status",
@@ -5342,6 +5530,7 @@
       "get": {
         "operationId": "getOperationalLoss",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
         "parameters": [
           {
             "name": "id",

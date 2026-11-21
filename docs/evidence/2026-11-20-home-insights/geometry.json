@@ -1,0 +1,65 @@
+{
+  "fixture": "synthetic-domain-values",
+  "records": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "percentages": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "percentages": true
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "overflow": 0,
+      "percentages": true
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "overflow": 0,
+      "percentages": true
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "overflow": 0,
+      "percentages": true
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "overflow": 0,
+      "percentages": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "overflow": 0,
+      "percentages": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "overflow": 0,
+      "percentages": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": 0,
+      "percentages": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": 0,
+      "percentages": true
+    }
+  ]
+}

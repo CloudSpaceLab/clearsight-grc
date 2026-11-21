@@ -1,0 +1,6 @@
+/* Focus must remain visible beneath the fixed scope header. */
+html { scroll-padding-top: 100px; }
+input,select,textarea,button,a,[tabindex] { scroll-margin-top: 100px; }
+.form-error:focus,#modal-error:focus { outline: 2px solid var(--red,#c53246); outline-offset: 5px; }
+#record-unavailable { max-width: 900px; margin: 24px auto; }
+@media print { #copilot-root,.copilot-trigger {display:none!important;} }

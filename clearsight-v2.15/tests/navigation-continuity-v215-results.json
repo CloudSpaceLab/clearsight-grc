@@ -1,0 +1,47 @@
+{
+  "suite": "V2.15 navigation, modal and keyboard continuity",
+  "runtime": "Actual source with controlled DOM/browser shells",
+  "browserLayoutValidated": false,
+  "results": [
+    {
+      "name": "A completed modal save returns to the same record control after its workspace is rebuilt",
+      "status": "PASS"
+    },
+    {
+      "name": "Removed or ambiguous controls fall back to the page heading; another actor never inherits the focus target",
+      "status": "PASS"
+    },
+    {
+      "name": "A continuation dialog retains the original workspace return target",
+      "status": "PASS"
+    },
+    {
+      "name": "Escape uses the same close lifecycle and retains dirty entries until discard",
+      "status": "PASS"
+    },
+    {
+      "name": "Back-style navigation cannot replace source context while an asynchronous modal save is in flight",
+      "status": "PASS"
+    },
+    {
+      "name": "Returning to an original no-hash entry protects dirty edits and uses its default route only after discard",
+      "status": "PASS"
+    },
+    {
+      "name": "Search starts upward at the last result, downward at the first, and leaves IME composition alone",
+      "status": "PASS"
+    },
+    {
+      "name": "Route changes focus the new page without changing its remembered scroll or taking focus from an explicit workflow",
+      "status": "PASS"
+    },
+    {
+      "name": "An inline render restores the unique original field and a stale deferred render never steals focus",
+      "status": "PASS"
+    },
+    {
+      "name": "Correction deep links focus again after revisiting and ignore callbacks for a route already left",
+      "status": "PASS"
+    }
+  ]
+}

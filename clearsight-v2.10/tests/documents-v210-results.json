@@ -1,0 +1,56 @@
+{
+  "suite": "Documents consolidation V2.10",
+  "browserLayoutValidated": false,
+  "passed": 12,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Documents and the former Evidence entry share one canonical library",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy review links open the exact document version and assessment context",
+      "status": "PASS"
+    },
+    {
+      "name": "Multiple assessment reviews reference one stored document and file version",
+      "status": "PASS"
+    },
+    {
+      "name": "Linking submitter is recorded separately from original file uploader",
+      "status": "PASS"
+    },
+    {
+      "name": "Actual submitter cannot impersonate a reviewer or approve their own document",
+      "status": "PASS"
+    },
+    {
+      "name": "Assigned eligible reviewer verifies bytes and records attributable decision history",
+      "status": "PASS"
+    },
+    {
+      "name": "Archived or corrupt source cannot partially accept a document",
+      "status": "PASS"
+    },
+    {
+      "name": "Unavailable document can be returned for correction and reaches the actual submitter",
+      "status": "PASS"
+    },
+    {
+      "name": "Review route rejects a contextual review belonging to another document",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy records retain unknown submitting identity without invented timestamps",
+      "status": "PASS"
+    },
+    {
+      "name": "Expiry prevents current acceptance while preserving source and history",
+      "status": "PASS"
+    },
+    {
+      "name": "All visible document commands and canonical routes are registered",
+      "status": "PASS"
+    }
+  ]
+}

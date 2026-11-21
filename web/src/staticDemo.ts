@@ -917,7 +917,13 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     ];
     return clone({ items: url.searchParams.get("jurisdiction") === "GLOBAL" ? references : [] }) as T;
   }
-  if (pathname === "/api/v1/program-summaries") return clone({ items: matchesProgramSummary(url) ? [programSummary] : [], generated_at: now }) as T;
+  if (pathname === "/api/v1/program-summaries") {
+    if (fixture === "program-page-unavailable") {
+      if (url.searchParams.get("cursor")) throw new StaticDemoHTTPError(503, "program_page_unavailable", "Additional Programs unavailable.");
+      return clone({ items: [programSummary], next_cursor: "sample-next-page", generated_at: now }) as T;
+    }
+    return clone({ items: matchesProgramSummary(url) ? [programSummary] : [], generated_at: now }) as T;
+  }
   if (pathname === "/api/v1/form-templates" && method === "GET") {
     if (fixture === "collection-renewal-states" || fixture === "collection-long-content") return clone({ items: collectionFixtures(fixture).forms }) as T;
     if (fixture === "vendor-source-degraded") throw new StaticDemoHTTPError(503, "vendor_forms_unavailable", "Approved due-diligence forms could not be loaded.");
@@ -1249,7 +1255,10 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   }
   if (pathname === `/api/v1/programs/${programID}`) return clone(programDetail) as T;
   if (pathname === `/api/v1/programs/${programID}/history` && method === "GET") return clone(programBaseline) as T;
-  if (pathname === `/api/v1/programs/${programID}/operations` && method === "GET") return clone(currentProgramOperations()) as T;
+  if (pathname === `/api/v1/programs/${programID}/operations` && method === "GET") {
+    if (fixture === "program-notices-unavailable") throw new StaticDemoHTTPError(503, "assignments_unavailable", "Program assignments unavailable.");
+    return clone(currentProgramOperations()) as T;
+  }
   if (pathname === `/api/v1/programs/${programID}/details` && method === "POST") {
     const input = requireProgramVersion(init);
     program.name = String(input.name ?? program.name); program.owning_function = String(input.owning_function ?? program.owning_function); program.jurisdiction = String(input.jurisdiction ?? program.jurisdiction); program.scope = input.scope ?? program.scope; program.effective_from = String(input.effective_from ?? program.effective_from); (program as any).effective_until = input.effective_until;
@@ -1301,7 +1310,10 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     programSummary.projection_stale = true;
     return clone({ ...programDetail, program }) as T;
   }
-  if (pathname === `/api/v1/programs/${programID}/review-digest` && method === "GET") return clone(programReviewDigest()) as T;
+  if (pathname === `/api/v1/programs/${programID}/review-digest` && method === "GET") {
+    if (fixture === "program-notices-unavailable") throw new StaticDemoHTTPError(503, "review_unavailable", "Program review unavailable.");
+    return clone(programReviewDigest()) as T;
+  }
   if (pathname === `/api/v1/programs/${programID}/reviews` && method === "POST") {
     const input = parseBody(init) as { expected_program_version?: number; expected_projection_version?: number };
     if (input.expected_program_version !== program.version || input.expected_projection_version !== 3) throw new StaticDemoHTTPError(409, "version_conflict", "The Program changed while it was being reviewed.");
@@ -1396,7 +1408,11 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
       (!filter.get("query") || file.file_name.toLowerCase().includes(filter.get("query")!.toLowerCase())) &&
       (!filter.get("relationship_id") || file.relationship_id === filter.get("relationship_id")) &&
       (!filter.get("response_revision_id") || file.response_revision_id === filter.get("response_revision_id")) &&
-      (filter.get("current_only") === "false" || file.current)) : [];
+      (filter.get("current_only") === "false" || file.current) &&
+      (!filter.get("view") ||
+        (filter.get("view") === "AWAITING_REVIEW" && file.current && file.review?.status === "SUBMITTED") ||
+        (filter.get("view") === "REVIEW_HISTORY" && Boolean(file.review)) ||
+        (filter.get("view") === "NEEDS_REFRESH" && file.current && (file.review?.status === "EXPIRED" || Boolean(file.expires_on && /^\d{4}-\d{2}-\d{2}$/.test(file.expires_on) && !Number.isNaN(Date.parse(file.expires_on)) && new Date(file.expires_on).toISOString().slice(0, 10) === file.expires_on && file.expires_on < new Date().toISOString().slice(0, 10)))))) : [];
     return clone({ items }) as T;
   }
   if (pathname === "/api/v1/forms/responses" && method === "GET") {
@@ -1404,6 +1420,12 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     if (fixture === "matter-workspace-complete") return clone(filterCompletedResponsePopulation(matterWorkspaceResponses(), url)) as T;
     if (fixture === "program-responses") return clone(filterCompletedResponsePopulation(programResponsesPopulation(), url)) as T;
     return clone({ items: [] }) as T;
+  }
+  const responseReviewMatch = pathname.match(/^\/api\/v1\/forms\/responses\/([^/]+)\/review$/);
+  if (responseReviewMatch && method === "GET" && fixture === "forms-response-history") {
+    const responseID = decodeURIComponent(responseReviewMatch[1]!);
+    if (!["response-revision-acme-1", completedResponse.id].includes(responseID)) throw new StaticDemoHTTPError(404, "response_not_found", "The selected response is no longer available.");
+    return clone({ version: 0, may_review: false, items: [] }) as T;
   }
   const responseAssessmentMatch = pathname.match(/^\/api\/v1\/forms\/responses\/([^/]+)\/assessment$/);
   if (responseAssessmentMatch && method === "GET") {
@@ -1414,6 +1436,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
       // This sample history predates manual assessment; its saved result is automatic.
       const assessment: ResponseAssessmentDetail = {
         response_id: responseID, form_template_id: completedResponse.form_template_id, form_template_version: 2,
+        submission_recipient: { type: "EXTERNAL_AUDIENCE", label: "Vendor security lead" },
         version: 0, current, may_review: false, state: "NOT_REQUIRED", required_count: 0, reviewed_required_count: 0, reviewed_count: 0,
         fields: [],
         automatic_score: { ...completedResponse.score, mode: "COMPLIANCE", direction: "LOW_IS_POOR", band: "LOW", state: "FINAL", raw_score: current ? 86 : 72, adverse_score: current ? 14 : 28, calculated_at: current ? completedResponse.completed_at : "2026-08-20T13:15:00Z" },
@@ -1430,6 +1453,10 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (completedResponseMatch && method === "GET") {
     const responseID = decodeURIComponent(completedResponseMatch[1]!);
     if (fixture === "forms-response-history") {
+      if (responseID === "response-revision-acme-1") {
+        const earlier = { ...completedResponse, id: responseID, revision: 1, current: false, completed_at: "2026-08-20T13:15:00Z", score: { ...completedResponse.score, raw_score: 72, adverse_score: 28, calculated_at: "2026-08-20T13:15:00Z" } };
+        return clone({ response: earlier, revision: { id: responseID, revision: 1, achieved_assurance: "LINK_POSSESSION", compliance_score: 72, scored_weight_coverage: 100, state: "FINAL", current: false, created_at: earlier.completed_at, score: earlier.score } }) as T;
+      }
       if (responseID !== completedResponse.id) throw new StaticDemoHTTPError(404, "response_not_found", "The selected completed response is no longer available.");
       return clone({ response: completedResponse, revision: { id: completedResponse.id, revision: 2, supersedes_revision_id: "response-revision-acme-1", achieved_assurance: "EMAIL_VERIFIED", signoff_summary: { attested: true, signer: "Vendor security lead" }, compliance_score: 86, scored_weight_coverage: 100, state: "FINAL", critical_field_results: [], scoring_policy_version: "vendor-review-2026", current: true, created_at: completedResponse.completed_at, score: completedResponse.score } }) as T;
     }
@@ -1447,7 +1474,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   ] }) as T;
   if (pathname === "/api/v1/forms/communications/profiles" && method === "GET") return clone({ items: [{ id: "communication-profile-1", legal_entity_id: "bank-ng", version: 2, default_locale: "en-NG", bank_name: "Meridian Trust Bank", support_contact: "vendor.risk@meridian.example", status: "ACTIVE", effective_from: "2026-08-01T00:00:00Z", maker_id: "role-vendor-risk", checker_id: "role-cro", created_at: now, updated_at: now }] }) as T;
   if (pathname === "/api/v1/forms/communications/templates" && method === "GET") return clone({ items: [{ id: "communication-template-1", legal_entity_id: "bank-ng", action: "INVITATION", locale: "en-NG", version: 3, subject_template: "Action needed: complete {{form_name}}", document: [{ type: "paragraph", text: "Complete the requested form by {{deadline}}." }], status: "ACTIVE", effective_from: "2026-08-01T00:00:00Z", maker_id: "role-vendor-risk", checker_id: "role-cro", created_at: now, updated_at: now }] }) as T;
-  const monitoringResponse = workflowRuntime().monitoringRequest({ pathname, method, input: parseBody(init), programID, forms: demoForms, checks: demoChecks, results: monitoringResults, actor: currentStaticActor, evidenceRequest, evidenceRequests, monitoringResult, ErrorType: StaticDemoHTTPError, now });
+  const monitoringResponse = workflowRuntime().monitoringRequest({ pathname, method, input: parseBody(init), programID, forms: demoForms, checks: demoChecks, results: monitoringResults, bindings: sourceBindings, actor: currentStaticActor, evidenceRequest, evidenceRequests, monitoringResult, ErrorType: StaticDemoHTTPError, now });
   if (monitoringResponse.handled) return clone(monitoringResponse.body) as T;
   if (/\/api\/v1\/monitoring-results\/[^/]+\/linked-issue$/.test(pathname) && method === "POST") {
     const id = decodeURIComponent(pathname.split("/").at(-2) ?? ""), result = [...monitoringResults.values()].find((item) => item.id === id);

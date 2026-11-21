@@ -34,13 +34,14 @@ describe("forms distribution API", () => {
         id: "response-a", distribution_id: "distribution-a", form_template_id: "form-a", form_template_version: 4,
         title: "Vendor certification refresh", subject_type: "VENDOR", subject_id: "vendor-a", revision: 2,
         current: true, state: "FINAL", completed_at: "2026-09-01T09:30:00Z",
+        submitted_by: "person-1", submitted_by_display_name: "Ada Okafor",
         score: { mode: "COMPLIANCE", direction: "LOW_IS_POOR", raw_score: 42, adverse_score: 58, band: "HIGH", coverage: 0.9, final: true, state: "FINAL", profile_version: "iso-v2", profile_checksum: "checksum", evaluator_version: "advanced-v1", calculated_at: "2026-09-01T09:30:00Z" },
       }], next_cursor: "next-page",
     }), { status: 200, headers: { "Content-Type": "application/json" } }));
 
     const page = await loadCompletedResponses({ search: "  risk %_ review  ", sort: "CONCERN_DESC", bands: ["HIGH", "CRITICAL"], modes: ["COMPLIANCE"], completed_from: "2026-08-01T00:00:00Z", limit: 50 });
 
-    expect(page.items[0]).toMatchObject({ id: "response-a", score: { raw_score: 42, band: "HIGH", coverage: 0.9 } });
+    expect(page.items[0]).toMatchObject({ id: "response-a", submitted_by: "person-1", submitted_by_display_name: "Ada Okafor", score: { raw_score: 42, band: "HIGH", coverage: 0.9 } });
     expect(page.next_cursor).toBe("next-page");
     const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).toContain("sort=CONCERN_DESC");

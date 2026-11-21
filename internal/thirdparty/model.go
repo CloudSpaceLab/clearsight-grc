@@ -86,28 +86,36 @@ type Aggregate struct {
 }
 
 type CreateRelationshipInput struct {
-	ExistingRelationshipID string      `json:"existing_relationship_id,omitempty"`
-	LegalName              string      `json:"legal_name"`
-	TradingName            string      `json:"trading_name,omitempty"`
-	RegistrationRef        string      `json:"registration_ref,omitempty"`
-	Jurisdiction           string      `json:"jurisdiction,omitempty"`
-	SourceID               string      `json:"source_id,omitempty"`
-	ExternalRef            string      `json:"external_ref,omitempty"`
-	RegisteredAddress      string      `json:"registered_address,omitempty"`
-	WebsiteDomain          string      `json:"website_domain,omitempty"`
-	ServiceName            string      `json:"service_name"`
-	Criticality            Criticality `json:"criticality"`
-	PrivacyRole            PrivacyRole `json:"privacy_role"`
-	EffectiveFrom          *time.Time  `json:"effective_from,omitempty"`
-	RenewalAt              *time.Time  `json:"renewal_at,omitempty"`
+	ExistingRelationshipID              string      `json:"existing_relationship_id,omitempty"`
+	ExpectedExistingRelationshipVersion int64       `json:"expected_existing_relationship_version,omitempty"`
+	ExpectedVendorVersion               int64       `json:"expected_vendor_version,omitempty"`
+	IdempotencyKey                      string      `json:"-"`
+	LegalName                           string      `json:"legal_name"`
+	TradingName                         string      `json:"trading_name,omitempty"`
+	RegistrationRef                     string      `json:"registration_ref,omitempty"`
+	Jurisdiction                        string      `json:"jurisdiction,omitempty"`
+	SourceID                            string      `json:"source_id,omitempty"`
+	ExternalRef                         string      `json:"external_ref,omitempty"`
+	RegisteredAddress                   string      `json:"registered_address,omitempty"`
+	WebsiteDomain                       string      `json:"website_domain,omitempty"`
+	ServiceName                         string      `json:"service_name"`
+	Criticality                         Criticality `json:"criticality"`
+	PrivacyRole                         PrivacyRole `json:"privacy_role"`
+	EffectiveFrom                       *time.Time  `json:"effective_from,omitempty"`
+	RenewalAt                           *time.Time  `json:"renewal_at,omitempty"`
 }
 
 type CreateRecord struct {
-	Vendor       Vendor
-	Relationship Relationship
-	ReuseVendor  bool
-	ActorID      string
-	BrandJob     *VendorBrandJob
+	Vendor                              Vendor
+	Relationship                        Relationship
+	ReuseVendor                         bool
+	ActorID                             string
+	BrandJob                            *VendorBrandJob
+	ExistingRelationshipID              string
+	ExpectedExistingRelationshipVersion int64
+	ExpectedVendorVersion               int64
+	IdempotencyKey                      string
+	PayloadDigest                       string
 }
 
 type Scope struct {

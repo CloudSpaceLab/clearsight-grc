@@ -1,0 +1,5 @@
+# Risk and loss read access
+
+Risk and loss list and exact-detail HTTP routes require the verified actor's legal-entity-wide `OVERSIGHT_READ` permission. This interim rule prevents an authenticated department-only user from reading unrestricted legal-entity records when no organization filter is supplied. It applies before repository reads and is independent of browser filtering. Existing risk indicator reads already use the same permission.
+
+This deliberately denies risk and loss owners who hold only department-scoped authority. The runtime hierarchy identifies selectable oversight scopes but is not itself a complete risk-record read policy; compact hierarchy results may also be truncated. A future actor-scoped read must define and enforce owner, reviewer, delegated and department scope, unscoped records, legal-entity and revocation semantics in bounded repository queries. It must not load a broad list and filter it in the browser or application memory. Replace the global-only gate only after same-tenant cross-scope, delegation, revoked grant, missing authority, pagination and non-disclosure tests pass.

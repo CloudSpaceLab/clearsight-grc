@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { parseRoute, routeHash } from "./appRouting";
 
 describe("workspace routes", () => {
+  it("opens the submitted documents register through a stable route", () => {
+    expect(parseRoute("#documents")).toEqual({ view: "documents", target: {} });
+    expect(routeHash("documents", {}, "assigned")).toBe("#documents");
+  });
   it("round-trips the Insights indicator lens and exact current target", () => {
     const target = { indicatorKind: "KRI" as const, indicatorID: "check/1 #銀行" };
     const hash = routeHash("insights", target, "assigned");

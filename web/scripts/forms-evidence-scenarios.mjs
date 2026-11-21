@@ -10,7 +10,7 @@ export const requiredFormsCapabilities = Object.freeze([
   "communication-rotated", "communication-superseded", "communication-revoked",
   "access-direct-link", "access-shared-otp", "access-direct-otp", "otp-expired", "otp-exhausted",
   "recovery-server-saved", "recovery-device-only", "recovery-conflict", "recovery-recovered", "recovery-file-reselection",
-  "response-first", "response-amended",
+  "response-first", "response-amended", "response-review-decision", "response-review-changes",
   "vendor-confirm", "vendor-correct", "vendor-replace", "vendor-review", "vendor-conflict", "vendor-applied",
   "library-mobile-records", "builder-mobile-actions", "builder-pointer-reorder", "builder-large-performance", "builder-themed-select",
   "viewport-desktop", "viewport-mobile", "viewport-reflow-320", "zoom-200", "theme-light", "theme-dark",
@@ -468,13 +468,25 @@ const scenarios = [
     name: "106-forms-response-history-light-1440x900", fixture: "forms-response-history", route: "#forms",
     state: "forms-response-first-and-amended", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["response-first", "response-amended"],
-    run: async (page) => { await openFormsTab(page, "Responses"); await page.getByRole("button", { name: "Review Vendor due diligence review response" }).click(); await page.getByRole("tab", { name: "History", exact: true }).click(); await visible(page, "Revision 1"); await visible(page, "Revision 2 · Current"); },
+    run: async (page) => { await openFormsTab(page, "Responses"); await page.getByRole("button", { name: "Review Vendor due diligence review response" }).click(); await visible(page, "Vendor security lead"); await visible(page, "Submitter not recorded"); await page.getByRole("tab", { name: "History", exact: true }).click(); await visible(page, "Revision 1"); await visible(page, "Revision 2 · Current"); await page.getByRole("button", { name: "Open response revision 1" }).click(); await visible(page, "1 · Historical"); },
   },
   {
     name: "106a-forms-response-history-dark-1440x900", fixture: "forms-response-history", route: "#forms",
     state: "forms-response-first-and-amended-dark", theme: "dark", viewport: desktop, zoom: 1,
     capabilities: ["response-first", "response-amended", "theme-dark", "viewport-desktop"],
     run: async (page) => { await openFormsTab(page, "Responses"); await page.getByRole("button", { name: "Review Vendor due diligence review response" }).click(); await page.getByRole("tab", { name: "History", exact: true }).click(); await page.getByLabel("Version history").waitFor({ state: "visible" }); await visible(page, "Revision 2 · Current"); },
+  },
+  {
+    name: "106b-forms-response-review-light-1440x900", fixture: "field-assessment-review", route: "#forms",
+    state: "response-review-decision", theme: "light", viewport: desktop, zoom: 1,
+    capabilities: ["response-review-decision"],
+    run: async (page) => { const review = page.getByRole("region", { name: "Response review" }); await review.getByText("No review recorded").waitFor({ state: "visible" }); await review.getByRole("button", { name: "Mark reviewed" }).click(); await review.getByText("Review saved.").waitFor({ state: "visible" }); await review.getByText(/Sample Risk Reviewer/).waitFor({ state: "visible" }); },
+  },
+  {
+    name: "106c-forms-response-review-changes-mobile-390x844", fixture: "field-assessment-review", route: "#forms",
+    state: "response-review-changes", theme: "light", viewport: mobile, zoom: 1, touch: true,
+    capabilities: ["response-review-changes", "viewport-mobile"],
+    run: async (page) => { const review = page.getByRole("region", { name: "Response review" }); await review.getByRole("button", { name: "Record changes needed" }).click(); await review.getByText("The respondent is not notified.").waitFor({ state: "visible" }); await review.getByLabel("Changes needed").fill("Add the reporting period."); await review.getByRole("button", { name: "Save decision" }).click(); await review.getByText("Add the reporting period.").waitFor({ state: "visible" }); },
   },
   {
     name: "107-forms-vendor-held-actions-dark-mobile-390x844", fixture: "forms-vendor-held-actions", route: "/capture",
@@ -629,6 +641,7 @@ const scenarios = [
       await trigger.click();
       const dialog = page.getByRole("dialog", { name: "Acme annual vendor review details" });
       await dialog.waitFor({ state: "visible" });
+      await dialog.getByRole("list", { name: "Recipients" }).getByText("Vendor security lead", { exact: true }).waitFor({ state: "visible" });
       await assertSheetRecoveryVisible(page, dialog);
       await dialog.getByRole("button", { name: "Lock responses" }).click();
       await dialog.getByText("Responses locked", { exact: true }).waitFor({ state: "visible" });
@@ -980,6 +993,7 @@ for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"
       await row.waitFor(); await row.focus(); await page.keyboard.press("Space");
       const dialog = page.getByRole("dialog", { name: `Preview ${filename}` });
       await dialog.waitFor();
+      await dialog.getByText("Assessment review", { exact: true }).waitFor();
       const metadata = await assertDemoDocumentMetadata(dialog, demoDocumentMetadata.image);
       if (state === "preview") {
         await dialog.getByText("Unscanned · Demo preview", { exact: true }).waitFor();

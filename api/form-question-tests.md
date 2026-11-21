@@ -1,0 +1,11 @@
+# Form question response-format tests
+
+`POST /api/v1/forms/templates/{id}/revisions/{version}/questions/{field_id}/test` tests the response format for an exact draft form question. It does not create or activate an API check, change a form, create an observation, or establish an assessment result.
+
+The caller must be a verified person in the form's legal entity with `CONFIG_WRITE` and the currently enforced `forms.template.revise` owner route. The form and question must exist in the specified draft version. The service reserves a rate-limited audit attempt before testing and records an outcome before returning. If authorization or audit is unavailable, the request fails closed. Responses use `Cache-Control: no-store`.
+
+For a sample, send `{"mode":"SAMPLE","result_type":"BOOLEAN","sample":{"result":false,"message":"Optional text"}}`. `result_type` may be `BOOLEAN` or `NUMBER`; zero is a valid numeric result. Sample mode makes no network request. For a live test, send `{"mode":"LIVE","result_type":"NUMBER","endpoint":"https://example.org/status"}`. The server performs at most one bounded GET, refuses redirects, validates DNS and the connected address against its public-only policy, and returns no endpoint response content. Userinfo, query strings, fragments and credentials in the endpoint are rejected. Private bank endpoints and authenticated APIs require a separate governed network and credential capability and are not supported by this operation.
+
+The remote or sample response must be one JSON object containing `result` of the selected type and optionally a bounded text `message`. Duplicate keys, additional properties, invalid UTF-8, non-finite numbers and responses exceeding 64 KiB are rejected. The HTTP request body has a 70,000-byte limit.
+
+A successful test request returns `{"mode":"SAMPLE|LIVE","outcome":"VALID|INVALID|UNAVAILABLE","result_type":"BOOLEAN|NUMBER","checked_at":"<RFC3339 timestamp>","reason":"<optional recovery text>"}`. `UNAVAILABLE` is not a failed control; `VALID` establishes only response-format compatibility. Invalid request details return `400`; denied permission or authority returns `403`, an unavailable scoped form or question `404`, the shared rate limit `429`, and unavailable audit or test infrastructure `503`. The audit does not retain sample values, endpoint URLs, credentials or response content.

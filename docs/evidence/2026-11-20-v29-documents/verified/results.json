@@ -1,0 +1,224 @@
+{
+  "results": [
+    {
+      "theme": "light",
+      "width": 1440,
+      "geometry": {
+        "overflow": false,
+        "title": {
+          "y": 92,
+          "height": 38.875
+        },
+        "search": {
+          "y": 174.46875,
+          "height": 44
+        },
+        "first": {
+          "y": 269.96875,
+          "height": 69
+        }
+      },
+      "heading": "Documents",
+      "searchWorks": true,
+      "previewKeyboardReturn": true
+    },
+    {
+      "theme": "light",
+      "width": 1280,
+      "geometry": {
+        "overflow": false,
+        "title": {
+          "y": 92,
+          "height": 38.703125
+        },
+        "search": {
+          "y": 174.296875,
+          "height": 44
+        },
+        "first": {
+          "y": 269.796875,
+          "height": 109
+        }
+      },
+      "heading": "Documents",
+      "searchWorks": true,
+      "previewKeyboardReturn": true
+    },
+    {
+      "theme": "light",
+      "width": 1024,
+      "geometry": {
+        "overflow": false,
+        "title": {
+          "y": 92,
+          "height": 30.953125
+        },
+        "search": {
+          "y": 247.546875,
+          "height": 44
+        },
+        "first": {
+          "y": 343.046875,
+          "height": 69
+        }
+      },
+      "heading": "Documents",
+      "searchWorks": true,
+      "previewKeyboardReturn": true
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "geometry": {
+        "overflow": false,
+        "title": {
+          "y": 88,
+          "height": 30.234375
+        },
+        "search": {
+          "y": 294.828125,
+          "height": 44
+        },
+        "first": {
+          "y": 346.828125,
+          "height": 288
+        }
+      },
+      "heading": "Documents",
+      "searchWorks": true,
+      "previewKeyboardReturn": true
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "geometry": {
+        "overflow": false,
+        "title": {
+          "y": 88,
+          "height": 30.234375
+        },
+        "search": {
+          "y": 294.828125,
+          "height": 44
+        },
+        "first": {
+          "y": 346.828125,
+          "height": 392
+        }
+      },
+      "heading": "Documents",
+      "searchWorks": true,
+      "previewKeyboardReturn": true
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "geometry": {
+        "overflow": false,
+        "title": {
+          "y": 92,
+          "height": 38.875
+        },
+        "search": {
+          "y": 174.46875,
+          "height": 44
+        },
+        "first": {
+          "y": 269.96875,
+          "height": 69
+        }
+      },
+      "heading": "Documents",
+      "searchWorks": true,
+      "previewKeyboardReturn": true
+    },
+    {
+      "theme": "dark",
+      "width": 1280,
+      "geometry": {
+        "overflow": false,
+        "title": {
+          "y": 92,
+          "height": 38.703125
+        },
+        "search": {
+          "y": 174.296875,
+          "height": 44
+        },
+        "first": {
+          "y": 269.796875,
+          "height": 109
+        }
+      },
+      "heading": "Documents",
+      "searchWorks": true,
+      "previewKeyboardReturn": true
+    },
+    {
+      "theme": "dark",
+      "width": 1024,
+      "geometry": {
+        "overflow": false,
+        "title": {
+          "y": 92,
+          "height": 30.953125
+        },
+        "search": {
+          "y": 247.546875,
+          "height": 44
+        },
+        "first": {
+          "y": 343.046875,
+          "height": 69
+        }
+      },
+      "heading": "Documents",
+      "searchWorks": true,
+      "previewKeyboardReturn": true
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "geometry": {
+        "overflow": false,
+        "title": {
+          "y": 88,
+          "height": 30.234375
+        },
+        "search": {
+          "y": 294.828125,
+          "height": 44
+        },
+        "first": {
+          "y": 346.828125,
+          "height": 288
+        }
+      },
+      "heading": "Documents",
+      "searchWorks": true,
+      "previewKeyboardReturn": true
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "geometry": {
+        "overflow": false,
+        "title": {
+          "y": 88,
+          "height": 30.234375
+        },
+        "search": {
+          "y": 294.828125,
+          "height": 44
+        },
+        "first": {
+          "y": 346.828125,
+          "height": 392
+        }
+      },
+      "heading": "Documents",
+      "searchWorks": true,
+      "previewKeyboardReturn": true
+    }
+  ]
+}

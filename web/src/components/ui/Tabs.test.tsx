@@ -17,6 +17,36 @@ function Harness() {
 }
 
 describe("Tabs", () => {
+  it("reveals the selected tab again when its list narrows after loading", () => {
+    vi.useFakeTimers();
+    const observers: Array<{ callback: ResizeObserverCallback; targets: Element[]; disconnect: () => void }> = [];
+    vi.stubGlobal("ResizeObserver", class {
+      entry = { callback: null as unknown as ResizeObserverCallback, targets: [] as Element[], disconnect: vi.fn() };
+      constructor(callback: ResizeObserverCallback) { this.entry.callback = callback; observers.push(this.entry); }
+      observe(target: Element) { this.entry.targets.push(target); }
+      unobserve() {}
+      disconnect() { this.entry.disconnect(); }
+    });
+    try {
+      const view = render(<Tabs ariaLabel="Forms views" items={items} selectedKey="RESPONSES" onSelectionChange={() => undefined}>{(key) => <p>{key}</p>}</Tabs>);
+      const list = screen.getByRole("tablist"), selected = screen.getByRole("tab", { name: "Responses" });
+      let width = 300;
+      vi.spyOn(list, "getBoundingClientRect").mockImplementation(() => new DOMRect(0, 0, width, 44));
+      vi.spyOn(selected, "getBoundingClientRect").mockImplementation(() => new DOMRect(200 - list.scrollLeft, 0, 100, 44));
+      list.scrollTop = 37;
+      act(() => vi.advanceTimersToNextFrame());
+      expect(list.scrollLeft).toBe(0);
+      width = 280;
+      const observer = observers.find((entry) => entry.targets.includes(list));
+      expect(observer).toBeDefined();
+      act(() => { observer!.callback([], {} as ResizeObserver); vi.advanceTimersToNextFrame(); });
+      expect(list.scrollLeft).toBe(20);
+      expect(list.scrollTop).toBe(37);
+      view.unmount();
+      expect(observer!.disconnect).toHaveBeenCalled();
+    } finally { vi.unstubAllGlobals(); vi.useRealTimers(); }
+  });
+
   it("reveals existing tabs after controlled selection changes without moving focus or vertical scroll", () => {
     vi.useFakeTimers();
     try {

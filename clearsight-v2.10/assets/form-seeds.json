@@ -1,0 +1,664 @@
+[
+  {
+    "id": "FORM-OPS",
+    "name": "Branch control self-assessment",
+    "mode": "Human",
+    "framework": "FW-BANK",
+    "description": "A structured control assessment with choice grids, mixed cells, supporting evidence and accountable sign-off.",
+    "revision": 1,
+    "status": "Published",
+    "fields": [
+      {
+        "id": "branch",
+        "label": "Branch or operating unit",
+        "type": "dropdown",
+        "required": true,
+        "help": "",
+        "mode": "human",
+        "options": [
+          "Head Office",
+          "Ikeja",
+          "Enugu"
+        ],
+        "mapping": [
+          "R01"
+        ],
+        "freshDays": 90
+      },
+      {
+        "id": "period",
+        "label": "Assessment date",
+        "type": "date",
+        "required": true,
+        "help": "",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [],
+        "freshDays": 90
+      },
+      {
+        "id": "controls",
+        "label": "Control operating effectiveness",
+        "type": "matrix",
+        "required": true,
+        "help": "",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [
+          "R03"
+        ],
+        "freshDays": 90,
+        "rows": [
+          "Daily cash reconciliation",
+          "Dual approval of payments",
+          "User access review"
+        ]
+      },
+      {
+        "id": "channels",
+        "label": "Evidence available for each control",
+        "type": "multi_matrix",
+        "required": true,
+        "help": "Select all available evidence types for each row.",
+        "mode": "human",
+        "options": [
+          "Policy",
+          "System log",
+          "Sample testing",
+          "Walkthrough"
+        ],
+        "mapping": [],
+        "freshDays": 90,
+        "rows": [
+          "Cash reconciliation",
+          "Payment authorization",
+          "User access"
+        ]
+      },
+      {
+        "id": "register",
+        "label": "Risk and control assessment grid",
+        "type": "combo_grid",
+        "required": true,
+        "help": "Different types per column. Residual score is calculated, not entered.",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [
+          "R03"
+        ],
+        "freshDays": 90,
+        "columns": [
+          {
+            "id": "control",
+            "label": "Control / risk",
+            "type": "text"
+          },
+          {
+            "id": "design",
+            "label": "Design",
+            "type": "dropdown",
+            "options": [
+              "Effective",
+              "Partial",
+              "Ineffective"
+            ]
+          },
+          {
+            "id": "tests",
+            "label": "Test methods",
+            "type": "multi",
+            "options": [
+              "Sample",
+              "Walkthrough",
+              "System log"
+            ]
+          },
+          {
+            "id": "likelihood",
+            "label": "Likelihood",
+            "type": "number",
+            "min": 1,
+            "max": 5
+          },
+          {
+            "id": "impact",
+            "label": "Impact",
+            "type": "number",
+            "min": 1,
+            "max": 5
+          },
+          {
+            "id": "score",
+            "label": "Residual score",
+            "type": "calculated",
+            "formula": [
+              "likelihood",
+              "impact"
+            ]
+          },
+          {
+            "id": "evidence",
+            "label": "Evidence reference",
+            "type": "text"
+          }
+        ],
+        "rows": [
+          {
+            "id": "cash",
+            "label": "Cash reconciliation"
+          },
+          {
+            "id": "payments",
+            "label": "Payment authorization"
+          }
+        ]
+      },
+      {
+        "id": "exceptions",
+        "label": "Are there unresolved exceptions?",
+        "type": "boolean",
+        "required": true,
+        "help": "",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [],
+        "freshDays": 90
+      },
+      {
+        "id": "exception_note",
+        "label": "Explain unresolved exceptions",
+        "type": "paragraph",
+        "required": true,
+        "help": "Only shown when unresolved exceptions are reported.",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [],
+        "freshDays": 90,
+        "condition": {
+          "field": "exceptions",
+          "equals": "Yes"
+        }
+      },
+      {
+        "id": "actions",
+        "label": "Remediation action register",
+        "type": "repeat",
+        "required": false,
+        "help": "",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [],
+        "freshDays": 90,
+        "columns": [
+          {
+            "id": "action",
+            "label": "Action",
+            "type": "text"
+          },
+          {
+            "id": "owner",
+            "label": "Owner",
+            "type": "text"
+          },
+          {
+            "id": "due",
+            "label": "Due date",
+            "type": "date"
+          }
+        ],
+        "rows": [
+          {
+            "id": "action1",
+            "label": "Action 1"
+          }
+        ]
+      },
+      {
+        "id": "signoff",
+        "label": "I confirm these answers reflect the scoped assessment",
+        "type": "attestation",
+        "required": true,
+        "help": "",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [],
+        "freshDays": 90
+      }
+    ]
+  },
+  {
+    "id": "FORM-TECH",
+    "name": "Technical control verification",
+    "mode": "Integration",
+    "framework": "FW-BANK",
+    "description": "Source-backed fields for uptime, response time, API capabilities and database controls. Every result retains its source and rule.",
+    "revision": 1,
+    "status": "Published",
+    "fields": [
+      {
+        "id": "availability",
+        "label": "Payments API availability",
+        "type": "percentage",
+        "required": true,
+        "help": "",
+        "mode": "integration",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [
+          "R06"
+        ],
+        "freshDays": 90,
+        "check": {
+          "kind": "uptime",
+          "label": "API availability over a window",
+          "slot": "observability",
+          "connector": "CON-MON",
+          "endpoint": "/metrics/payments/availability",
+          "path": "good / valid \u00d7 100",
+          "type": "percentage",
+          "unit": "%",
+          "operator": "gt",
+          "threshold": "90",
+          "window": "30 days",
+          "freshness": 900,
+          "minCoverage": 95,
+          "cadence": "Every 5 minutes",
+          "minSamples": 100,
+          "assurance": "Measured",
+          "claim": "Observed probe availability, not proof of every customer journey."
+        }
+      },
+      {
+        "id": "response_time",
+        "label": "Website response time",
+        "type": "number",
+        "required": true,
+        "help": "",
+        "mode": "integration",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [
+          "R06"
+        ],
+        "freshDays": 90,
+        "check": {
+          "kind": "latency",
+          "label": "HTTP response duration",
+          "slot": "web-probe",
+          "connector": "CON-WEB",
+          "endpoint": "https://bank.example/status",
+          "path": "p95(total_duration_ms)",
+          "type": "number",
+          "unit": "ms",
+          "operator": "lt",
+          "threshold": "5000",
+          "window": "24 hours",
+          "freshness": 900,
+          "minCoverage": 95,
+          "cadence": "Every 5 minutes",
+          "minSamples": 10,
+          "assurance": "Measured",
+          "claim": "Total HTTP transaction duration from the named probe; not browser page load."
+        }
+      },
+      {
+        "id": "capability",
+        "label": "API reports idempotency support",
+        "type": "boolean",
+        "required": true,
+        "help": "",
+        "mode": "integration",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [],
+        "freshDays": 90,
+        "check": {
+          "kind": "api",
+          "label": "Authenticated API response field",
+          "slot": "payment-api",
+          "connector": "CON-API",
+          "endpoint": "/v1/security/capabilities",
+          "path": "$.capabilities.idempotency",
+          "type": "boolean",
+          "unit": "",
+          "operator": "eq",
+          "threshold": "true",
+          "window": "Point in time",
+          "freshness": 3600,
+          "minCoverage": 100,
+          "cadence": "Hourly",
+          "minSamples": 1,
+          "assurance": "Reported configuration",
+          "claim": "A capability flag reports configuration; it does not test the capability end to end."
+        }
+      },
+      {
+        "id": "storage_length",
+        "label": "Protected column storage-length check",
+        "type": "number",
+        "required": true,
+        "help": "",
+        "mode": "integration",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [
+          "R05"
+        ],
+        "freshDays": 90,
+        "check": {
+          "kind": "length",
+          "label": "Database storage-length heuristic",
+          "slot": "bank-db",
+          "connector": "CON-DB",
+          "endpoint": "approved:column_octet_length_summary_v1",
+          "path": "$.minimum_octets",
+          "type": "number",
+          "unit": "bytes",
+          "operator": "gt",
+          "threshold": "32",
+          "window": "Point in time",
+          "freshness": 86400,
+          "minCoverage": 100,
+          "cadence": "Daily",
+          "minSamples": 1,
+          "assurance": "Heuristic only",
+          "claim": "Length alone cannot establish encryption, cipher choice or strength. A long plaintext also passes."
+        }
+      },
+      {
+        "id": "crypto_metadata",
+        "label": "Configured column encryption algorithm",
+        "type": "text",
+        "required": true,
+        "help": "",
+        "mode": "integration",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [
+          "R05"
+        ],
+        "freshDays": 90,
+        "check": {
+          "kind": "encryption",
+          "label": "Database encryption metadata",
+          "slot": "bank-db",
+          "connector": "CON-DB",
+          "endpoint": "approved:column_encryption_metadata_v1",
+          "path": "$.encryption_algorithm_name",
+          "type": "text",
+          "unit": "",
+          "operator": "eq",
+          "threshold": "AEAD_AES_256_CBC_HMAC_SHA_512",
+          "window": "Point in time",
+          "freshness": 86400,
+          "minCoverage": 100,
+          "cadence": "Daily",
+          "minSamples": 1,
+          "assurance": "Reported configuration",
+          "claim": "SQL Server Always Encrypted metadata for the named column. Not proof of every data copy or the whole key lifecycle."
+        }
+      }
+    ]
+  },
+  {
+    "id": "FORM-VENDOR",
+    "name": "Outsourced service assurance",
+    "mode": "Hybrid",
+    "framework": "FW-VENDOR",
+    "description": "Combine vendor declarations, repeating service grids and measured technical results in one governed assessment.",
+    "revision": 1,
+    "status": "Published",
+    "fields": [
+      {
+        "id": "contact",
+        "label": "Accountable vendor contact",
+        "type": "text",
+        "required": true,
+        "help": "",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [],
+        "freshDays": 90
+      },
+      {
+        "id": "data_classes",
+        "label": "Data categories handled",
+        "type": "multi",
+        "required": true,
+        "help": "",
+        "mode": "human",
+        "options": [
+          "Customer identifiers",
+          "Payment data",
+          "Employee data",
+          "No personal data"
+        ],
+        "mapping": [],
+        "freshDays": 90
+      },
+      {
+        "id": "service_grid",
+        "label": "Service-by-service assurance",
+        "type": "combo_grid",
+        "required": true,
+        "help": "Respondents enter ownership and actions. Technical cells come from scoped check observations.",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [
+          "R05"
+        ],
+        "freshDays": 90,
+        "columns": [
+          {
+            "id": "service",
+            "label": "Service",
+            "type": "text"
+          },
+          {
+            "id": "owner",
+            "label": "Owner",
+            "type": "text"
+          },
+          {
+            "id": "uptime",
+            "label": "Availability",
+            "type": "percentage",
+            "mode": "integration",
+            "check": {
+              "kind": "uptime",
+              "label": "API availability over a window",
+              "slot": "observability",
+              "connector": "CON-MON",
+              "endpoint": "/metrics/payments/availability",
+              "path": "good / valid \u00d7 100",
+              "type": "percentage",
+              "unit": "%",
+              "operator": "gt",
+              "threshold": "90",
+              "window": "30 days",
+              "freshness": 900,
+              "minCoverage": 95,
+              "cadence": "Every 5 minutes",
+              "minSamples": 100,
+              "assurance": "Measured",
+              "claim": "Observed probe availability, not proof of every customer journey."
+            }
+          },
+          {
+            "id": "latency",
+            "label": "Response p95",
+            "type": "number",
+            "mode": "integration",
+            "check": {
+              "kind": "latency",
+              "label": "HTTP response duration",
+              "slot": "web-probe",
+              "connector": "CON-WEB",
+              "endpoint": "https://bank.example/status",
+              "path": "p95(total_duration_ms)",
+              "type": "number",
+              "unit": "ms",
+              "operator": "lt",
+              "threshold": "5000",
+              "window": "24 hours",
+              "freshness": 900,
+              "minCoverage": 95,
+              "cadence": "Every 5 minutes",
+              "minSamples": 10,
+              "assurance": "Measured",
+              "claim": "Total HTTP transaction duration from the named probe; not browser page load."
+            }
+          },
+          {
+            "id": "action",
+            "label": "Remediation",
+            "type": "text"
+          }
+        ],
+        "rows": [
+          {
+            "id": "hosting",
+            "label": "Core banking hosting"
+          },
+          {
+            "id": "payments",
+            "label": "Payment gateway"
+          }
+        ]
+      },
+      {
+        "id": "incident",
+        "label": "Material service interruption this quarter?",
+        "type": "boolean",
+        "required": true,
+        "help": "",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [],
+        "freshDays": 90
+      },
+      {
+        "id": "incident_note",
+        "label": "Incident and recovery summary",
+        "type": "paragraph",
+        "required": true,
+        "help": "",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [],
+        "freshDays": 90,
+        "condition": {
+          "field": "incident",
+          "equals": "Yes"
+        }
+      },
+      {
+        "id": "report",
+        "label": "Independent assurance report reference",
+        "type": "evidence",
+        "required": true,
+        "help": "Reference a controlled evidence record; demo stores metadata only.",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [],
+        "freshDays": 90
+      },
+      {
+        "id": "attest",
+        "label": "I attest that this response covers the named engagement",
+        "type": "attestation",
+        "required": true,
+        "help": "",
+        "mode": "human",
+        "options": [
+          "Effective",
+          "Partially effective",
+          "Ineffective",
+          "Not applicable"
+        ],
+        "mapping": [],
+        "freshDays": 90
+      }
+    ]
+  }
+]

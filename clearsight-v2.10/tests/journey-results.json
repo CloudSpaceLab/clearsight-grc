@@ -1,0 +1,94 @@
+{
+  "results": [
+    {
+      "name": "ROPA incomplete-step validation, full-page creation, save/resume and storage reconstruction",
+      "status": "PASS",
+      "seconds": 1.67
+    },
+    {
+      "name": "ROPA full registration, source-linked data, independent review and no compliance auto-pass",
+      "status": "PASS",
+      "seconds": 2.99
+    },
+    {
+      "name": "Published ROPA revision isolation, change request, resubmission and historical snapshot",
+      "status": "PASS",
+      "seconds": 1.77
+    },
+    {
+      "name": "Controller/processor conditional fields and pinned draft scope",
+      "status": "PASS",
+      "seconds": 1.02
+    },
+    {
+      "name": "DPIA risks, remediation creation, high-risk blocking, independent approval and verified action reconciliation",
+      "status": "PASS",
+      "seconds": 2.29
+    },
+    {
+      "name": "Rights-request identity and disclosure-review gates, independent closure",
+      "status": "PASS",
+      "seconds": 0.85
+    },
+    {
+      "name": "Incident intake, explicit awareness and target basis, notification-decision gate",
+      "status": "PASS",
+      "seconds": 1.26
+    },
+    {
+      "name": "Risk and loss setup wizards, scoped records, exact kobo arithmetic and bounded recovery",
+      "status": "PASS",
+      "seconds": 1.46
+    },
+    {
+      "name": "Vendor onboarding reuses supplier identity and separates activation from registration",
+      "status": "PASS",
+      "seconds": 0.89
+    },
+    {
+      "name": "RCSA setup freezes risk/control population and enforces independent responsibility",
+      "status": "PASS",
+      "seconds": 0.73
+    },
+    {
+      "name": "Privacy scope isolation, descendant filtering and register return-context preservation",
+      "status": "PASS",
+      "seconds": 0.51
+    },
+    {
+      "name": "Evidence review becomes a full workspace and retains independent acceptance guards",
+      "status": "PASS",
+      "seconds": 1.25
+    },
+    {
+      "name": "Unclassified incident intake without a ROPA prerequisite and partial investigation save",
+      "status": "PASS",
+      "seconds": 0.91
+    },
+    {
+      "name": "Full-page requirement review: evidence readiness, self-approval guard and immutable submitted decision",
+      "status": "PASS",
+      "seconds": 1.3
+    },
+    {
+      "name": "ROPA export payload reflects current scope and uses canonical register records",
+      "status": "PASS",
+      "seconds": 0.4
+    },
+    {
+      "name": "27 populated wizard steps \u00d7 4 widths: accessible heading, persistent scope and no page overflow",
+      "status": "PASS",
+      "seconds": 6.37
+    },
+    {
+      "name": "Native file opening, real browser storage reload and CSV download",
+      "status": "BLOCKED",
+      "error": "Page.goto: net::ERR_BLOCKED_BY_ADMINISTRATOR at file:///mnt/data/clearsight-v2.7/clearsight-v2-demo.html\nCall log:\n  - navigating to \"file:///mnt/data/clearsight-v2.7/clearsight-v2-demo.html\", waiting until \"load\"\n"
+    }
+  ],
+  "passed": 16,
+  "failed": 0,
+  "blocked": 1,
+  "javascript_errors": [],
+  "browser": "Chromium"
+}

@@ -6,9 +6,10 @@ import (
 )
 
 var (
-	ErrInvalid         = errors.New("invalid third-party relationship")
-	ErrNotFound        = errors.New("third-party relationship not found")
-	ErrVersionConflict = errors.New("third-party relationship version conflict")
+	ErrInvalid             = errors.New("invalid third-party relationship")
+	ErrNotFound            = errors.New("third-party relationship not found")
+	ErrVersionConflict     = errors.New("third-party relationship version conflict")
+	ErrIdempotencyConflict = errors.New("idempotency key already used for a different vendor command")
 )
 
 type Repository interface {

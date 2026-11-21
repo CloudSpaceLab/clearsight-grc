@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
-import { createFormMonitoringCheck, createMonitoringLinkedIssue, loadCollectionSummaries, loadMonitoringResult, transitionMonitoringCheck, updateCollectionPolicy } from "./monitoringApi";
+import { createFormMonitoringCheck, createMonitoringLinkedIssue, createSourceMonitoringCheck, loadCollectionSummaries, loadMonitoringResult, transitionMonitoringCheck, updateCollectionPolicy } from "./monitoringApi";
 
 vi.mock("./api", () => ({ loadContext: vi.fn() }));
 vi.mock("./http", () => ({ requestJSON: vi.fn() }));
@@ -21,6 +21,12 @@ describe("monitoring API", () => {
     await loadMonitoringResult("result / 1", controller.signal);
     expect(vi.mocked(requestJSON).mock.calls[0]?.[1]).toBe("/api/v1/monitoring-results/result%20%2F%201?tenant_id=tenant-1");
     expect(vi.mocked(requestJSON).mock.calls[0]?.[2]).toEqual({ signal: controller.signal });
+  });
+
+  it("retains the selected source freshness on the monitoring check", async () => {
+    await createSourceMonitoringCheck("program-1", { binding_id: "binding-1", version: 2 } as Parameters<typeof createSourceMonitoringCheck>[1], { code: "CHECK", name: "Check", claim: "Check result", field: "result", expected: "true", operator: "EQUALS", freshnessMinutes: 1440 });
+    const body = JSON.parse(String(vi.mocked(requestJSON).mock.calls[0]![2]?.body));
+    expect(body.freshness_minutes).toBe(1440);
   });
 
   it("creates an issue from the exact result without sending an actor or Program identity", async () => {

@@ -1,0 +1,41 @@
+{
+  "runner": "Python Playwright + Chromium; inline document rendering",
+  "native_navigation": "Managed browser blocks URL navigation; file:// and HTTP serving were not exercised",
+  "persistence": "Storage-API test double exercises serialization/recreation; native file-origin storage not tested",
+  "external_requests": "None required",
+  "results": [
+    {
+      "test": "Adoption: tailoring, N/A, smart rules, assignment, publication, source integrity, serialization",
+      "status": "PASS",
+      "seconds": 2.94
+    },
+    {
+      "test": "Vendor adoption: independent target populations, no bank score transfer",
+      "status": "PASS",
+      "seconds": 0.9
+    },
+    {
+      "test": "RCSA: proposal isolation, self-approval rejection, challenge/resubmit and accepted rating",
+      "status": "PASS",
+      "seconds": 1.19
+    },
+    {
+      "test": "Unknown-source fixture isolation and combined table/matrix/period filters",
+      "status": "PASS",
+      "seconds": 0.96
+    },
+    {
+      "test": "Mobile navigation, command search, Escape focus behavior and dark mode",
+      "status": "PASS",
+      "seconds": 0.59
+    },
+    {
+      "test": "CSV/JSON export payloads and reconciliation (download transport not exercised)",
+      "status": "PASS",
+      "seconds": 0.49
+    }
+  ],
+  "javascript_errors": [],
+  "passed": 6,
+  "failed": 0
+}

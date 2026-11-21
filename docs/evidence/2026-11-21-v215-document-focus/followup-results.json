@@ -1,0 +1,23 @@
+{
+  "fixture": "synthetic, not production authorization",
+  "results": [
+    {
+      "width": 1440,
+      "sameItemFocus": true,
+      "formFilterFocus": true,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "sameItemFocus": true,
+      "formFilterFocus": true,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "sameItemFocus": true,
+      "formFilterFocus": true,
+      "overflow": false
+    }
+  ]
+}

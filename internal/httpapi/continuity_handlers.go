@@ -621,20 +621,44 @@ func (a *API) getMatter(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	value, err := service.GetMatter(r.Context(), tenant, r.PathValue("id"))
-	if err == nil && !canReadMatterAggregate(r.Context(), value) {
-		err = continuity.ErrNotFound
-	}
-	if err != nil {
-		writeContinuityError(w, err)
-		return
-	}
 	actor, err := identity.Require(r.Context())
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, a.matterAggregateRead(r.Context(), actor, value))
+	if strings.TrimSpace(actor.TenantID) == "" || tenant != actor.TenantID || strings.TrimSpace(actor.PrincipalID) == "" || strings.TrimSpace(actor.LegalEntityID) == "" {
+		writeContinuityError(w, continuity.ErrNotFound)
+		return
+	}
+	value, err := service.GetMatter(r.Context(), tenant, r.PathValue("id"))
+	if err == nil {
+		// The repository read is tenant/entity scoped. Resolve the record's
+		// entity under the same verified tenant before accepting either UUIDs
+		// or codes; an alias is never taken from the response as a grant.
+		recordEntity, resolveErr := service.ResolveLegalEntity(r.Context(), tenant, value.Matter.LegalEntityID)
+		if resolveErr != nil || recordEntity != value.Matter.LegalEntityID || strings.TrimSpace(value.Matter.TenantID) == "" || value.Matter.ID != r.PathValue("id") {
+			err = continuity.ErrNotFound
+		} else if actor.LegalEntityID != "*" && actor.LegalEntityID != recordEntity {
+			actorEntity, actorErr := service.ResolveLegalEntity(r.Context(), tenant, actor.LegalEntityID)
+			if actorErr != nil || actorEntity != recordEntity {
+				err = continuity.ErrNotFound
+			}
+		}
+		if err == nil && !continuity.MatterAggregateVisibleTo(value, actor.PrincipalID) {
+			err = continuity.ErrNotFound
+		}
+	}
+	if err != nil {
+		writeContinuityError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, struct {
+		matterAggregateRead
+		Scope map[string]string `json:"scope"`
+	}{matterAggregateRead: a.matterAggregateRead(r.Context(), actor, value), Scope: map[string]string{
+		"tenant_id": actor.TenantID, "legal_entity_id": actor.LegalEntityID, "principal_id": actor.PrincipalID,
+		"record_tenant_id": value.Matter.TenantID, "record_legal_entity_id": value.Matter.LegalEntityID,
+	}})
 }
 
 func (a *API) getMatterHistory(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,31 @@
+{
+  "runtime": "Actual integrated V2.13 JavaScript with a substituted DOM shell; no browser layout or device claim",
+  "scope": "Six focused presentation assertions, including sixteen route variants and exact recipient HTML equivalence after removing only the added stylesheet",
+  "routeVariants": 16,
+  "results": [
+    {
+      "name": "Sixteen actual route variants receive only the correct presentation family",
+      "status": "PASS"
+    },
+    {
+      "name": "Route transitions clear the family instead of restyling unrelated pages",
+      "status": "PASS"
+    },
+    {
+      "name": "Saved vendor and loss step forms keep native names, draft keys and submission controls",
+      "status": "PASS"
+    },
+    {
+      "name": "Recipient decoration leaves the entire original HTML, manifest, CSP and runtime unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "Existing accessible labels are retained and scrolling preview can receive keyboard focus",
+      "status": "PASS"
+    },
+    {
+      "name": "Presentation API exposes no record commands or operational store",
+      "status": "PASS"
+    }
+  ]
+}

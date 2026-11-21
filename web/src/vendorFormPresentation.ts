@@ -10,5 +10,5 @@ export const vendorWorkFilters = [
 ] satisfies Array<{ id: VendorFormsFilter; label: string }>;
 
 export const assessmentStateLabels: Record<string, string> = {
-  NOT_REQUIRED: "Review not required", AWAITING_REVIEW: "Awaiting review", IN_REVIEW: "In review", ASSESSED: "Reviewed",
+  NOT_REQUIRED: "No question assessment", AWAITING_REVIEW: "Question assessment due", IN_REVIEW: "Question assessment in progress", ASSESSED: "Questions assessed",
 };

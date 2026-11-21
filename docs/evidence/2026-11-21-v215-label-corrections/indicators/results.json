@@ -1,0 +1,34 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "staleUnknown": true,
+      "filteredEmpty": true
+    },
+    {
+      "width": 1280,
+      "overflow": false,
+      "staleUnknown": true,
+      "filteredEmpty": true
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "staleUnknown": true,
+      "filteredEmpty": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "staleUnknown": true,
+      "filteredEmpty": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "staleUnknown": true,
+      "filteredEmpty": true
+    }
+  ]
+}

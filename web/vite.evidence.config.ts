@@ -17,6 +17,10 @@ export default defineConfig({
   },
   build: {
     target: "es2022",
+    rollupOptions: { input: {
+      main: fileURLToPath(new URL("./evidence/index.html", import.meta.url)),
+      privacyTable: fileURLToPath(new URL("./evidence/privacy-table.html", import.meta.url)),
+    } },
     sourcemap: true,
     cssCodeSplit: true,
     outDir: fileURLToPath(new URL("./dist-evidence", import.meta.url)),

@@ -1,0 +1,73 @@
+{
+  "runtime": "Actual V2.11 modules with substituted DOM/browser shell; no visual browser claim",
+  "results": [
+    {
+      "name": "Named assignments expose one actor-correct next action and preserve exact target filters",
+      "status": "PASS"
+    },
+    {
+      "name": "Submitted response actions distinguish the assigned reviewer from other eligible readers",
+      "status": "PASS"
+    },
+    {
+      "name": "Returned response next action resumes the new binding and preserves the earlier review",
+      "status": "PASS"
+    },
+    {
+      "name": "Canonical checklist identifies missing answers and current documents without bypassing submission",
+      "status": "PASS"
+    },
+    {
+      "name": "Mixed-grid and matrix errors target the exact missing cell or row while hidden fields stay excluded",
+      "status": "PASS"
+    },
+    {
+      "name": "Document answer blockers focus real picker buttons in scalar and grid fields",
+      "status": "PASS"
+    },
+    {
+      "name": "Unknown technical observations require an explanation; failed observed checks remain reviewable",
+      "status": "PASS"
+    },
+    {
+      "name": "Assignment reviewer options exclude respondent and coordinator and follow current scoped eligibility",
+      "status": "PASS"
+    },
+    {
+      "name": "Revision summary compares immutable source answers and document versions without altering history",
+      "status": "PASS"
+    },
+    {
+      "name": "My Documents queue uses exact assigned authority and excludes source submitters and other scopes",
+      "status": "PASS"
+    },
+    {
+      "name": "Document-to-response return links select an exact editable assignment without guessing between people",
+      "status": "PASS"
+    },
+    {
+      "name": "Vendor overview directs accepted questionnaires to the actual remaining document task",
+      "status": "PASS"
+    },
+    {
+      "name": "Pending vendor document blockers open the exact independent approval and never mark it complete",
+      "status": "PASS"
+    },
+    {
+      "name": "Adoption issues jump to the correct configuration and publishing lands on named assignments",
+      "status": "PASS"
+    },
+    {
+      "name": "Intake final-check links resume the right field and preserve already captured service facts",
+      "status": "PASS"
+    },
+    {
+      "name": "New assurance links and actions render through registered routes across all owned workflows",
+      "status": "PASS"
+    },
+    {
+      "name": "Program overview uses the actual named response responsibility instead of target-only draft status",
+      "status": "PASS"
+    }
+  ]
+}

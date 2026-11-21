@@ -1,0 +1,105 @@
+{
+  "runtime": "Node actual-source integration; DOM/browser shell substituted",
+  "results": [
+    {
+      "test": "Assignments list obeys organizational scope and does not expose out-of-scope names",
+      "status": "PASS"
+    },
+    {
+      "test": "Assigning an existing form version opens the existing response without duplicates",
+      "status": "PASS"
+    },
+    {
+      "test": "Form assignment rejects a stale scope at commit",
+      "status": "PASS"
+    },
+    {
+      "test": "A submitted form enters independent response review before requirement review and freezes source configuration",
+      "status": "PASS"
+    },
+    {
+      "test": "Correction creates a new scoped response cycle and preserves the original checksum/answers",
+      "status": "PASS"
+    },
+    {
+      "test": "Form correction rejects self-review and does not create a second pending cycle",
+      "status": "PASS"
+    },
+    {
+      "test": "Canonical assessment correction archives the prior run without resetting compliance conclusions",
+      "status": "PASS"
+    },
+    {
+      "test": "Document refresh preserves the old observation and only supersedes it after acceptance",
+      "status": "PASS"
+    },
+    {
+      "test": "Document correction exposes the requested changes and routes an owner action",
+      "status": "PASS"
+    },
+    {
+      "test": "Approval preparation can be saved, restored and cancelled without creating a request",
+      "status": "PASS"
+    },
+    {
+      "test": "Privacy intake rejects invalid dates, unknown scope and self-review assignments",
+      "status": "PASS"
+    },
+    {
+      "test": "Privacy case reopening preserves the closed episode and restarts independent review",
+      "status": "PASS"
+    },
+    {
+      "test": "Exact notification resolution honors revision and preserves recipient receipts",
+      "status": "PASS"
+    },
+    {
+      "test": "An unmapped form submission receives a complete named response review without changing requirement outcomes",
+      "status": "PASS"
+    },
+    {
+      "test": "Evidence intake offers only scoped program targets and rejects a changed location",
+      "status": "PASS"
+    },
+    {
+      "test": "Evidence intake creates a reviewable observation and opens its exact source page",
+      "status": "PASS"
+    },
+    {
+      "test": "Starting another approval preserves the saved requester, reviewers and message",
+      "status": "PASS"
+    },
+    {
+      "test": "Work completion validates evidence, actor and current source without changing risk conclusions",
+      "status": "PASS"
+    },
+    {
+      "test": "Reopening a remediation retains its prior completion and creates an owner notification",
+      "status": "PASS"
+    },
+    {
+      "test": "Action source validation admits controls and engagements and blocks missing records",
+      "status": "PASS"
+    },
+    {
+      "test": "Loss remediation closes through independent Work verification and preserves accepted event facts",
+      "status": "PASS"
+    },
+    {
+      "test": "KRI remediation completion resolves the exact exception while retaining the accepted return",
+      "status": "PASS"
+    },
+    {
+      "test": "New control/vendor review notification links and resolution use exact source records",
+      "status": "PASS"
+    },
+    {
+      "test": "Vendor returned-review notifications remain actionable until the linked correction is submitted",
+      "status": "PASS"
+    },
+    {
+      "test": "All flow controls render with registered actions and valid destination routes",
+      "status": "PASS"
+    }
+  ]
+}

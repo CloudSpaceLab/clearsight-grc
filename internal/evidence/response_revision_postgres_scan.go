@@ -12,7 +12,7 @@ import (
 const responseRevisionProjection = `r.id::text,r.tenant_id::text,r.legal_entity_id::text,r.distribution_id::text,r.workspace_id::text,r.submission_id::text,
 	r.revision,COALESCE(r.supersedes_revision_id::text,''),r.achieved_assurance,r.signoff_summary,r.compliance_score,
 	r.scored_weight_coverage,r.state,r.critical_field_results,r.scoring_policy_version,r.is_current,r.created_at,
-	r.score_mode,r.score_direction,r.raw_score,r.adverse_score,r.concern_band,r.score_state,r.score_result,r.score_profile_checksum,r.score_calculated_at`
+	r.score_mode,r.score_direction,r.raw_score,r.adverse_score,r.concern_band,r.score_state,r.score_result,r.score_profile_checksum,r.score_calculated_at,COALESCE(r.submitted_recipient_id::text,''),COALESCE(r.submitted_recipient_principal_id::text,''),COALESCE(r.submitted_recipient_type,''),COALESCE(r.submitted_recipient_label,'')`
 
 type responseRevisionScanner interface{ Scan(...any) error }
 
@@ -32,7 +32,7 @@ func scanPostgresResponseRevisionWithExtra(row responseRevisionScanner, extra ..
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.DistributionID, &value.WorkspaceID, &value.SubmissionID,
 		&value.Revision, &value.SupersedesRevisionID, &value.AchievedAssurance, &signoffJSON, &complianceScore,
 		&value.ScoredWeightCoverage, &value.State, &criticalJSON, &value.ScoringPolicyVersion, &value.Current, &value.CreatedAt,
-		&mode, &direction, &rawScore, &adverseScore, &band, &scoreState, &scoreJSON, &scoreChecksum, &calculatedAt,
+		&mode, &direction, &rawScore, &adverseScore, &band, &scoreState, &scoreJSON, &scoreChecksum, &calculatedAt, &value.SubmittedRecipientID, &value.SubmittedRecipientPrincipalID, &value.SubmittedRecipientType, &value.SubmittedRecipientLabel,
 	}
 	if err := row.Scan(append(targets, extra...)...); err != nil {
 		return ResponseRevision{}, err

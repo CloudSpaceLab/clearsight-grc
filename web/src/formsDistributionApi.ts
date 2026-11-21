@@ -1,4 +1,6 @@
 import { requestJSON } from "./http";
+import type { CaptureAnswerValue } from "./types";
+import type { DocumentOccurrence } from "./submittedDocumentApi";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -192,6 +194,9 @@ export type ResponseScore = {
 };
 
 export type CompletedResponseSummary = {
+  submission_recipient?: { type: "INTERNAL_PRINCIPAL" | "EXTERNAL_AUDIENCE"; principal_id?: string; label?: string } | null;
+  submitted_by?: string;
+  submitted_by_display_name?: string;
   subject_name?: string;
   id: string;
   distribution_id: string;
@@ -208,7 +213,8 @@ export type CompletedResponseSummary = {
 };
 
 export type CompletedResponsePage = { items: CompletedResponseSummary[]; next_cursor?: string };
-export type CompletedResponseDetail = { response: CompletedResponseSummary; revision: ResponseRevision };
+export type CompletedResponseAnswer = { field_id: string; label: string; type: string; value: CaptureAnswerValue };
+export type CompletedResponseDetail = { response: CompletedResponseSummary; revision: ResponseRevision; submission_id?: string; answers?: CompletedResponseAnswer[]; documents?: DocumentOccurrence[]; documents_next_cursor?: string };
 export type CompletedResponseQuery = {
   search?: string;
   form_template_id?: string;
@@ -300,6 +306,8 @@ function normalizeCompletedResponse(raw: Record<string, unknown>): CompletedResp
     id: raw.id as string, distribution_id: raw.distribution_id as string,
     form_template_id: raw.form_template_id as string, form_template_version: raw.form_template_version as number,
     title: raw.title as string, subject_type: raw.subject_type as string, subject_id: raw.subject_id as string,
+    submitted_by: raw.submitted_by as string | undefined, submitted_by_display_name: raw.submitted_by_display_name as string | undefined,
+    submission_recipient: raw.submission_recipient as CompletedResponseSummary["submission_recipient"],
     revision: raw.revision as number, current: raw.current as boolean, state: raw.state as CompletedResponseSummary["state"],
     score: normalizeScore(raw.score), completed_at: raw.completed_at as string,
   };
@@ -369,6 +377,6 @@ export async function loadCompletedResponses(query: CompletedResponseQuery = {})
 }
 
 export async function loadCompletedResponse(id: string): Promise<CompletedResponseDetail> {
-  const raw = await requestJSON<{ response: Record<string, unknown>; revision: Record<string, unknown> }>(apiBase, `/api/v1/forms/responses/${encodeURIComponent(id)}`);
-  return { response: normalizeCompletedResponse(raw.response), revision: normalizeResponseRevision(raw.revision) };
+  const raw = await requestJSON<{ response: Record<string, unknown>; revision: Record<string, unknown>; submission_id?: string; answers?: CompletedResponseAnswer[]; documents?: DocumentOccurrence[]; documents_next_cursor?: string }>(apiBase, `/api/v1/forms/responses/${encodeURIComponent(id)}`);
+  return { response: normalizeCompletedResponse(raw.response), revision: normalizeResponseRevision(raw.revision), submission_id: raw.submission_id, answers: raw.answers, documents: raw.documents, documents_next_cursor: raw.documents_next_cursor };
 }

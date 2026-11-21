@@ -1,0 +1,26 @@
+{
+  "fixture": "synthetic sample, not production authorization",
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "headingTop": 454.1875,
+      "headerBottom": 74,
+      "returnFocus": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "headingTop": 316.6875,
+      "headerBottom": 74,
+      "returnFocus": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "headingTop": 324.6875,
+      "headerBottom": 64,
+      "returnFocus": true
+    }
+  ]
+}

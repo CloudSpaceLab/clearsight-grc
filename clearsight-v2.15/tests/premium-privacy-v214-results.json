@@ -1,0 +1,38 @@
+{
+  "suite": "V2.14 premium privacy and monitoring presentation",
+  "runtime": "Actual application sources with controlled DOM semantic nodes",
+  "browserLayoutValidated": false,
+  "pdfPaginationValidated": false,
+  "results": [
+    {
+      "name": "Loading changes only the render presentation chain, with no state, route or command changes",
+      "status": "PASS"
+    },
+    {
+      "name": "All ten route families and privacy subviews retain exact source content, controls and values",
+      "status": "PASS"
+    },
+    {
+      "name": "Activity, DPIA and both case-intake journeys preserve exact inputs and saved source data across all steps",
+      "status": "PASS"
+    },
+    {
+      "name": "Refresh adds only missing accessible names and keyboard scroll access; existing semantics are retained",
+      "status": "PASS"
+    },
+    {
+      "name": "Navigation cleans only its own route marker and preserves other premium adapters and render result",
+      "status": "PASS"
+    },
+    {
+      "name": "Historical versions, pending facts and independent decisions remain untouched by presentation refresh",
+      "status": "PASS"
+    },
+    {
+      "name": "Exact Documents labels and factual integration quality remain backed by canonical source renderers",
+      "status": "PASS"
+    }
+  ],
+  "passed": 7,
+  "failed": 0
+}

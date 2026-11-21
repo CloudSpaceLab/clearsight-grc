@@ -67,6 +67,18 @@ func (r *MemoryRepository) CreateSource(_ context.Context, value Source) (Source
 	return value, nil
 }
 
+// SourceScopeExists performs the same exact tenant/source existence check as
+// the PostgreSQL catalog's foreign-key lookup, without a second source store.
+func (r *MemoryRepository) SourceScopeExists(ctx context.Context, tenant, sourceID string) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	value, ok := r.sources[sourceID]
+	return ok && value.TenantID == tenant, nil
+}
+
 func (r *MemoryRepository) ListSources(_ context.Context, tenant string, limit int) ([]Source, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -625,9 +637,19 @@ func (r *MemoryRepository) ReplaceInvitation(_ context.Context, input ReplaceInv
 
 var _ invitationAdministrationStore = (*MemoryRepository)(nil)
 
-func (r *MemoryRepository) CreateArtifact(_ context.Context, artifact Artifact) (Artifact, error) {
+func (r *MemoryRepository) CreateArtifact(ctx context.Context, artifact Artifact) (Artifact, error) {
+	if check, ok := ctx.Value(internalWorkspaceAuthorityKey{}).(internalWorkspaceAuthorityCheck); ok {
+		if check.command != "forms.response.upload" {
+			return Artifact{}, ErrWorkspaceUnavailable
+		}
+		return r.createInternalWorkspaceArtifact(ctx, artifact)
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	return r.createArtifactLocked(artifact)
+}
+
+func (r *MemoryRepository) createArtifactLocked(artifact Artifact) (Artifact, error) {
 	request, ok := r.requests[artifact.RequestID]
 	if !ok || request.TenantID != artifact.TenantID {
 		return Artifact{}, ErrNotFound

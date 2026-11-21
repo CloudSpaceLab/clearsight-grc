@@ -1,0 +1,7 @@
+# Partial 2.9 navigation integration — 20 November 2026
+
+The reference images are from `clearsight-v2.9/index.html`, covered by the pinned `clearsight-v2.9/MANIFEST.json` SHA-256 `94711cfedf66e825e63df336fe512e53ff10282952f9121d88e564534e55750b`. Runtime images use the synthetic `home-shell` evidence fixture, with no claim of backend authorization or production data. Both sets were captured at 1440, 1280, 1024, 768 and 390 pixels in light mode. The runtime images show the working tree based on revision `910598ff1bbd2ccb2758af0b257d95fceeefb8f4`; they precede the replacement of a numeric opener stacking value with the existing sticky token.
+
+The 390px browser check opened the navigation dialog, dismissed it with Escape and confirmed focus returned to the opener. The recorded viewport checks found no horizontal document overflow. The 390px runtime and reference renders were inspected: the persistent phone rail is gone, while the rest of the Home composition and desktop header remain different from the reference.
+
+This is partial integration, not screen acceptance. The full-page header, remaining workflows, dark theme, touch and screen-reader checks, permissions and live backend outcomes still require verification. The older `capture-ui-evidence.mjs` navigation geometry expects a visible phone rail and its resize checks must be adapted to the new drawer before that capture suite can be used for acceptance. The reference screenshot contains prototype sample data, which is not runtime authority.

@@ -1,0 +1,305 @@
+{
+  "release": "2.15",
+  "date": "2026-11-21",
+  "scenarioAsOf": "2026-11-13",
+  "runtime": "Actual application JavaScript; v24.22.3 with substituted browser/DOM shells",
+  "modelWorkflowChecks": {
+    "passed": 470,
+    "failed": 0,
+    "suites": [
+      {
+        "suite": "Branch KRI source model",
+        "script": "kri_v28_checks.js",
+        "results": "kri-v28-results.json",
+        "passed": 11,
+        "failed": 0
+      },
+      {
+        "suite": "KRI review and action history",
+        "script": "kri_review_v28_checks.js",
+        "results": "kri-review-v28-results.json",
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "suite": "Roles, access and escalation model",
+        "script": "governance_v28_checks.js",
+        "results": "governance-v28-results.json",
+        "passed": 14,
+        "failed": 0
+      },
+      {
+        "suite": "Detailed Inbox model",
+        "script": "inbox_v28_model_checks.js",
+        "results": "inbox-v28-model-results.json",
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "suite": "Board report models",
+        "script": "board_reports_v28_model_checks.js",
+        "results": "board-reports-v28-model-results.json",
+        "passed": 11,
+        "failed": 0
+      },
+      {
+        "suite": "Loss capture and worksheet import",
+        "script": "loss_v29_checks.js",
+        "results": "loss-v29-results.json",
+        "passed": 12,
+        "failed": 0
+      },
+      {
+        "suite": "Independent loss edge review",
+        "script": "loss_edge_review_v29_checks.js",
+        "results": "loss-edge-review-v29-results.json",
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "suite": "Controls, RCSA, vendor lifecycle and risk editing",
+        "script": "workflow_v29_checks.js",
+        "results": "workflow-v29-results.json",
+        "passed": 14,
+        "failed": 0
+      },
+      {
+        "suite": "Forms, Documents, privacy, Work and source handoffs",
+        "script": "flow_v29_checks.js",
+        "results": "flow-v29-results.json",
+        "passed": 25,
+        "failed": 0
+      },
+      {
+        "suite": "Loss reporting and captured context",
+        "script": "loss_reports_v29_checks.js",
+        "results": "loss-reports-v29-results.json",
+        "passed": 18,
+        "failed": 0
+      },
+      {
+        "suite": "Named assessment identity, history and review",
+        "script": "assessment_v210_checks.js",
+        "results": "assessment-v210-results.json",
+        "passed": 22,
+        "failed": 0
+      },
+      {
+        "suite": "Unified Documents and contextual decisions",
+        "script": "documents_v210_checks.js",
+        "results": "documents-v210-results.json",
+        "passed": 12,
+        "failed": 0
+      },
+      {
+        "suite": "Vendor intake through reviewed activation",
+        "script": "vendor_onboarding_v210_checks.js",
+        "results": "vendor-onboarding-v210-results.json",
+        "passed": 15,
+        "failed": 0
+      },
+      {
+        "suite": "Independent V2.10 crossflow/reporting under V2.11",
+        "script": "v210_crossflow_checks.js",
+        "results": "v210-crossflow-results.json",
+        "passed": 16,
+        "failed": 0
+      },
+      {
+        "suite": "Shared save, recovery, search and correction interactions",
+        "script": "interaction_core_v211_checks.js",
+        "results": "interaction-core-v211-results.json",
+        "passed": 15,
+        "failed": 0
+      },
+      {
+        "suite": "Assurance, Documents and vendor interactions",
+        "script": "assurance_interactions_v211_checks.js",
+        "results": "assurance-interactions-v211-results.json",
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "suite": "Governance, queues and file approval interactions",
+        "script": "governance_interactions_v211_checks.js",
+        "results": "governance-interactions-v211-results.json",
+        "passed": 19,
+        "failed": 0
+      },
+      {
+        "suite": "KRI, loss, RCSA, control and report interactions",
+        "script": "operations_interactions_v211_checks.js",
+        "results": "operations-interactions-v211-results.json",
+        "passed": 16,
+        "failed": 0
+      },
+      {
+        "suite": "Privacy and local monitoring interactions",
+        "script": "privacy_interactions_v211_checks.js",
+        "results": "privacy-interactions-v211-results.json",
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "suite": "Role-aware workspace and actual scoped actor",
+        "script": "role_experience_v212_checks.js",
+        "results": "role-experience-v212-results.json",
+        "passed": 20,
+        "failed": 0
+      },
+      {
+        "suite": "Complete reporting populations and portable scope",
+        "script": "scoped_analytics_v212_checks.js",
+        "results": "scoped-analytics-v212-results.json",
+        "passed": 24,
+        "failed": 0
+      },
+      {
+        "suite": "Document preview, lifecycle and external capture",
+        "script": "document_management_v212_checks.js",
+        "results": "document-management-v212-results.json",
+        "passed": 23,
+        "failed": 0
+      },
+      {
+        "suite": "Isolated external assessment protocol and reviewed handoff",
+        "script": "external_assessments_v212_checks.js",
+        "results": "external-assessments-v212-results.json",
+        "passed": 32,
+        "failed": 0
+      },
+      {
+        "suite": "Display preferences without draft or scope loss",
+        "script": "premium_foundation_v213_checks.js",
+        "results": "premium-foundation-v213-results.json",
+        "passed": 8,
+        "failed": 0
+      },
+      {
+        "suite": "Reporting presentation and reversible print disclosures",
+        "script": "premium_reporting_v213_checks.js",
+        "results": "premium-reporting-v213-results.json",
+        "passed": 8,
+        "failed": 0
+      },
+      {
+        "suite": "Workspace queue and governance presentation preservation",
+        "script": "premium_workspaces_v213_checks.js",
+        "results": "premium-workspaces-v213-results.json",
+        "passed": 9,
+        "failed": 0
+      },
+      {
+        "suite": "Form reading and isolated recipient presentation preservation",
+        "script": "premium_forms_v213_checks.js",
+        "results": "premium-forms-v213-results.json",
+        "passed": 6,
+        "failed": 0
+      },
+      {
+        "suite": "Framework/program/editor presentation preservation",
+        "script": "premium_programs_v214_checks.js",
+        "results": "premium-programs-v214-results.json",
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "suite": "Risk/control/register source presentation preservation",
+        "script": "premium_risk_v214_checks.js",
+        "results": "premium-risk-v214-results.json",
+        "passed": 8,
+        "failed": 0
+      },
+      {
+        "suite": "Privacy and monitoring presentation preservation",
+        "script": "premium_privacy_v214_checks.js",
+        "results": "premium-privacy-v214-results.json",
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "suite": "Search, drawer and shared utility interactions",
+        "script": "premium_utilities_v214_checks.js",
+        "results": "premium-utilities-v214-results.json",
+        "passed": 11,
+        "failed": 0
+      },
+      {
+        "suite": "Document filter continuity and bounded version comparison",
+        "script": "document_navigation_v215_checks.js",
+        "results": "document-navigation-v215-results.json",
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "suite": "Inbox refinements and work return continuity",
+        "script": "queue_continuity_v215_checks.js",
+        "results": "queue-continuity-v215-results.json",
+        "passed": 6,
+        "failed": 0
+      },
+      {
+        "suite": "Applied reporting filters and precise recovery",
+        "script": "report_filters_v215_checks.js",
+        "results": "report-filters-v215-results.json",
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "suite": "Navigation, modal and keyboard continuity",
+        "script": "navigation_continuity_v215_checks.js",
+        "results": "navigation-continuity-v215-results.json",
+        "passed": 10,
+        "failed": 0
+      }
+    ]
+  },
+  "routeActionChecks": {
+    "passed": 126,
+    "failed": 0,
+    "entryRoutes": 79,
+    "reportPerspectives": 10,
+    "additionalInteractionViews": 25,
+    "roleEntryViews": 10,
+    "blockedRoleBoundaries": 2
+  },
+  "compilation": {
+    "javascriptModules": 43,
+    "standaloneScriptBlocks": 2,
+    "status": "PASS"
+  },
+  "build": {
+    "entryPoints": 80,
+    "linkedAssetReferences": 6400,
+    "standaloneBytes": 2214700,
+    "externalStandaloneJsCss": false,
+    "defaultRoute": "my-workspace"
+  },
+  "browserValidation": {
+    "status": "BLOCKED",
+    "limitations": [
+      "Previously observed Chromium process/socket restrictions",
+      "Previously observed cloud-browser local-file navigation policy; not retried or bypassed"
+    ],
+    "notClaimed": [
+      "Rendered visual/mobile layout",
+      "Native dialog/history/focus/inert behavior",
+      "Screen-reader and keyboard usability",
+      "Browser file storage",
+      "Browser downloads",
+      "Print-to-PDF",
+      "Native PDF viewer and full fidelity Office rendering",
+      "Recipient file-download and save/resume browser behavior",
+      "Hosted external authentication, email and OTP",
+      "V2.14 mobile drawer native focus/inert lifecycle and live search screen-reader announcements",
+      "V2.15 real-browser filter event ordering, modal/route focus restoration and native Back history behavior"
+    ]
+  },
+  "historicalArtifacts": "Earlier handoff docs, archived original fixtures and earlier browser screenshots/results remain historical. Current authoritative checks are the suites listed here and routes_v215_checks.js.",
+  "presentationCoverage": {
+    "registeredRoutes": 79,
+    "htmlEntryPoints": 80,
+    "coverageMap": "docs/UI_COVERAGE_V215.json",
+    "browserAcceptance": "Pending; existing execution restriction retained"
+  }
+}

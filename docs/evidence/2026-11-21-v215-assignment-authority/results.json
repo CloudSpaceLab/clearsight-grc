@@ -1,0 +1,26 @@
+{
+  "fixture": "SYNTHETIC_NOT_BACKEND_AUTHORIZATION_OR_RELEASE",
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "noAuthoritySearchDisabled": true,
+      "deniedSearchDisabled": true,
+      "authorizedSearchAvailable": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "noAuthoritySearchDisabled": true,
+      "deniedSearchDisabled": true,
+      "authorizedSearchAvailable": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "noAuthoritySearchDisabled": true,
+      "deniedSearchDisabled": true,
+      "authorizedSearchAvailable": true
+    }
+  ]
+}

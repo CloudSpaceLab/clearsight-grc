@@ -77,6 +77,15 @@ try {
       }
       if (!detail) { await page.evaluate(() => { window.scrollTo(0, 0); if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); }); }
       const privacyLayout = await measurePrivacyLayout(page, scenario);
+      if (scenario.privacyView === "register" && scenario.privacyCheck === "layout") {
+        const rowGeometry = await page.locator(".ropa-register-list .cs-data-table__viewport").evaluate((viewport) => {
+          const row = viewport.querySelector("tbody tr");
+          return { display: row ? getComputedStyle(row).display : null, clientWidth: viewport.clientWidth, scrollWidth: viewport.scrollWidth };
+        });
+        if (rowGeometry.display !== (scenario.viewport.width > 700 ? "table-row" : "grid") || rowGeometry.scrollWidth > rowGeometry.clientWidth + 1) {
+          throw new Error(`${scenario.name}: incorrect register row replacement or horizontal overflow: ${JSON.stringify(rowGeometry)}`);
+        }
+      }
       const observation = await page.evaluate(() => window.privacyEvidence);
       const metrics = await page.evaluate(() => ({ clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
       const record = { ...scenario, buildDigest, evidenceInputDigest: inputs.digest, privacyLayout, detail, history, filters, recovery, pageRecovery, observation, metrics, errors };
@@ -84,6 +93,17 @@ try {
       if (failures.length) throw new Error(failures.join("\n"));
       const image = path.join(out, `${scenario.name}.png`);
       await page.screenshot({ path: image, fullPage: false, animations: "disabled", caret: "hide" });
+      if (scenario.privacyView === "register" && scenario.privacyCheck === "layout" && scenario.viewport.width === 768) {
+        await page.setViewportSize({ width: 701, height: 900 });
+        const narrow = await page.locator(".ropa-register-list .cs-data-table__viewport").evaluate((viewport) => {
+          const outer = viewport.getBoundingClientRect();
+          const action = viewport.querySelector("tbody tr .cs-data-table__action button")?.getBoundingClientRect();
+          return { clientWidth: viewport.clientWidth, scrollWidth: viewport.scrollWidth, actionVisible: Boolean(action && action.left >= outer.left - 1 && action.right <= outer.right + 1), actionWidth: action?.width, actionHeight: action?.height };
+        });
+        if (narrow.scrollWidth > narrow.clientWidth + 1 || !narrow.actionVisible || narrow.actionWidth < 44 || narrow.actionHeight < 44) {
+          throw new Error(`${scenario.name}: 701px table or action is clipped: ${JSON.stringify(narrow)}`);
+        }
+      }
       const bytes = await readFile(image);
       Object.assign(record, { imageBytes: bytes.length, imageSHA256: digest(bytes) });
       manifest.captures = manifest.captures.filter((item) => item.name !== record.name); manifest.captures.push(record);

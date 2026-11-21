@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("monitoring record not found")
-	ErrConflict = errors.New("monitoring record version conflict")
-	ErrInvalid  = errors.New("monitoring record is invalid")
+	ErrNotFound                     = errors.New("monitoring record not found")
+	ErrConflict                     = errors.New("monitoring record version conflict")
+	ErrInvalid                      = errors.New("monitoring record is invalid")
+	ErrBindingTransitionUnavailable = errors.New("form binding transition unavailable")
 )
 
 type LifecycleTransition struct {
@@ -23,6 +24,13 @@ type LifecycleTransition struct {
 	To                     LifecycleStatus
 	ActorID                string
 	At                     time.Time
+	BindingImpact          *FormBindingTransition
+}
+
+// FormBindingTransition is an internal-only contract; API routes do not bind it.
+type FormBindingTransition struct {
+	ApprovalIDs  []string
+	ImpactDigest string
 }
 
 type CheckRevisionUpdate struct {

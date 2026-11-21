@@ -1,0 +1,36 @@
+{
+  "suite": "kri-v28-review-integration",
+  "validation": "Actual domain functions in Node VM; DOM shell only",
+  "checks": [
+    {
+      "name": "V2.8 acceptance creates one shared decision receipt and versioned remediation actions",
+      "status": "PASS"
+    },
+    {
+      "name": "Accepted correction updates one open task and retains its previous accountability",
+      "status": "PASS"
+    },
+    {
+      "name": "A closed action remains intact when a later accepted breach creates another episode",
+      "status": "PASS"
+    },
+    {
+      "name": "A nonbreaching correction flags the open action for closure verification without closing it",
+      "status": "PASS"
+    },
+    {
+      "name": "Malformed submission provenance fails before mutation or a review receipt",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy KRI review keeps exactly one original shared decision receipt",
+      "status": "PASS"
+    },
+    {
+      "name": "Recording a continuous indicator appends traceable dated history without inventing legacy dates",
+      "status": "PASS"
+    }
+  ],
+  "passed": 7,
+  "failed": 0
+}

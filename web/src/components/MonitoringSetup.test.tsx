@@ -368,13 +368,14 @@ describe("monitoring setup", () => {
   it("tests an HTTPS status endpoint and lets the user select an observed field", async () => {
     const prepared = {
       source: { id: "source-1", tenant_id: "bank-1", code: "FACE-SDK", name: "Live face verification", type: "SYSTEM", authority_class: "INTERNAL_CONTROL", expected_freshness_minutes: 60, health: "UNKNOWN", status: "ACTIVE", version: 1 },
-      connection: { connection_id: "connection-1", source_id: "source-1", version: 1, code: "FACE-SDK-REST", name: "Endpoint", status: "DRAFT" },
+      connection: { connection_id: "connection-1", source_id: "source-1", version: 1, code: "FACE-SDK-REST", name: "Endpoint", status: "ACTIVE" },
       view: { view_id: "view-1", connection_id: "connection-1", connection_version: 1, source_id: "source-1", version: 2, code: "FACE-SDK-STATUS", name: "Status", native_schema: [{ name: "sdk_present", native_type: "json:boolean", nullable: false }] },
     };
     vi.mocked(prepareRESTSource).mockResolvedValue(prepared);
-    vi.mocked(createRESTBinding).mockResolvedValue({ binding_id: "binding-1", view_id: "view-1", view_version: 3, source_id: "source-1", version: 1, code: "FACE-SDK-MONITOR", name: "Monitoring", status: "DRAFT", selected_fields: ["sdk_present"] });
+    vi.mocked(createRESTBinding).mockResolvedValue({ binding_id: "binding-1", view_id: "view-1", view_version: 3, source_id: "source-1", version: 1, code: "FACE-SDK-MONITOR", name: "Monitoring", status: "ACTIVE", selected_fields: ["sdk_present"] });
     const onSaved = vi.fn();
     render(<DataSourceBuilder onSaved={onSaved} onCancel={vi.fn()}/>);
+    fireEvent.change(screen.getByLabelText("Response format"), { target: { value: "records" } });
     fireEvent.change(screen.getByLabelText("Source name"), { target: { value: "Live face verification" } });
     fireEvent.change(screen.getByLabelText("Code"), { target: { value: "FACE-SDK" } });
     fireEvent.change(screen.getByLabelText("Status endpoint"), { target: { value: "https://status.example/sdk" } });
@@ -382,7 +383,7 @@ describe("monitoring setup", () => {
     expect(await screen.findByLabelText("Observed field")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Monitoring statement"), { target: { value: "The live face verification SDK is enabled on mobile banking." } });
     fireEvent.change(screen.getByLabelText("Expected value"), { target: { value: "true" } });
-    fireEvent.click(screen.getByRole("button", { name: "Use this source" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(createRESTBinding).toHaveBeenCalledWith(prepared, "sdk_present"));
     expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ binding_id: "binding-1" }), expect.objectContaining({ field: "sdk_present", expected: "true", operator: "EQUALS", claim: "The live face verification SDK is enabled on mobile banking." }));
   });
@@ -621,14 +622,15 @@ describe("monitoring setup", () => {
 it("configures a numeric endpoint as a native percent Indicator", async () => {
   const prepared = {
     source: { id: "source-2", tenant_id: "bank-1", code: "CHANNEL", name: "Mobile success rate", type: "SYSTEM", authority_class: "INTERNAL_CONTROL", expected_freshness_minutes: 60, health: "UNKNOWN", status: "ACTIVE", version: 1 },
-    connection: { connection_id: "connection-2", source_id: "source-2", version: 1, code: "CHANNEL-REST", name: "Endpoint", status: "DRAFT" },
+    connection: { connection_id: "connection-2", source_id: "source-2", version: 1, code: "CHANNEL-REST", name: "Endpoint", status: "ACTIVE" },
     view: { view_id: "view-2", connection_id: "connection-2", connection_version: 1, source_id: "source-2", version: 2, code: "CHANNEL-STATUS", name: "Status", native_schema: [{ name: "success_rate", native_type: "json:number", nullable: false }] },
   };
   vi.mocked(prepareRESTSource).mockResolvedValue(prepared);
-  vi.mocked(createRESTBinding).mockResolvedValue({ binding_id: "binding-2", view_id: "view-2", view_version: 3, source_id: "source-2", version: 1, code: "CHANNEL-MONITOR", name: "Monitoring", status: "DRAFT", selected_fields: ["success_rate"] });
+  vi.mocked(createRESTBinding).mockResolvedValue({ binding_id: "binding-2", view_id: "view-2", view_version: 3, source_id: "source-2", version: 1, code: "CHANNEL-MONITOR", name: "Monitoring", status: "ACTIVE", selected_fields: ["success_rate"] });
 
   const onSaved = vi.fn();
   render(<DataSourceBuilder onSaved={onSaved} onCancel={vi.fn()}/>);
+  fireEvent.change(screen.getByLabelText("Response format"), { target: { value: "records" } });
   fireEvent.change(screen.getByLabelText("Source name"), { target: { value: "Mobile success rate" } });
   fireEvent.change(screen.getByLabelText("Code"), { target: { value: "CHANNEL" } });
   fireEvent.change(screen.getByLabelText("Status endpoint"), { target: { value: "https://status.example/mobile" } });
@@ -639,7 +641,7 @@ it("configures a numeric endpoint as a native percent Indicator", async () => {
   fireEvent.change(screen.getByLabelText("Expected value"), { target: { value: "99.5" } });
   fireEvent.change(screen.getByLabelText("Display value as"), { target: { value: "PERCENT" } });
   fireEvent.change(screen.getByLabelText("Decimal places"), { target: { value: "2" } });
-  fireEvent.click(screen.getByRole("button", { name: "Use this source" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
 
   await waitFor(() => expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ binding_id: "binding-2" }), expect.objectContaining({
     field: "success_rate",

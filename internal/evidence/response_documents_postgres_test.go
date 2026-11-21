@@ -149,6 +149,52 @@ func TestPostgresDocumentInventoryScopesBeforeLimitAndPaginates(t *testing.T) {
 	// Two immutable revisions reuse both an original artifact and a file
 	// uploaded under another contributor request in the same distribution.
 	source := page.Items[0]
+	exact := DocumentQuery{TenantID: tenant, LegalEntityID: entity, PrincipalID: actor, SubmissionID: source.SubmissionID, FieldID: source.FieldID, ArtifactID: source.ArtifactID, ResponseRevisionID: source.ResponseRevisionID, Limit: 1}
+	exactPage, exactErr := store.ListExactDocuments(ctx, exact)
+	if exactErr != nil || len(exactPage.Items) != 1 || exactPage.Items[0].ID != source.ID || exactPage.NextCursor != "" {
+		t.Fatalf("exact occurrence: %+v %v", exactPage, exactErr)
+	}
+	exact.PrincipalID = "9f111111-1111-7111-8111-111111111199"
+	if deniedPage, deniedErr := store.ListExactDocuments(ctx, exact); deniedErr != nil || len(deniedPage.Items) != 0 {
+		t.Fatalf("exact denied: %+v %v", deniedPage, deniedErr)
+	}
+	exact.PrincipalID = actor
+	exact.LegalEntityID = "9f111111-1111-7111-8111-111111111198"
+	if deniedPage, deniedErr := store.ListExactDocuments(ctx, exact); deniedErr != nil || len(deniedPage.Items) != 0 {
+		t.Fatalf("exact cross-entity: %+v %v", deniedPage, deniedErr)
+	}
+	exact.LegalEntityID = entity
+	exactSQL, valid := exactDocumentInventorySQL(documentInventorySQL())
+	if !valid {
+		t.Fatal("exact query unavailable")
+	}
+	var exactPlan []byte
+	if err := pool.QueryRow(ctx, `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) `+exactSQL, tenant, entity, actor, now, "", "", source.ResponseRevisionID, false, "", "", time.Time{}, "", source.SubmissionID, source.FieldID, source.ArtifactID, 2, false, "").Scan(&exactPlan); err != nil {
+		t.Fatal(err)
+	}
+	var exactPlans []map[string]any
+	if err := json.Unmarshal(exactPlan, &exactPlans); err != nil {
+		t.Fatal(err)
+	}
+	if len(exactPlans) != 1 || exactPlans[0]["Plan"].(map[string]any)["Actual Rows"].(float64) != 1 {
+		t.Fatalf("unexpected exact plan: %s", exactPlan)
+	}
+	exactIndexes := map[string]string{}
+	var walkExact func(map[string]any)
+	walkExact = func(node map[string]any) {
+		if alias, ok := node["Alias"].(string); ok && (alias == "submission" || alias == "artifact") {
+			if index, ok := node["Index Name"].(string); ok {
+				exactIndexes[alias] = index
+			}
+		}
+		if children, ok := node["Plans"].([]any); ok {
+			for _, child := range children {
+				walkExact(child.(map[string]any))
+			}
+		}
+	}
+	walkExact(exactPlans[0]["Plan"].(map[string]any))
+	t.Logf("exact occurrence plan: rows=1 execution_ms=%v indexes=%v", exactPlans[0]["Execution Time"], exactIndexes)
 	_, err = pool.Exec(ctx, `
  INSERT INTO capture_requests SELECT (jsonb_populate_record(NULL::capture_requests,to_jsonb(req)||jsonb_build_object('id',md5('document-contributor')::uuid))).* FROM capture_requests req WHERE id=$1::uuid;
  INSERT INTO capture_artifacts SELECT (jsonb_populate_record(NULL::capture_artifacts,to_jsonb(a)||jsonb_build_object('id',md5('contributor-artifact')::uuid,'request_id',md5('document-contributor')::uuid,'submission_id',NULL,'storage_key','contributor-file','file_name','contributor.pdf'))).* FROM capture_artifacts a WHERE id=$2::uuid;
@@ -198,7 +244,7 @@ func TestPostgresDocumentInventoryScopesBeforeLimitAndPaginates(t *testing.T) {
 	// rather than a simplified surrogate. This is a representative small-fixture
 	// plan, explicitly not the separate 200,000-occurrence release benchmark.
 	var planJSON []byte
-	err = pool.QueryRow(ctx, `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) `+documentInventorySQL(), tenant, entity, actor, now, "", "", amendmentID, false, "", "", time.Time{}, "", "", "", "", 3, false).Scan(&planJSON)
+	err = pool.QueryRow(ctx, `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) `+documentInventorySQL(), tenant, entity, actor, now, "", "", amendmentID, false, "", "", time.Time{}, "", "", "", "", 3, false, "").Scan(&planJSON)
 	if err != nil {
 		t.Fatal(err)
 	}

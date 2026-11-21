@@ -1,0 +1,89 @@
+{
+  "suite": "V2.12 actual-source internal role experience",
+  "runtime": "Node; DOM/browser shell substituted",
+  "browserLayoutValidated": false,
+  "passed": 20,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Exact capabilities preserve scope, active dates, explicit denies and actual actor requirements",
+      "status": "PASS"
+    },
+    {
+      "name": "Coverage reports partial subtrees without turning an ancestor grant into a child-deny bypass",
+      "status": "PASS"
+    },
+    {
+      "name": "Shared references use scoped read coverage while shared mutation and export remain exact",
+      "status": "PASS"
+    },
+    {
+      "name": "Missing subject scope and invalid navigation never widen to whole-organization permission",
+      "status": "PASS"
+    },
+    {
+      "name": "Role lenses derive from current grants and verified ownership, never from title text",
+      "status": "PASS"
+    },
+    {
+      "name": "Switching the lens preserves all live access and rejects unavailable responsibilities",
+      "status": "PASS"
+    },
+    {
+      "name": "Navigation and cached search follow actor capability and exact source location",
+      "status": "PASS"
+    },
+    {
+      "name": "A reporting-only person receives leadership workspaces without operational write surfaces",
+      "status": "PASS"
+    },
+    {
+      "name": "Named program ownership and responding remain legitimate and exact denies still win",
+      "status": "PASS"
+    },
+    {
+      "name": "New operational drafts start in a permitted location and record the actual preparer",
+      "status": "PASS"
+    },
+    {
+      "name": "Direct control commands bind the actual tester and assigned independent reviewer",
+      "status": "PASS"
+    },
+    {
+      "name": "Control moves and edits recheck original plus proposed scopes and revoked grants",
+      "status": "PASS"
+    },
+    {
+      "name": "RCSA draft and decision check the real first-line and assigned review identities",
+      "status": "PASS"
+    },
+    {
+      "name": "KRI submission rechecks authorization after confirmation and cannot select an impersonated reviewer",
+      "status": "PASS"
+    },
+    {
+      "name": "Privacy decisions preserve source independence and block name-only reviewer switching",
+      "status": "PASS"
+    },
+    {
+      "name": "A branch grant cannot publish a shared form or a whole-organization program",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy privacy cases without a named reviewer stay reviewable under exact independent authority",
+      "status": "PASS"
+    },
+    {
+      "name": "Action visibility and draft guards use the same real capability as their commits",
+      "status": "PASS"
+    },
+    {
+      "name": "Other people can inspect an action but only its actual owner may complete or reopen it",
+      "status": "PASS"
+    },
+    {
+      "name": "All role views render real registered actions, escaped source names and useful access explanations",
+      "status": "PASS"
+    }
+  ]
+}

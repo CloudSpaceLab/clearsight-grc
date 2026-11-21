@@ -40,6 +40,8 @@ type RESTJSONLookup struct {
 
 type RESTJSONViewDefinition struct {
 	Path           string             `json:"path"`
+	Singleton      bool               `json:"singleton,omitempty"`
+	ResultType     string             `json:"result_type,omitempty"`
 	RecordsPointer string             `json:"records_pointer,omitempty"`
 	FixedQuery     map[string]string  `json:"fixed_query,omitempty"`
 	Pagination     RESTJSONPagination `json:"pagination"`
@@ -147,6 +149,12 @@ func normalizeRESTJSONViewDefinition(raw json.RawMessage) (json.RawMessage, erro
 		}
 	default:
 		return nil, fmt.Errorf("%w: REST pagination mode is unsupported", ErrDefinitionInvalid)
+	}
+	if definition.Singleton && (definition.RecordsPointer != "" || definition.Pagination.Mode != RESTJSONPaginationNone || definition.Pagination.PageSizeQueryParam != "" || definition.Lookup != nil) {
+		return nil, fmt.Errorf("%w: singleton REST views require a root object without pagination or lookup", ErrDefinitionInvalid)
+	}
+	if definition.ResultType != "" && (!definition.Singleton || (definition.ResultType != "BOOLEAN" && definition.ResultType != "NUMBER")) {
+		return nil, fmt.Errorf("%w: result type requires a singleton view and must be BOOLEAN or NUMBER", ErrDefinitionInvalid)
 	}
 
 	dynamic := map[string]struct{}{}

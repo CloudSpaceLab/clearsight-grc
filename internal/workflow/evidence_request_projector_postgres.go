@@ -53,6 +53,7 @@ func (p *EvidenceRequestProjector) Maintain(ctx context.Context, now time.Time, 
 			       cr.recipient_state,cr.status,cr.deadline,cr.estimated_minutes,cr.fields,cr.source_bindings,cr.updated_at,
 			       COALESCE(p.status='ACTIVE' AND p.valid_from<=$2 AND (p.valid_until IS NULL OR $2<p.valid_until),false) AS principal_active,
 			       CASE
+			         WHEN cr.subject_type='PROGRAM' THEN `+programEvidenceVisibilitySQL("COALESCE(cr.recipient_principal_id::text,'')")+`
 			         WHEN cr.subject_type<>'MATTER' THEN true
 			         WHEN m.id IS NULL THEN false
 			         WHEN NOT (m.scope ? 'access') THEN true
@@ -89,6 +90,7 @@ func (p *EvidenceRequestProjector) Maintain(ctx context.Context, now time.Time, 
 			  ON cr.subject_type='MATTER'
 			 AND m.tenant_id=cr.tenant_id
 			 AND m.id::text=cr.subject_id
+			LEFT JOIN programs ep ON cr.subject_type='PROGRAM' AND ep.tenant_id=cr.tenant_id AND ep.legal_entity_id=cr.legal_entity_id AND ep.id=CASE WHEN cr.subject_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN cr.subject_id::uuid ELSE NULL END
 			WHERE cr.recipient_type='INTERNAL_PRINCIPAL'
 		)
 		SELECT c.request_id,c.slug,c.title,c.purpose,c.subject_type,c.subject_id,

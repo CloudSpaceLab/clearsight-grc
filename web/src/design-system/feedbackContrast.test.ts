@@ -81,6 +81,31 @@ function required(tokens: Map<string, string>, name: string) {
 }
 
 describe("feedback contrast", () => {
+  it("uses the approved Framework source's light text colours", () => {
+    const tokens = themeBlock("light");
+    const primary = resolve(required(tokens, "--cs-text-primary"), tokens);
+    const strong = resolve(required(tokens, "--cs-text-strong"), tokens);
+    expect(primary).toEqual(parseHex("#132547"));
+    expect(strong).toEqual(parseHex("#0a1d43"));
+    for (const surface of ["--cs-bg-canvas", "--cs-bg-surface-1", "--cs-bg-surface-2"]) {
+      expect(contrast(primary, resolve(required(tokens, surface), tokens))).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(strong, resolve(required(tokens, surface), tokens))).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  for (const theme of ["dark", "light"] as const) {
+    it(`uses an accessible blue primary action in ${theme} mode`, () => {
+      const tokens = themeBlock(theme);
+      const primary = resolve(required(tokens, "--cs-action-primary"), tokens);
+      const text = resolve(required(tokens, "--cs-action-primary-text"), tokens);
+      const accent = resolve(required(tokens, "--cs-accent-cyan"), tokens);
+      expect(primary[2]).toBeGreaterThan(primary[1] * 1.2);
+      expect(accent[2]).toBeGreaterThan(accent[1] * 1.2);
+      expect(contrast(primary, text)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(primary, resolve(required(tokens, "--cs-bg-surface-2"), tokens))).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+
   for (const theme of ["dark", "light"] as const) {
     it(`keeps every Notice and StatusBadge tone at WCAG contrast in ${theme} mode`, () => {
       const tokens = themeBlock(theme);

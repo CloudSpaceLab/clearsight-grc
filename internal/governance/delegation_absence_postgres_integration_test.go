@@ -54,6 +54,8 @@ func TestPostgresDelegationCoversPlannedAndEmergencyAbsenceFailClosed(t *testing
 
 	now := time.Date(2026, 10, 4, 12, 0, 0, 0, time.UTC)
 	mustGovernanceExec(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'absence-governance-test','Absence governance test')`, tenantID)
+	// Delegation scope and approval checks operate without the unfinished epoch protocol.
+	mustGovernanceExec(t, ctx, pool, `DELETE FROM tenant_authority_epochs WHERE tenant_id=$1::uuid`, tenantID)
 	mustGovernanceExec(t, ctx, pool, `
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from)
 		VALUES($1::uuid,$2::uuid,'BANK-NG','Bank NG','NG',$3)`,

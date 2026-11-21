@@ -8,6 +8,7 @@ import {
   type OrganizationTrendSeries,
 } from "../../metricApi";
 import { Button, MetricTrend, type MetricTrendDatum } from "../ui";
+import type { ReportingPeriodQuery } from "../../reportingPeriod";
 
 type RangeDays = 7 | 30 | 90;
 type LoadState = "loading" | "live" | "missing" | "unavailable";
@@ -18,6 +19,7 @@ type Props = {
   loadLegalEntityTrend?: typeof loadDomainMetricTrend;
   loadOrganizationTrend?: typeof loadDomainMetricOrganizationTrend;
   now?: Date;
+  period?: ReportingPeriodQuery;
 };
 
 const ranges: readonly RangeDays[] = [7, 30, 90];
@@ -28,6 +30,7 @@ export function RiskMovement({
   loadLegalEntityTrend = loadDomainMetricTrend,
   loadOrganizationTrend = loadDomainMetricOrganizationTrend,
   now,
+  period,
 }: Props) {
   const [range, setRange] = useState<RangeDays>(30);
   const [state, setState] = useState<LoadState>("loading");
@@ -48,8 +51,8 @@ export function RiskMovement({
     const today = utcDay(nowMs === undefined ? new Date() : new Date(nowMs));
     const baselineDate = addUTCDays(today, -range);
     const requestedStart = organizationScopeID || range !== 7 ? baselineDate : addUTCDays(baselineDate, -1);
-    const startDate = formatDate(requestedStart);
-    const endDate = formatDate(today);
+    const startDate = period?.start_date ?? formatDate(requestedStart);
+    const endDate = period?.end_date ?? formatDate(today);
 
     setState("loading");
     setLegalTrend(null);
@@ -92,22 +95,24 @@ export function RiskMovement({
     });
 
     return () => controller.abort();
-  }, [bundle?.source_id, current, loadLegalEntityTrend, loadOrganizationTrend, nowMs, organizationScopeID, range]);
+  }, [bundle?.source_id, current, loadLegalEntityTrend, loadOrganizationTrend, nowMs, organizationScopeID, range, period?.start_date, period?.end_date]);
 
   const model = useMemo(() => {
     if (!bundle || !current) return null;
 
     const today = utcDay(nowMs === undefined ? new Date() : new Date(nowMs));
     const baselineDate = addUTCDays(today, -range);
-    const baselineKey = formatDate(baselineDate);
-    const todayKey = formatDate(today);
+    const baselineKey = period?.start_date ?? formatDate(baselineDate);
+    const todayKey = period?.end_date ?? formatDate(today);
 
     const scopedTrend = organizationScopeID && organizationTrend?.organization_scope_id === organizationScopeID
       && organizationTrend.metric_id === current.id
       && organizationTrend.definition_revision === current.definition_revision
+      && (!period || (organizationTrend.start.slice(0, 10) === baselineKey && organizationTrend.end.slice(0, 10) === todayKey))
       ? organizationTrend : null;
     const entityTrend = !organizationScopeID && legalTrend?.metric_id === current.id
-      && legalTrend.definition_revision === current.definition_revision ? legalTrend : null;
+      && legalTrend.definition_revision === current.definition_revision
+      && (!period || (legalTrend.start.slice(0, 10) === baselineKey && legalTrend.end.slice(0, 10) === todayKey)) ? legalTrend : null;
     const history = scopedTrend
       ? scopedTrend.points.map((point) => ({
           id: `history-${point.date}`,
@@ -128,8 +133,8 @@ export function RiskMovement({
     const baseline = relevant.find((point) => point.date === baselineKey);
     const currentComplete = current.freshness === "CURRENT"
       && current.completeness === "COMPLETE"
-      && (current.excluded ?? 0) === 0
-      && (current.unknown ?? 0) === 0;
+      && current.excluded === 0
+      && current.unknown === 0;
     const comparable = Boolean(baseline?.complete && currentComplete);
 
     const reliable = relevant.filter((point) => point.complete);
@@ -158,10 +163,10 @@ export function RiskMovement({
 
     return {
       chartPoints,
-      comparison: comparisonLabel(current.value, baseline?.value, range, comparable),
+      comparison: period ? periodComparisonLabel(current.value, baseline?.value, baselineKey, comparable) : comparisonLabel(current.value, baseline?.value, range, comparable),
       currentValue: current.value,
     };
-  }, [bundle, current, legalTrend, nowMs, organizationTrend, range]);
+  }, [bundle, current, legalTrend, nowMs, organizationTrend, range, period?.start_date, period?.end_date]);
 
   return <section className="risk-movement" aria-labelledby="risk-movement-heading">
     <div className="section-header risk-movement__header">
@@ -169,7 +174,7 @@ export function RiskMovement({
         <h2 id="risk-movement-heading">Risk trend</h2>
         <p>Outside-appetite risk posture over time.</p>
       </div>
-      <div className="risk-movement__ranges" aria-label="Risk movement period">
+      {!period && <div className="risk-movement__ranges" aria-label="Risk movement period">
         {ranges.map((days) => <Button
           key={days}
           size="compact"
@@ -177,7 +182,7 @@ export function RiskMovement({
           aria-pressed={range === days}
           onPress={() => setRange(days)}
         >{days}d</Button>)}
-      </div>
+      </div>}
     </div>
 
     {model && <div className="risk-movement__summary" aria-live="polite">
@@ -188,10 +193,18 @@ export function RiskMovement({
     {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading risk trend…</p>}
     {(state === "missing" || state === "unavailable") && <p className="risk-movement__empty">No comparable history yet.</p>}
     {state === "live" && model && model.chartPoints.length >= 2 && <MetricTrend
-      ariaLabel={`Outside-appetite risk trend for the last ${range} days`}
+      ariaLabel={period ? `Outside-appetite risk trend from ${period.start_date} to ${period.end_date}` : `Outside-appetite risk trend for the last ${range} days`}
       points={model.chartPoints}
     />}
   </section>;
+}
+
+function periodComparisonLabel(current: number, baseline: number | undefined, date: string, comparable: boolean) {
+  if (!comparable || baseline === undefined) return "No comparable history";
+  const delta = current - baseline;
+  if (delta > 0) return `+${delta} vs ${date}`;
+  if (delta < 0) return `${delta} vs ${date}`;
+  return `No change vs ${date}`;
 }
 
 function comparisonLabel(current: number, baseline: number | undefined, days: RangeDays, comparable: boolean) {
@@ -205,8 +218,8 @@ function comparisonLabel(current: number, baseline: number | undefined, days: Ra
 function metricPointComplete(point: MetricTrendSeries["points"][number]) {
   return point.freshness === "CURRENT"
     && point.completeness === "COMPLETE"
-    && (point.excluded ?? 0) === 0
-    && (point.unknown ?? 0) === 0;
+    && point.excluded === 0
+    && point.unknown === 0;
 }
 
 function utcDay(value: Date) {

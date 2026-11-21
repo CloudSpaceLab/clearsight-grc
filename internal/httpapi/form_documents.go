@@ -19,7 +19,7 @@ func documentProtection(w http.ResponseWriter) {
 }
 func documentQueryFromRequest(r *http.Request) (evidence.DocumentQuery, error) {
 	v := r.URL.Query()
-	q := evidence.DocumentQuery{FileKind: evidence.DocumentFileKind(v.Get("file_kind")), Query: v.Get("query"), FormTemplateID: v.Get("form_template_id"), RelationshipID: v.Get("relationship_id"), ResponseRevisionID: v.Get("response_revision_id"), CurrentOnly: true, Cursor: v.Get("cursor"), Limit: 25}
+	q := evidence.DocumentQuery{FileKind: evidence.DocumentFileKind(v.Get("file_kind")), View: evidence.DocumentView(v.Get("view")), Query: v.Get("query"), FormTemplateID: v.Get("form_template_id"), RelationshipID: v.Get("relationship_id"), ResponseRevisionID: v.Get("response_revision_id"), CurrentOnly: true, Cursor: v.Get("cursor"), Limit: 25}
 	var err error
 	if v.Has("limit") {
 		q.Limit, err = strconv.Atoi(v.Get("limit"))
@@ -74,6 +74,39 @@ func (a *API) listFormDocuments(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.WriteJSON(w, http.StatusOK, page)
 }
+
+// getFormDocument reads one authorized submitted occurrence, never a broad
+// inventory. A missing revision may be ambiguous when a file is reused.
+func (a *API) getFormDocument(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
+	service, ok := a.formDistributionService(w)
+	if !ok {
+		return
+	}
+	q := evidence.DocumentQuery{ResponseRevisionID: r.URL.Query().Get("response_revision_id"), SubmissionID: r.PathValue("submission_id"), FieldID: r.PathValue("field_id"), ArtifactID: r.PathValue("artifact_id"), Limit: 1}
+	if !documentScope(w, r, &q) {
+		return
+	}
+	if q.SubmissionID == "" || q.FieldID == "" || q.ArtifactID == "" {
+		writeDocumentError(w, evidence.ErrNotFound)
+		return
+	}
+	page, err := service.GetExactDocument(r.Context(), q)
+	if err != nil {
+		writeDocumentError(w, err)
+		return
+	}
+	if len(page.Items) != 1 || page.NextCursor != "" {
+		writeDocumentError(w, evidence.ErrNotFound)
+		return
+	}
+	value := page.Items[0]
+	if value.SubmissionID != q.SubmissionID || value.FieldID != q.FieldID || value.ArtifactID != q.ArtifactID || (q.ResponseRevisionID != "" && value.ResponseRevisionID != q.ResponseRevisionID) {
+		writeDocumentError(w, evidence.ErrNotFound)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, value)
+}
 func (a *API) openFormDocument(w http.ResponseWriter, r *http.Request) {
 	documentProtection(w)
 	service, ok := a.formDistributionService(w)
@@ -93,7 +126,7 @@ func (a *API) openFormDocument(w http.ResponseWriter, r *http.Request) {
 		writeDocumentError(w, err)
 		return
 	}
-	if len(page.Items) != 1 {
+	if len(page.Items) != 1 || page.NextCursor != "" {
 		writeDocumentError(w, evidence.ErrNotFound)
 		return
 	}

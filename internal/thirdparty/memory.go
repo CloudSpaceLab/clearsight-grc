@@ -11,22 +11,34 @@ import (
 )
 
 type MemoryRepository struct {
-	mu                      sync.RWMutex
-	vendors                 map[string]Vendor
-	relationships           map[string]Relationship
-	vendorBrandAssets       map[string]VendorBrandAsset
-	vendorBrandJobs         map[string]VendorBrandJob
-	vendorBrandEvents       []VendorBrandEvent
-	vendorBrandOutbox       []VendorBrandEvent
-	vendorBrandReceipts     map[string]VendorBrandReceipt
-	vendorBrandReservations map[string]VendorBrandUploadReservation
-	vendorIdentityEvents    []VendorIdentityEvent
-	vendorIdentityOutbox    []VendorIdentityEvent
+	mu                         sync.RWMutex
+	vendors                    map[string]Vendor
+	relationships              map[string]Relationship
+	vendorBrandAssets          map[string]VendorBrandAsset
+	vendorBrandJobs            map[string]VendorBrandJob
+	vendorBrandEvents          []VendorBrandEvent
+	vendorBrandOutbox          []VendorBrandEvent
+	vendorBrandReceipts        map[string]VendorBrandReceipt
+	vendorBrandReservations    map[string]VendorBrandUploadReservation
+	vendorIdentityEvents       []VendorIdentityEvent
+	vendorIdentityOutbox       []VendorIdentityEvent
+	relationshipCreateReceipts map[string]relationshipCreateReceipt
+	relationshipEvents         []relationshipMemoryEvent
+	relationshipOutbox         []relationshipMemoryEvent
+}
+
+type relationshipCreateReceipt struct {
+	ActorID, PayloadDigest string
+	Aggregate              Aggregate
+}
+type relationshipMemoryEvent struct {
+	Relationship       Relationship
+	ActorID, EventType string
 }
 
 func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
-		vendors: map[string]Vendor{}, relationships: map[string]Relationship{},
+		vendors: map[string]Vendor{}, relationships: map[string]Relationship{}, relationshipCreateReceipts: map[string]relationshipCreateReceipt{},
 		vendorBrandAssets: map[string]VendorBrandAsset{}, vendorBrandJobs: map[string]VendorBrandJob{}, vendorBrandReceipts: map[string]VendorBrandReceipt{}, vendorBrandReservations: map[string]VendorBrandUploadReservation{},
 	}
 }
@@ -34,11 +46,27 @@ func NewMemoryRepository() *MemoryRepository {
 func (r *MemoryRepository) CreateRelationship(_ context.Context, record CreateRecord) (Aggregate, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	receiptKey := record.Vendor.TenantID + "\x00" + record.Relationship.LegalEntityID + "\x00" + record.IdempotencyKey
+	if record.IdempotencyKey != "" {
+		if receipt, ok := r.relationshipCreateReceipts[receiptKey]; ok {
+			if receipt.ActorID != record.ActorID || receipt.PayloadDigest != record.PayloadDigest {
+				return Aggregate{}, ErrIdempotencyConflict
+			}
+			return receipt.Aggregate, nil
+		}
+	}
 	createdVendor := false
 	if record.ReuseVendor {
-		existing, ok := r.vendors[record.Vendor.ID]
+		source, ok := r.relationships[record.ExistingRelationshipID]
+		if !ok || source.TenantID != record.Vendor.TenantID || source.LegalEntityID != record.Relationship.LegalEntityID {
+			return Aggregate{}, ErrNotFound
+		}
+		existing, ok := r.vendors[source.VendorID]
 		if !ok || existing.TenantID != record.Vendor.TenantID {
 			return Aggregate{}, ErrNotFound
+		}
+		if source.Version != record.ExpectedExistingRelationshipVersion || existing.Version != record.ExpectedVendorVersion {
+			return Aggregate{}, ErrVersionConflict
 		}
 		record.Vendor = existing
 		record.Relationship.VendorID = existing.ID
@@ -65,7 +93,14 @@ func (r *MemoryRepository) CreateRelationship(_ context.Context, record CreateRe
 		r.appendVendorIdentityAudit(record.Vendor, record.ActorID, VendorIdentityCreatedEvent)
 	}
 	r.relationships[record.Relationship.ID] = record.Relationship
-	return Aggregate{Vendor: record.Vendor, Relationship: record.Relationship}, nil
+	event := relationshipMemoryEvent{Relationship: record.Relationship, ActorID: record.ActorID, EventType: "VendorRelationshipCreated"}
+	r.relationshipEvents = append(r.relationshipEvents, event)
+	r.relationshipOutbox = append(r.relationshipOutbox, event)
+	result := Aggregate{Vendor: record.Vendor, Relationship: record.Relationship}
+	if record.IdempotencyKey != "" {
+		r.relationshipCreateReceipts[receiptKey] = relationshipCreateReceipt{ActorID: record.ActorID, PayloadDigest: record.PayloadDigest, Aggregate: result}
+	}
+	return result, nil
 }
 
 func (r *MemoryRepository) UpdateRelationship(_ context.Context, record UpdateRecord) (Aggregate, error) {

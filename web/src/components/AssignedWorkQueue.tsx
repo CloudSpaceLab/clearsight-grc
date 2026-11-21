@@ -111,6 +111,8 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
                 </div>
                 {sourceCounts.value && <p className="assigned-workspace__receipt">Workflow assignment totals · <time dateTime={sourceCounts.value.as_of} title={sourceCounts.value.as_of}>{formatWorkTime(sourceCounts.value.as_of)}</time></p>}
                 {sourceCounts.unavailable && <p className="assigned-workspace__receipt" role="status">Assignment totals unavailable. Showing loaded work measures.</p>}
+                <div className={`assigned-workspace__grid${currentState === "live" && filtered.length > 0 && selected ? " assigned-workspace__grid--with-context" : ""}`}>
+                <div className="assigned-workspace__queue">
                 <header className="intervention-heading">
                   <div><Heading id="assigned-work-heading">Assigned to me</Heading>
                     {(!sourceSearch || currentState === "live") && <p>{currentItems.length} {currentItems.length === 1 ? "item" : "items"} loaded{sourceSearch && <> · Workflow assignments only{search.trim() && " · title matches"}</>}</p>}
@@ -143,19 +145,21 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
                   ? <div id="attention-list">{currentState === "loading"
                     ? <div className="workspace-loading" aria-live="polite" aria-busy="true">{search.trim() ? "Searching assignment titles…" : "Loading assignments…"}</div>
                     : <EmptyState kind="unavailable" label="Assigned work" title="Assignments unavailable" description="Retry loading assignments." action="Try again" onAction={searched.retry}/>}</div>
-                  : filtered.length ? <div className="assigned-workspace__grid" id="attention-list">
+                  : filtered.length ? <div id="attention-list">
                   <DataTable ariaLabel="Assigned work" rows={filtered} rowKey={(item) => item.id}
                     rowName={(item) => item.title} columns={workColumns} selectedKey={selected?.id}
                     onSelectionChange={(item) => setSelectedID(item.id)}
                     onRowAction={(item) => { setSelectedID(item.id); setInspectingItem(item); }}
-                    rowActionLabel="Inspect" responsiveTo="container"/>
-                  {selected && <WorkContext item={selected} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>}
+                    rowActionLabel="Inspect" responsiveTo="viewport"/>
                 </div> : <div id="attention-list"><EmptyState label="Assigned work" title={sourceSearch ? currentHasMore ? "No matching work loaded yet" : "No matching assignments" : filter === "ALL" && !search && !status ? "Nothing needs your action right now" : "No matching work"}
                   description={sourceSearch ? currentHasMore ? "Load more assignments to check remaining records." : "No workflow assignments match the selected filters." : filter === "ALL" && !search && !status ? "No open assigned work." : "No matching items in the loaded queue."}/></div>}
                 {sourceSearch && currentHasMore && <div className="workspace-recovery-actions">
                   <Button variant="secondary" isDisabled={searched.loadingMore} onPress={searched.loadMore}>{searched.loadingMore ? "Loading assignments…" : "Load more assignments"}</Button>
                 </div>}
                 {sourceSearch && searched.loadMoreFailed && <p role="alert">More assignments could not be loaded. Select Load more assignments to retry.</p>}
+                </div>
+                {currentState === "live" && filtered.length > 0 && selected && <WorkContext item={selected} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>}
+                </div>
               </>}
             </Tabs>
           </>

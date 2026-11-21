@@ -1,0 +1,1379 @@
+{
+  "revision": "home-t7-browser-v1",
+  "generated_at": "2026-11-03T17:08:37.965Z",
+  "coverage": "Deterministic Group and legal-entity fixture rendering, keyboard, axe and 200% CSS-zoom proxy. Not actual CRO comprehension, real browser zoom or production/20k-node performance.",
+  "scenarios": [
+    {
+      "id": "group-light-desktop",
+      "fixture": "home-t7-group",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "mode": "desktop",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Group Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Group Oversight initial tab",
+          "pass": true
+        },
+        {
+          "label": "Authorized OpCo risk concentration visible",
+          "pass": true
+        },
+        {
+          "label": "Loss is period event count, not cross-currency money",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        },
+        {
+          "label": "Keyboard opens only the selected authorized OpCo",
+          "pass": true
+        },
+        {
+          "label": "Right arrow moves to Attention",
+          "pass": true
+        },
+        {
+          "label": "Right arrow moves to My work",
+          "pass": true
+        },
+        {
+          "label": "Workflow pressure remains in Attention",
+          "pass": true
+        },
+        {
+          "label": "My work hands off to OpCo work instead of aggregating Group identities",
+          "pass": true
+        },
+        {
+          "label": "Loss period change updates Group counts",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "rootWidth": 1440,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 22
+      },
+      "screenshot": "home-t7-group-light-desktop.png",
+      "status": "PASS"
+    },
+    {
+      "id": "group-dark-desktop",
+      "fixture": "home-t7-group",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "mode": "desktop",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Group Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Group Oversight initial tab",
+          "pass": true
+        },
+        {
+          "label": "Authorized OpCo risk concentration visible",
+          "pass": true
+        },
+        {
+          "label": "Loss is period event count, not cross-currency money",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        },
+        {
+          "label": "Keyboard opens only the selected authorized OpCo",
+          "pass": true
+        },
+        {
+          "label": "Right arrow moves to Attention",
+          "pass": true
+        },
+        {
+          "label": "Right arrow moves to My work",
+          "pass": true
+        },
+        {
+          "label": "Workflow pressure remains in Attention",
+          "pass": true
+        },
+        {
+          "label": "My work hands off to OpCo work instead of aggregating Group identities",
+          "pass": true
+        },
+        {
+          "label": "Loss period change updates Group counts",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "rootWidth": 1440,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 22
+      },
+      "screenshot": "home-t7-group-dark-desktop.png",
+      "status": "PASS"
+    },
+    {
+      "id": "group-dark-mobile",
+      "fixture": "home-t7-group",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "mode": "mobile",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Group Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Group Oversight initial tab",
+          "pass": true
+        },
+        {
+          "label": "Authorized OpCo risk concentration visible",
+          "pass": true
+        },
+        {
+          "label": "Loss is period event count, not cross-currency money",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        },
+        {
+          "label": "Keyboard opens only the selected authorized OpCo",
+          "pass": true
+        },
+        {
+          "label": "Compact navigation opens Attention",
+          "pass": true
+        },
+        {
+          "label": "Compact navigation opens My work",
+          "pass": true
+        },
+        {
+          "label": "Workflow pressure remains in Attention",
+          "pass": true
+        },
+        {
+          "label": "My work hands off to OpCo work instead of aggregating Group identities",
+          "pass": true
+        },
+        {
+          "label": "Loss period change updates Group counts",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "rootWidth": 390,
+        "viewportHeight": 844
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 21
+      },
+      "screenshot": "home-t7-group-dark-mobile.png",
+      "status": "PASS"
+    },
+    {
+      "id": "group-light-320",
+      "fixture": "home-t7-group",
+      "theme": "light",
+      "width": 320,
+      "height": 800,
+      "mode": "mobile",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Group Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Group Oversight initial tab",
+          "pass": true
+        },
+        {
+          "label": "Authorized OpCo risk concentration visible",
+          "pass": true
+        },
+        {
+          "label": "Loss is period event count, not cross-currency money",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        },
+        {
+          "label": "Keyboard opens only the selected authorized OpCo",
+          "pass": true
+        },
+        {
+          "label": "Compact navigation opens Attention",
+          "pass": true
+        },
+        {
+          "label": "Compact navigation opens My work",
+          "pass": true
+        },
+        {
+          "label": "Workflow pressure remains in Attention",
+          "pass": true
+        },
+        {
+          "label": "My work hands off to OpCo work instead of aggregating Group identities",
+          "pass": true
+        },
+        {
+          "label": "Loss period change updates Group counts",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 320,
+        "scrollWidth": 320,
+        "rootWidth": 320,
+        "viewportHeight": 800
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 21
+      },
+      "screenshot": "home-t7-group-light-320.png",
+      "status": "PASS"
+    },
+    {
+      "id": "group-dark-200pct-proxy",
+      "fixture": "home-t7-group",
+      "theme": "dark",
+      "width": 720,
+      "height": 900,
+      "mode": "zoom",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Group Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Group Oversight initial tab",
+          "pass": true
+        },
+        {
+          "label": "Authorized OpCo risk concentration visible",
+          "pass": true
+        },
+        {
+          "label": "Loss is period event count, not cross-currency money",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        },
+        {
+          "label": "Keyboard opens only the selected authorized OpCo",
+          "pass": true
+        },
+        {
+          "label": "Compact navigation opens Attention",
+          "pass": true
+        },
+        {
+          "label": "Compact navigation opens My work",
+          "pass": true
+        },
+        {
+          "label": "Workflow pressure remains in Attention",
+          "pass": true
+        },
+        {
+          "label": "My work hands off to OpCo work instead of aggregating Group identities",
+          "pass": true
+        },
+        {
+          "label": "Loss period change updates Group counts",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 720,
+        "scrollWidth": 720,
+        "rootWidth": 360,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 21
+      },
+      "screenshot": "home-t7-group-dark-200pct-proxy.png",
+      "status": "PASS"
+    },
+    {
+      "id": "group-partial-light-desktop",
+      "fixture": "home-t7-group-partial",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "mode": "partial",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Group Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Group Oversight initial tab",
+          "pass": true
+        },
+        {
+          "label": "Authorized OpCo risk concentration visible",
+          "pass": true
+        },
+        {
+          "label": "Loss is period event count, not cross-currency money",
+          "pass": true
+        },
+        {
+          "label": "Missing OpCo Risk coverage disclosed",
+          "pass": true
+        },
+        {
+          "label": "Partial Group posture is not presented as current/clear",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        },
+        {
+          "label": "Keyboard opens only the selected authorized OpCo",
+          "pass": true
+        },
+        {
+          "label": "Right arrow moves to Attention",
+          "pass": true
+        },
+        {
+          "label": "Right arrow moves to My work",
+          "pass": true
+        },
+        {
+          "label": "Workflow pressure remains in Attention",
+          "pass": true
+        },
+        {
+          "label": "My work hands off to OpCo work instead of aggregating Group identities",
+          "pass": true
+        },
+        {
+          "label": "Loss period change updates Group counts",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "rootWidth": 1440,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 18
+      },
+      "screenshot": "home-t7-group-partial-light-desktop.png",
+      "status": "PASS"
+    },
+    {
+      "id": "entity-light-desktop",
+      "fixture": "oversight",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "mode": "entity",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "rootWidth": 1440,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 20
+      },
+      "screenshot": "home-t7-entity-light-desktop.png",
+      "status": "PASS"
+    },
+    {
+      "id": "entity-dark-320",
+      "fixture": "oversight",
+      "theme": "dark",
+      "width": 320,
+      "height": 800,
+      "mode": "entity",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "Phone Home tabs fit on one row",
+          "pass": true
+        },
+        {
+          "label": "Phone measure headings have readable width",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 320,
+        "scrollWidth": 320,
+        "rootWidth": 320,
+        "viewportHeight": 800
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 20
+      },
+      "screenshot": "home-t7-entity-dark-320.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-light-1440",
+      "fixture": "home-shell",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "mode": "shell",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "First posture measure begins within the first viewport",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "rootWidth": 1440,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 22
+      },
+      "screenshot": "home-t7-shell-light-1440.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-light-1280",
+      "fixture": "home-shell",
+      "theme": "light",
+      "width": 1280,
+      "height": 900,
+      "mode": "shell",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "First posture measure begins within the first viewport",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "rootWidth": 1280,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 22
+      },
+      "screenshot": "home-t7-shell-light-1280.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-light-1024",
+      "fixture": "home-shell",
+      "theme": "light",
+      "width": 1024,
+      "height": 900,
+      "mode": "shell",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "First posture measure begins within the first viewport",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "rootWidth": 1024,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 27
+      },
+      "screenshot": "home-t7-shell-light-1024.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-light-768",
+      "fixture": "home-shell",
+      "theme": "light",
+      "width": 768,
+      "height": 900,
+      "mode": "shell",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "First posture measure begins within the first viewport",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "rootWidth": 768,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 22
+      },
+      "screenshot": "home-t7-shell-light-768.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-light-390",
+      "fixture": "home-shell",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "mode": "shell",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "First posture measure begins within the first viewport",
+          "pass": true
+        },
+        {
+          "label": "Phone Home tabs fit on one row",
+          "pass": true
+        },
+        {
+          "label": "Phone measure headings have readable width",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "rootWidth": 390,
+        "viewportHeight": 844
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 22
+      },
+      "screenshot": "home-t7-shell-light-390.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-dark-1440",
+      "fixture": "home-shell",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "mode": "shell",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "First posture measure begins within the first viewport",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "rootWidth": 1440,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 22
+      },
+      "screenshot": "home-t7-shell-dark-1440.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-dark-1280",
+      "fixture": "home-shell",
+      "theme": "dark",
+      "width": 1280,
+      "height": 900,
+      "mode": "shell",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "First posture measure begins within the first viewport",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "rootWidth": 1280,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 22
+      },
+      "screenshot": "home-t7-shell-dark-1280.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-dark-1024",
+      "fixture": "home-shell",
+      "theme": "dark",
+      "width": 1024,
+      "height": 900,
+      "mode": "shell",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "First posture measure begins within the first viewport",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "rootWidth": 1024,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 27
+      },
+      "screenshot": "home-t7-shell-dark-1024.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-dark-768",
+      "fixture": "home-shell",
+      "theme": "dark",
+      "width": 768,
+      "height": 900,
+      "mode": "shell",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "First posture measure begins within the first viewport",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "rootWidth": 768,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 22
+      },
+      "screenshot": "home-t7-shell-dark-768.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-dark-390",
+      "fixture": "home-shell",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "mode": "shell",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Legal-entity Home exposes three intent tabs",
+          "pass": true
+        },
+        {
+          "label": "Oversight is initial entity tab",
+          "pass": true
+        },
+        {
+          "label": "Attention opens independently",
+          "pass": true
+        },
+        {
+          "label": "Attention retains source freshness",
+          "pass": true
+        },
+        {
+          "label": "My work opens independently",
+          "pass": true
+        },
+        {
+          "label": "Data freshness has a 44px touch target",
+          "pass": true
+        },
+        {
+          "label": "Home navigation provides three touch targets",
+          "pass": true
+        },
+        {
+          "label": "Scope precedes posture measures and freshness follows them",
+          "pass": true
+        },
+        {
+          "label": "First posture measure begins within the first viewport",
+          "pass": true
+        },
+        {
+          "label": "Phone Home tabs fit on one row",
+          "pass": true
+        },
+        {
+          "label": "Phone measure headings have readable width",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "rootWidth": 390,
+        "viewportHeight": 844
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 22
+      },
+      "screenshot": "home-t7-shell-dark-390.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-unavailable-light-desktop",
+      "fixture": "home-shell-unavailable",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "mode": "shell-unavailable",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Unavailable Home exposes a touch-sized retry",
+          "pass": true
+        },
+        {
+          "label": "Failed retry retains the unavailable condition",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "rootWidth": 1440,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 13
+      },
+      "screenshot": "home-t7-shell-unavailable-light-desktop.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-unavailable-dark-mobile",
+      "fixture": "home-shell-unavailable",
+      "theme": "dark",
+      "width": 390,
+      "height": 900,
+      "mode": "shell-unavailable",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Unavailable Home exposes a touch-sized retry",
+          "pass": true
+        },
+        {
+          "label": "Failed retry retains the unavailable condition",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "rootWidth": 390,
+        "viewportHeight": 900
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 13
+      },
+      "screenshot": "home-t7-shell-unavailable-dark-mobile.png",
+      "status": "PASS"
+    },
+    {
+      "id": "shell-guide-light-mobile",
+      "fixture": "home-shell",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "mode": "shell-guide",
+      "failures": [],
+      "assertions": [
+        {
+          "label": "Dismissed guide leaves Home navigation available",
+          "pass": true
+        },
+        {
+          "label": "Dismissed guide leaves posture measures available",
+          "pass": true
+        },
+        {
+          "label": "No horizontal overflow",
+          "pass": true
+        },
+        {
+          "label": "No axe A/AA violations",
+          "pass": true
+        }
+      ],
+      "layout": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "rootWidth": 390,
+        "viewportHeight": 844
+      },
+      "axe": {
+        "violations": [],
+        "incompleteCount": 22
+      },
+      "screenshot": "home-t7-shell-guide-light-mobile.png",
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS"
+}

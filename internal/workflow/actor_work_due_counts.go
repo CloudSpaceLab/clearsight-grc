@@ -25,7 +25,7 @@ type ActorWorkDueCounts struct {
 }
 
 type actorWorkDueCountsRepository interface {
-	CountActorWorkDue(context.Context, ListFilter, time.Time) (ActorWorkDueCounts, error)
+	CountActorWorkDue(context.Context, ListFilter) (ActorWorkDueCounts, error)
 }
 
 // ReadActorWorkDueCounts counts the same source-authorized workflow and
@@ -46,15 +46,16 @@ func (s *Service) ReadActorWorkDueCounts(ctx context.Context, tenantID, legalEnt
 	if !ok {
 		return ActorWorkDueCounts{}, ErrActorWorkCountsUnavailable
 	}
-	asOf := time.Now().UTC().Truncate(time.Microsecond)
 	counts, err := repo.CountActorWorkDue(ctx, ListFilter{
 		TenantID: tenantID, LegalEntityID: legalEntityID, PrincipalID: principalID,
-		VisibleActorWorkOnly: true, ActiveOnly: true, UpdatedThrough: &asOf,
-	}, asOf)
+		VisibleActorWorkOnly: true, ActiveOnly: true,
+	})
 	if err != nil {
 		return ActorWorkDueCounts{}, err
 	}
-	counts.AsOf = asOf
+	if counts.AsOf.IsZero() {
+		return ActorWorkDueCounts{}, ErrActorWorkCountsUnavailable
+	}
 	counts.Coverage = "WORKFLOW_ASSIGNMENTS_ONLY"
 	counts.CountBasis = "SOURCE_SNAPSHOT"
 	return counts, nil

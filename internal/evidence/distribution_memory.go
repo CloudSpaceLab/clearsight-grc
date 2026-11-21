@@ -22,6 +22,7 @@ type MemoryDistributionStore struct {
 	creationReceipts    map[string]distributionCreationReceipt
 	assessments         map[string][]assessmentSnapshot
 	assessmentDecisions []FieldAssessmentDecision
+	responseReviews     map[string][]ResponseReview
 	mu                  sync.RWMutex
 	repo                *MemoryRepository
 	forms               DistributionFormReader

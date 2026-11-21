@@ -92,12 +92,37 @@ func TestDocumentInventoryPreservesReusedArtifactOccurrencesAndHistory(t *testin
 
 func TestDocumentQueryRejectsMissingScopeAndInvalidFilters(t *testing.T) {
 	_, q := documentMemoryFixture()
-	for _, change := range []func(*DocumentQuery){func(q *DocumentQuery) { q.PrincipalID = "" }, func(q *DocumentQuery) { q.LegalEntityID = "*" }, func(q *DocumentQuery) { q.Limit = 101 }, func(q *DocumentQuery) { q.FileKind = "VIDEO" }, func(q *DocumentQuery) { q.Cursor = "invalid" }} {
+	for _, change := range []func(*DocumentQuery){func(q *DocumentQuery) { q.PrincipalID = "" }, func(q *DocumentQuery) { q.LegalEntityID = "*" }, func(q *DocumentQuery) { q.Limit = 101 }, func(q *DocumentQuery) { q.FileKind = "VIDEO" }, func(q *DocumentQuery) { q.View = "UNKNOWN" }, func(q *DocumentQuery) { q.Cursor = "invalid" }} {
 		probe := q
 		change(&probe)
 		if _, err := normalizeDocumentQuery(&probe); err == nil {
 			t.Fatalf("accepted invalid query %+v", probe)
 		}
+	}
+}
+
+func TestDocumentViewsUseRecordedReviewAndValidExpiry(t *testing.T) {
+	now := time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		name string
+		view DocumentView
+		file DocumentOccurrence
+		want bool
+	}{
+		{"awaiting recorded", DocumentViewAwaitingReview, DocumentOccurrence{Current: true, Review: &DocumentReview{Status: "SUBMITTED"}}, true},
+		{"unknown review", DocumentViewAwaitingReview, DocumentOccurrence{Current: true}, false},
+		{"previous review", DocumentViewAwaitingReview, DocumentOccurrence{Review: &DocumentReview{Status: "SUBMITTED"}}, false},
+		{"expired", DocumentViewNeedsRefresh, DocumentOccurrence{Current: true, ExpiresOn: "2026-11-19"}, true},
+		{"expires today", DocumentViewNeedsRefresh, DocumentOccurrence{Current: true, ExpiresOn: "2026-11-20"}, false},
+		{"invalid date", DocumentViewNeedsRefresh, DocumentOccurrence{Current: true, ExpiresOn: "2026-02-30"}, false},
+		{"recorded history", DocumentViewReviewHistory, DocumentOccurrence{Review: &DocumentReview{Status: "VALIDATED"}}, true},
+		{"unknown history", DocumentViewReviewHistory, DocumentOccurrence{}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := documentViewMatches(tc.file, tc.view, now); got != tc.want {
+				t.Fatalf("got %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 
@@ -285,5 +310,22 @@ func TestWorkDocumentCurrencyFollowsSubmittedFieldReplacements(t *testing.T) {
 				t.Fatalf("omitted answer did not clear requested field %+v %v", files, err)
 			}
 		})
+	}
+}
+
+func TestExactDocumentsRequireBoundedRepository(t *testing.T) {
+	store := NewMemoryDistributionStore(NewMemoryRepository(nil, nil), nil, nil)
+	service := NewDistributionService(store)
+	_, err := service.GetExactDocument(context.Background(), DocumentQuery{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "reader", SubmissionID: "sub", FieldID: "field", ArtifactID: "artifact", Limit: 1})
+	if err == nil {
+		t.Fatal("unbounded memory inventory must not service exact reads")
+	}
+}
+
+func TestExactDocumentRejectsOversizedFieldIdentifier(t *testing.T) {
+	service := NewDistributionService(NewMemoryDistributionStore(NewMemoryRepository(nil, nil), nil, nil))
+	_, err := service.GetExactDocument(context.Background(), DocumentQuery{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "reader", SubmissionID: "sub", FieldID: strings.Repeat("x", 81), ArtifactID: "artifact", Limit: 1})
+	if err != ErrDistributionInvalid {
+		t.Fatalf("oversized field error = %v", err)
 	}
 }

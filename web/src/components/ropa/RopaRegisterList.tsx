@@ -77,7 +77,7 @@ export function RopaRegisterList({ scope, search, status, includeRetired, onRemo
       onRowAction={(item) => onOpen(item.id)}
       isLoading={state === "loading"}
       pagination={pagination}
-      responsiveTo="container"
+      responsiveTo="viewport"
     />}
     {page.rows.length === 0 && pagination?.onPrevious && state !== "denied" && <nav className="ropa-register-list__recovery" aria-label="Processing activity pages"><Button variant="secondary" isDisabled={state === "loading"} onPress={pagination.onPrevious}>Load previous page</Button></nav>}
     {state === "live" && page.has_more && !page.next_cursor && <Notice tone="warning">More activities exist. Retry to continue.</Notice>}

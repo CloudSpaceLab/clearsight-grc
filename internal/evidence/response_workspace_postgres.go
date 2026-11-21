@@ -65,6 +65,21 @@ func (store *PostgresDistributionStore) SaveResponseWorkspace(ctx context.Contex
 	if err := command.Validate(merged); err != nil {
 		return ResponseWorkspaceView{}, err
 	}
+	// Repeat source-document validation on the material transaction. The
+	// service validator's earlier read cannot keep a different recipient's
+	// source eligibility stable through this workspace write.
+	current, err := scanRequest(tx.QueryRow(ctx, requestSelect+` WHERE er.id=$1::uuid AND er.tenant_id=$2::uuid AND er.legal_entity_id=$3::uuid`, command.Request.ID, command.Session.TenantID, command.Session.LegalEntityID))
+	if err != nil {
+		return ResponseWorkspaceView{}, ErrWorkspaceUnavailable
+	}
+	if current.Version != command.Request.Version {
+		return ResponseWorkspaceView{}, ErrVersionConflict
+	}
+	if err := validateWorkspaceAnswerSet(ctx, store.repo, current, merged, false, func(ctx context.Context, tenantID, _ string, artifactID string) (Artifact, error) {
+		return loadPostgresWorkspaceArtifact(ctx, tx, command.Session, tenantID, "", artifactID, false)
+	}, command.Now); err != nil {
+		return ResponseWorkspaceView{}, err
+	}
 	if len(changes) == 0 {
 		if err := tx.Commit(ctx); err != nil {
 			return ResponseWorkspaceView{}, ErrWorkspaceUnavailable
@@ -182,6 +197,10 @@ func (store *PostgresDistributionStore) SubmitResponseWorkspace(ctx context.Cont
 	metadata.DistributionID = command.Session.DistributionID
 	metadata.WorkspaceID = state.View.Workspace.ID
 	metadata.SubmissionID = submissionID
+	metadata.SubmittedRecipientID = command.Session.RecipientID
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(principal_id::text,''),recipient_type,contact_label FROM capture_distribution_recipients WHERE id=$1::uuid AND tenant_id=$2::uuid AND legal_entity_id=$3::uuid AND distribution_id=$4::uuid AND request_id=$5::uuid AND role='TO'`, command.Session.RecipientID, command.Session.TenantID, command.Session.LegalEntityID, command.Session.DistributionID, command.Session.RequestID).Scan(&metadata.SubmittedRecipientPrincipalID, &metadata.SubmittedRecipientType, &metadata.SubmittedRecipientLabel); err != nil {
+		return WorkspaceSubmissionResult{}, ErrWorkspaceUnavailable
+	}
 	metadata.Revision = revisionNumber
 	metadata.Current = true
 	metadata.CreatedAt = command.Now.UTC()

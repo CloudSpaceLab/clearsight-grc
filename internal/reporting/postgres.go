@@ -4,6 +4,7 @@ package reporting
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -314,6 +315,18 @@ func (r *PostgresRepository) TransitionDefinition(ctx context.Context, scope Rep
 }
 
 func (r *PostgresRepository) CreateRun(ctx context.Context, scope ReportScope, run ReportRun) (ReportRun, error) {
+	return r.createRun(ctx, scope, run, "", "")
+}
+
+func (r *PostgresRepository) CreateRunOnce(ctx context.Context, scope ReportScope, run ReportRun, key, fingerprint string) (ReportRun, error) {
+	key = strings.ToLower(strings.TrimSpace(key))
+	if !validRunReceipt(key, fingerprint, run.RequestedByRef) {
+		return ReportRun{}, ErrInvalid
+	}
+	return r.createRun(ctx, scope, run, key, fingerprint)
+}
+
+func (r *PostgresRepository) createRun(ctx context.Context, scope ReportScope, run ReportRun, key, fingerprint string) (ReportRun, error) {
 	if err := r.validateInput(ctx, scope, run.ID); err != nil {
 		return ReportRun{}, err
 	}
@@ -351,6 +364,19 @@ func (r *PostgresRepository) CreateRun(ctx context.Context, scope ReportScope, r
 		return ReportRun{}, fmt.Errorf("begin report run creation: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	if key != "" {
+		lockKey := sha256.Sum256([]byte(runReceiptKey(scope, run.RequestedByRef, key)))
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, fmt.Sprintf("%x", lockKey)); err != nil {
+			return ReportRun{}, err
+		}
+		existing, err := findPostgresRunReceipt(ctx, tx, scope, run.RequestedByRef, key, fingerprint)
+		if err == nil {
+			return existing, nil
+		}
+		if !errors.Is(err, ErrNotFound) {
+			return ReportRun{}, err
+		}
+	}
 	definition, err := scanDefinition(tx.QueryRow(ctx, `SELECT `+definitionProjection+`
 		FROM report_definitions d WHERE d.tenant_id=$1::uuid AND d.legal_entity_id=$2::uuid AND d.id=$3::uuid
 		FOR SHARE`, scope.TenantID, scope.LegalEntityID, run.DefinitionID))
@@ -387,6 +413,11 @@ func (r *PostgresRepository) CreateRun(ctx context.Context, scope ReportScope, r
 		"scope_kind": run.ScopeKind, "scope_ref": run.ScopeRef, "legal_entity_id": scope.LegalEntityID,
 	}); err != nil {
 		return ReportRun{}, err
+	}
+	if key != "" {
+		if _, err := tx.Exec(ctx, `INSERT INTO report_run_receipts(tenant_id,legal_entity_id,principal_id,idempotency_key,request_fingerprint,run_id) VALUES($1::uuid,$2::uuid,$3,$4::uuid,$5,$6::uuid)`, scope.TenantID, scope.LegalEntityID, run.RequestedByRef, key, fingerprint, run.ID); err != nil {
+			return ReportRun{}, err
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return ReportRun{}, fmt.Errorf("commit report run creation: %w", err)

@@ -11,7 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -111,6 +113,60 @@ func (r *PostgresRepository) ListSourcesForEntity(ctx context.Context, query Sou
 }
 
 func (r *PostgresRepository) ValidateActiveSourcesForEntity(ctx context.Context, tenant, legalEntity string, sourceIDs []string) error {
+	if tx, ok := sourceaccess.CatalogProofTransaction(ctx); ok {
+		if tx == nil {
+			return ErrSourceScopeRequired
+		}
+		// Material catalog proof uses the same transaction as its caller. Lock
+		// the exact legal entity and each bounded Source so deactivation cannot
+		// race the proof and the subsequent command.
+		rows, err := tx.Query(ctx, `SELECT le.id::text FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 2 FOR SHARE OF le`, tenant, legalEntity)
+		if err != nil {
+			return err
+		}
+		entities := make([]string, 0, 2)
+		for rows.Next() {
+			var entity string
+			if err = rows.Scan(&entity); err != nil {
+				rows.Close()
+				return err
+			}
+			entities = append(entities, entity)
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return err
+		}
+		if len(entities) == 0 {
+			return ErrSourceScopeRequired
+		}
+		if len(entities) > 1 {
+			return ErrSourceScopeAmbiguous
+		}
+		rows, err = tx.Query(ctx, `SELECT es.id::text FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND es.legal_entity_id=$2::uuid AND es.status='ACTIVE' AND es.id=ANY($3::uuid[]) FOR SHARE OF es`, tenant, entities[0], sourceIDs)
+		if err != nil {
+			return err
+		}
+		count := 0
+		for rows.Next() {
+			var id string
+			if err = rows.Scan(&id); err != nil {
+				rows.Close()
+				return err
+			}
+			count++
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return err
+		}
+		if count != len(sourceIDs) {
+			return ErrSourceScopeMismatch
+		}
+		return nil
+	}
 	entityID, err := r.resolveCurrentLegalEntityID(ctx, tenant, legalEntity)
 	if err != nil {
 		return err
@@ -633,6 +689,37 @@ func (r *PostgresRepository) CreateArtifact(ctx context.Context, value Artifact)
 		return Artifact{}, err
 	}
 	defer tx.Rollback(ctx)
+	var internalActor identity.Actor
+	var internalState postgresWorkspaceState
+	var internalRoute string
+	var internalTime time.Time
+	if check, ok := ctx.Value(internalWorkspaceAuthorityKey{}).(internalWorkspaceAuthorityCheck); ok {
+		if check.command != "forms.response.upload" {
+			return Artifact{}, ErrWorkspaceUnavailable
+		}
+		internalActor, err = identity.Require(ctx)
+		if err != nil || internalActor.PrincipalID != value.CreatedBy || internalActor.TenantID != value.TenantID || value.SubmissionID != "" {
+			return Artifact{}, ErrWorkspaceUnavailable
+		}
+		var internalRequest Request
+		internalTime = time.Now().UTC()
+		internalRequest, internalState, err = loadInternalPostgresWorkspaceState(ctx, tx, internalActor, value.RequestID, internalTime, true)
+		if err != nil {
+			return Artifact{}, ErrWorkspaceUnavailable
+		}
+		// A conflicting writer can hold locks while the request or identity
+		// expires. Check the clock again after the locked read completes.
+		internalTime = time.Now().UTC()
+		internalRequest, internalState, err = loadInternalPostgresWorkspaceState(ctx, tx, internalActor, value.RequestID, internalTime, false)
+		if err != nil {
+			return Artifact{}, ErrWorkspaceUnavailable
+		}
+		internalRequest.TenantID = internalActor.TenantID
+		internalRoute, err = authorizeInternalWorkspaceLocked(authority.WithPostgresTransaction(ctx, tx), internalActor, internalRequest)
+		if err != nil {
+			return Artifact{}, err
+		}
+	}
 	request, err := scanRequest(tx.QueryRow(ctx, requestSelect+` WHERE er.id=$1::uuid AND (t.id::text=$2 OR t.slug=$2) FOR UPDATE`, value.RequestID, value.TenantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Artifact{}, ErrNotFound
@@ -653,7 +740,22 @@ func (r *PostgresRepository) CreateArtifact(ctx context.Context, value Artifact)
 			return Artifact{}, err
 		}
 	}
+	if internalActor.PrincipalID != "" {
+		payload, err := json.Marshal(map[string]any{"authority_route": internalRoute, "artifact_id": value.ID, "request_id": value.RequestID, "recipient_id": internalState.RecipientID})
+		if err != nil {
+			return Artifact{}, err
+		}
+		if _, err = tx.Exec(ctx, `INSERT INTO capture_distribution_events(tenant_id,legal_entity_id,distribution_id,distribution_version,event_type,payload,actor_id,occurred_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6::jsonb,$7::uuid,$8)`, internalState.View.Workspace.TenantID, internalState.View.Workspace.LegalEntityID, internalState.View.Workspace.DistributionID, internalState.DistributionVersion, "FORM_RESPONSE_DOCUMENT_UPLOADED_"+value.ID, string(payload), internalActor.PrincipalID, internalTime); err != nil {
+			return Artifact{}, err
+		}
+		if _, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES($1::uuid,'FORM_DISTRIBUTION',$2::uuid,'FORM_RESPONSE_DOCUMENT_UPLOADED',$3::jsonb,$4,$4,$4)`, internalState.View.Workspace.TenantID, internalState.View.Workspace.DistributionID, string(payload), internalTime); err != nil {
+			return Artifact{}, err
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
+		if internalActor.PrincipalID != "" {
+			return Artifact{}, fmt.Errorf("%w: %v", ErrArtifactOutcomeUnknown, err)
+		}
 		return Artifact{}, err
 	}
 	return created, nil

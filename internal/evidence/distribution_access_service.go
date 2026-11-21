@@ -15,13 +15,14 @@ import (
 // DistributionAccessService owns the new distribution access ceremony while
 // the existing Service continues to own legacy one-recipient invitations.
 type DistributionAccessService struct {
-	store      DistributionAccessStore
-	revealer   recipientAddressRevealer
-	delivery   OTPDelivery
-	engine     *AccessPolicyEngine
-	otp        *OTPService
-	now        func() time.Time
-	sessionTTL time.Duration
+	store              DistributionAccessStore
+	revealer           recipientAddressRevealer
+	delivery           OTPDelivery
+	engine             *AccessPolicyEngine
+	otp                *OTPService
+	now                func() time.Time
+	sessionTTL         time.Duration
+	internalAuthorizer InternalWorkspaceAuthorizer
 }
 
 func NewDistributionAccessService(store DistributionAccessStore, revealer recipientAddressRevealer, delivery OTPDelivery, hmacKey [32]byte, sessionTTL time.Duration) (*DistributionAccessService, error) {

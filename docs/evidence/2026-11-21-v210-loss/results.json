@@ -1,0 +1,30 @@
+{
+  "evidence": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "sampleOnly": true
+    },
+    {
+      "width": 1280,
+      "overflow": false,
+      "sampleOnly": true
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "sampleOnly": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "sampleOnly": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "sampleOnly": true
+    }
+  ]
+}

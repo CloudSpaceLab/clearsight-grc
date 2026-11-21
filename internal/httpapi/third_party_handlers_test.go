@@ -22,6 +22,32 @@ func thirdPartyTestHandler() http.Handler {
 	})
 }
 
+func TestVendorCreateRecoveryIsNotExposedBeforeTransactionalAuthority(t *testing.T) {
+	handler := thirdPartyTestHandler()
+	for _, test := range []struct{ name, body, key string }{
+		{"keyed", `{"legal_name":"Vendor","service_name":"Hosting","criticality":"STANDARD","privacy_role":"NONE"}`, "request-key"},
+		{"reuse", `{"existing_relationship_id":"source","expected_existing_relationship_version":1,"expected_vendor_version":1,"service_name":"Hosting","criticality":"STANDARD","privacy_role":"NONE"}`, ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, "/api/v1/vendors", bytes.NewBufferString(test.body))
+			if test.key != "" {
+				request.Header.Set("Idempotency-Key", test.key)
+			}
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, request)
+			if response.Code != http.StatusServiceUnavailable {
+				t.Fatalf("got %d: %s", response.Code, response.Body.String())
+			}
+		})
+	}
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/vendors", nil))
+	var page thirdparty.RelationshipPage
+	if err := json.NewDecoder(response.Body).Decode(&page); err != nil || len(page.Items) != 0 {
+		t.Fatalf("guarded writes created records: %#v %v", page, err)
+	}
+}
+
 func TestCreateVendorRelationshipUsesVerifiedOwnerAndScope(t *testing.T) {
 	handler := thirdPartyTestHandler()
 	body := []byte(`{"legal_name":"Acme Processing Limited","website_domain":"https://acme.example/about","registered_address":"1 Marina Road\nLagos, Nigeria","service_name":"Card transaction processing","criticality":"IMPORTANT","privacy_role":"PROCESSOR","tenant_id":"bank","legal_entity_id":"entity-a","actor_id":"verified-owner"}`)

@@ -22,6 +22,7 @@ func (a *API) documentCoverageService(w http.ResponseWriter) (*documentcoverage.
 }
 
 func (a *API) getDocumentCoverage(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.documentCoverageService(w)
 	if !ok {
 		return
@@ -44,6 +45,7 @@ func (a *API) getDocumentCoverage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) reviewDocumentCoverage(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.documentCoverageService(w)
 	if !ok {
 		return
@@ -80,6 +82,7 @@ func (a *API) reviewDocumentCoverage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) recompareDocumentCoverage(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.documentCoverageService(w)
 	if !ok {
 		return
@@ -97,6 +100,7 @@ func (a *API) recompareDocumentCoverage(w http.ResponseWriter, r *http.Request) 
 }
 
 func (a *API) applyDocumentCoverageSuggestion(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.documentCoverageService(w)
 	if !ok {
 		return

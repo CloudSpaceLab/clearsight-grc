@@ -1,0 +1,17 @@
+# Imported document workspace: access boundary
+
+A fresh, unrouted imported-document list and extracted-text detail is prepared in `web/src/v210/DocumentImports.tsx`. It uses the existing bounded list and exact detail clients, displays extraction status and omitted sections, and ignores stale selection responses. The list is limited to the first 50 imports because the current client exposes no cursor. It does not upload, approve or convert documents.
+
+**UI not enabled:** the `document_import` context capability means the service is present, not that the actor may read each imported record. The older internal `ListVisible` and `GetVisible` methods constrain tenant and legal entity but do not accept an acting principal. The registered HTTP read boundary uses the actor-scoped methods described below. Some imported records can contain restricted material, and the current model does not establish which records are unrestricted. The new component remains outside the application entry graph pending broader policy and workflow acceptance. Do not implement client-side filtering or treat service availability as authorization.
+
+The component has isolated unit tests for exact selection, extraction limitations, empty/error recovery and stale detail responses. No customer-runtime render or live authorization has been demonstrated. This partial design does not satisfy the document-import CI contract or the full Documents workspace requirement.
+
+Import and handoff responses omit object-store keys and use private/no-store headers; coverage and risk-register responses use the same cache protection. Those measures alone do not enforce per-person read access; the separate read boundary below supplies the current HTTP restriction.
+
+## 21 November actor-scoped read boundary
+
+The registered import list and exact detail require a verified person and a current `DOCUMENT.IMPORT.READ` performer route. PostgreSQL applies that route predicate before pagination and exact retrieval; missing identity, wildcard entity, malformed IDs, unavailable repository or absent route fail closed. Both queries also check the verified session expiry against the database statement time, so waiting for a connection cannot extend the session. The in-memory repository has no actor-scoped adapter and therefore denies these reads. The new UI remains unrouted pending broader acceptance.
+
+Document-derived reads and mutations, and reads or actions on document-sourced proposals, return unavailable until source read authority and the protected read or material command share a transaction or snapshot. This includes AI proposals with a source document. Unrelated AI proposals and import creation remain available. No imported data is deleted. This temporary restriction avoids treating a preflight read as authorization to release protected text or commit a material action after access changes.
+
+An isolated PostgreSQL 18 test checks exact and pre-pagination filtering, different principals, valid/cross-entity delegations, role-binding entity scope, tenant-wide role positions, grant restrictions, segregation and conflicting assignments, comparing representative outcomes with the existing authority resolver. Shared read-route SQL was tightened for exact entity and tenant lineage and conservative ambiguity. This is not proof of complete resolver equivalence, production-scale performance, transaction-bound mutation authorization or all possible direct SQL access paths.

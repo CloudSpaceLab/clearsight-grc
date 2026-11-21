@@ -8,19 +8,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 type restJSONResponse struct {
 	root        any
+	payload     []byte
 	bodyBytes   int64
 	etag        string
 	notModified bool
 }
+
+// Preserve the general execution error contract while letting the question
+// format test distinguish malformed successful responses from network errors.
+var errRESTInvalidResponse = fmt.Errorf("%w: invalid response format", ErrExecution)
 
 func (s *RESTJSONSession) Inspect(ctx context.Context, view View) (SchemaResult, error) {
 	if err := s.ready(view); err != nil {
@@ -43,6 +50,16 @@ func (s *RESTJSONSession) Inspect(ctx context.Context, view View) (SchemaResult,
 	if response.notModified {
 		return SchemaResult{}, ErrExecution
 	}
+	if definition.Singleton {
+		if _, ok := response.root.(map[string]any); !ok {
+			return SchemaResult{}, fmt.Errorf("%w: singleton REST response must be an object", ErrExecution)
+		}
+	}
+	if definition.ResultType != "" {
+		if err := validateRESTQuestionPayload(response.payload, response.root, definition.ResultType); err != nil {
+			return SchemaResult{}, err
+		}
+	}
 	records, err := extractRESTRecords(response.root, definition.RecordsPointer, DefaultPreviewRows)
 	if err != nil {
 		return SchemaResult{}, err
@@ -51,6 +68,14 @@ func (s *RESTJSONSession) Inspect(ctx context.Context, view View) (SchemaResult,
 		return SchemaResult{}, fmt.Errorf("%w: REST schema inspection requires at least one bounded record", ErrExecution)
 	}
 	fields, schemaFingerprint, err := inferRESTSchema(records)
+	if err == nil && definition.ResultType != "" {
+		resultType := "json:boolean"
+		if definition.ResultType == "NUMBER" {
+			resultType = "json:number"
+		}
+		fields = []NativeField{{Name: "message", NativeType: "json:string", Nullable: true}, {Name: "result", NativeType: resultType, Nullable: false}}
+		schemaFingerprint, err = nativeSchemaFingerprint(fields)
+	}
 	if err != nil {
 		return SchemaResult{}, err
 	}
@@ -70,7 +95,7 @@ func (s *RESTJSONSession) ReadPage(ctx context.Context, view View, binding Bindi
 	if err != nil {
 		return RecordPage{}, err
 	}
-	if len(binding.KeyFields) != 1 {
+	if (!definition.Singleton && len(binding.KeyFields) != 1) || (definition.Singleton && len(binding.KeyFields) != 0) {
 		return RecordPage{}, fmt.Errorf("%w: REST/JSON page requires one stable key", ErrCapabilityUnavailable)
 	}
 	limit := request.Limit
@@ -134,6 +159,16 @@ func (s *RESTJSONSession) ReadPage(ctx context.Context, view View, binding Bindi
 				view.SchemaFingerprint, nil, restRetryIdentity(view, binding, OperationPage, request.After, nil)),
 		}, nil
 	}
+	if definition.Singleton {
+		if _, ok := response.root.(map[string]any); !ok {
+			return RecordPage{}, fmt.Errorf("%w: singleton REST response must be an object", ErrExecution)
+		}
+	}
+	if definition.ResultType != "" {
+		if err := validateRESTQuestionPayload(response.payload, response.root, definition.ResultType); err != nil {
+			return RecordPage{}, err
+		}
+	}
 	fullRecords, err := extractRESTRecords(response.root, definition.RecordsPointer, limit)
 	if err != nil {
 		return RecordPage{}, err
@@ -146,8 +181,10 @@ func (s *RESTJSONSession) ReadPage(ctx context.Context, view View, binding Bindi
 	if err != nil {
 		return RecordPage{}, err
 	}
-	if err := validateRESTStableRecords(records, binding.KeyFields[0]); err != nil {
-		return RecordPage{}, err
+	if !definition.Singleton {
+		if err := validateRESTStableRecords(records, binding.KeyFields[0]); err != nil {
+			return RecordPage{}, err
+		}
 	}
 
 	next, position, completeness, err := restNextPosition(definition, response, request.After)
@@ -313,7 +350,7 @@ func (s *RESTJSONSession) getJSON(ctx context.Context, path string, query url.Va
 		return restJSONResponse{root: nil, etag: etag}, nil
 	}
 	if !restContentTypeJSON(response) {
-		return restJSONResponse{}, ErrExecution
+		return restJSONResponse{}, errRESTInvalidResponse
 	}
 	if response.ContentLength > maximum {
 		return restJSONResponse{}, ErrLimitExceeded
@@ -332,13 +369,13 @@ func (s *RESTJSONSession) getJSON(ctx context.Context, path string, query url.Va
 	decoder.UseNumber()
 	var root any
 	if err := decoder.Decode(&root); err != nil {
-		return restJSONResponse{}, ErrExecution
+		return restJSONResponse{}, errRESTInvalidResponse
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); err != io.EOF {
-		return restJSONResponse{}, ErrExecution
+		return restJSONResponse{}, errRESTInvalidResponse
 	}
-	return restJSONResponse{root: root, bodyBytes: int64(len(payload)), etag: etag}, nil
+	return restJSONResponse{root: root, payload: payload, bodyBytes: int64(len(payload)), etag: etag}, nil
 }
 
 func restHTTPStatusError(status int) error {
@@ -456,6 +493,80 @@ func inferRESTSchema(records []map[string]any) ([]NativeField, string, error) {
 		return nil, "", err
 	}
 	return fields, fingerprint, nil
+}
+
+// Question results are material observations. Duplicate JSON object keys have
+// implementation-dependent meanings, so reject them before interpreting a
+// boolean or score. This does not change general REST catalog parsing.
+func validateRESTQuestionPayload(payload []byte, root any, resultType string) error {
+	if !utf8.Valid(payload) {
+		return fmt.Errorf("%w: question response must be valid UTF-8", ErrExecution)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	start, err := decoder.Token()
+	if err != nil || start != json.Delim('{') {
+		return fmt.Errorf("%w: question response must be an object", ErrExecution)
+	}
+	seen := make(map[string]struct{}, 2)
+	for decoder.More() {
+		token, err := decoder.Token()
+		key, ok := token.(string)
+		if err != nil || !ok {
+			return ErrExecution
+		}
+		if _, duplicate := seen[key]; duplicate {
+			return fmt.Errorf("%w: question response contains a duplicate field", ErrSchemaDrift)
+		}
+		seen[key] = struct{}{}
+		var value json.RawMessage
+		if err := decoder.Decode(&value); err != nil {
+			return ErrExecution
+		}
+	}
+	if _, err := decoder.Token(); err != nil {
+		return ErrExecution
+	}
+	return validateRESTQuestionResponse(root, resultType)
+}
+
+func validateRESTQuestionResponse(root any, resultType string) error {
+	response, ok := root.(map[string]any)
+	if !ok {
+		return fmt.Errorf("%w: question response must be an object", ErrExecution)
+	}
+	for key := range response {
+		if key != "result" && key != "message" {
+			return fmt.Errorf("%w: question response contains an unsupported field", ErrSchemaDrift)
+		}
+	}
+	result, exists := response["result"]
+	if !exists {
+		return fmt.Errorf("%w: question response requires a result", ErrSchemaDrift)
+	}
+	switch resultType {
+	case "BOOLEAN":
+		if _, ok := result.(bool); !ok {
+			return fmt.Errorf("%w: question result must be boolean", ErrSchemaDrift)
+		}
+	case "NUMBER":
+		number, ok := result.(json.Number)
+		if !ok {
+			return fmt.Errorf("%w: question result must be numeric", ErrSchemaDrift)
+		}
+		value, err := strconv.ParseFloat(string(number), 64)
+		if err != nil || math.IsInf(value, 0) || math.IsNaN(value) {
+			return fmt.Errorf("%w: question result must be finite", ErrSchemaDrift)
+		}
+	default:
+		return ErrDefinitionInvalid
+	}
+	if message, exists := response["message"]; exists {
+		text, ok := message.(string)
+		if !ok || utf8.RuneCountInString(text) > 1000 || strings.IndexByte(text, 0) >= 0 {
+			return fmt.Errorf("%w: question message must be bounded text", ErrSchemaDrift)
+		}
+	}
+	return nil
 }
 
 func restNativeType(value any) string {

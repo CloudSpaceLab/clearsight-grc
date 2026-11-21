@@ -1,0 +1,72 @@
+{
+  "suite": "v2.10-crossflow",
+  "validation": "Actual sources through the shared runtime harness; browser layout not tested",
+  "checks": [
+    {
+      "name": "Two people receive independent form bindings and canonical answer stores for the same target",
+      "status": "PASS"
+    },
+    {
+      "name": "Unmapped responses receive independent review without changing requirement posture",
+      "status": "PASS"
+    },
+    {
+      "name": "Submission and review commands bind the acting identity and reject reviewer impersonation",
+      "status": "PASS"
+    },
+    {
+      "name": "External respondent identity stays separate from the authorized internal capturing actor",
+      "status": "PASS"
+    },
+    {
+      "name": "Response revisions retain submitted history and block current readiness until renewed acceptance",
+      "status": "PASS"
+    },
+    {
+      "name": "Program-basis drift and changed submitted sources cannot remain current accepted responses",
+      "status": "PASS"
+    },
+    {
+      "name": "Report population follows organizational scope and remains separate from current actor permissions",
+      "status": "PASS"
+    },
+    {
+      "name": "Accountability and history exports preserve person, capture, reviewer, cycle and source attribution",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy provenance never gains an invented respondent or independent acceptance in reporting",
+      "status": "PASS"
+    },
+    {
+      "name": "Captured response annexes and old report bodies stay unchanged after live source and identity changes",
+      "status": "PASS"
+    },
+    {
+      "name": "Response report routes render wired controls and Copilot preserves the displayed population",
+      "status": "PASS"
+    },
+    {
+      "name": "Response acceptance and contextual document acceptance remain independent decisions on the same pinned version",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy Evidence entries resolve to the same document version and response-linked review context",
+      "status": "PASS"
+    },
+    {
+      "name": "An eligible assigned program owner can accept a document without inventing a second reviewer",
+      "status": "PASS"
+    },
+    {
+      "name": "Approved vendor intake creates real named assignments and document requests without duplicating files",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy activation cannot bypass the vendor assignment and exact-document review gates",
+      "status": "PASS"
+    }
+  ],
+  "passed": 16,
+  "failed": 0
+}

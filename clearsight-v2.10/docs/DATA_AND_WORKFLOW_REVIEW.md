@@ -1,0 +1,42 @@
+# V2.10 data and workflow review
+
+## Identity is distinct from organizational scope
+
+A unit, branch or vendor engagement remains a target. A response assignment additionally identifies a named respondent, coordinator where applicable and reviewer. Submitted snapshots record the actual acting person and time. Supplier attribution is explicitly external; the bank user who captures supplied answers does not impersonate that supplier contact.
+
+No historical identity is inferred from a unit owner, current actor or original file uploader. Legacy missing names, review decisions and document versions stay unknown. Different people responding for the same target retain separate drafts, bindings and histories.
+
+## Review and history contracts
+
+| Condition | Current behavior |
+| --- | --- |
+| A new assigned form has no requirement mapping | Whole-response review is still required. |
+| Preparer chooses another person's name | Commands require the actual acting identity. |
+| Reviewer is respondent or actual submitter | Self-review is rejected. |
+| Reviewer loses role, scope or assignment | Decision-time eligibility checks fail. |
+| Program owner is the eligible assigned reviewer | Owner can review subject to explicit deny and independence guards. |
+| Response needs correction | New cycle retains prior answers, source hash, decisions and comments. |
+| Accepted response has a pending replacement | Prior accepted conclusions stay intact; current onboarding readiness remains blocked. |
+| Program/form source changes after submission | Current review/readiness rejects the stale basis. |
+| Questionnaire is accepted | Requirement outcomes still need their explicit decisions. |
+| Director captures a board pack | Names, sources, state and charts remain fixed after live changes. |
+
+## Documents have one file identity
+
+Document reviews reference canonical version IDs. Contextual submitter, original uploader and reviewer are different fields. A file may support several programs/questions without duplicating file bytes or version history. The public UI uses Documents, with supporting evidence as explanatory text.
+
+File approval establishes an exact-version decision; contextual assessment acceptance records its applicability to a program/question. These are separately labeled in the same workspace. Accepting a contextual document checks the actual stored bytes before mutation and revalidates the actor and source afterward. A pending replacement does not erase a prior accepted decision. Missing or corrupt files produce no partial acceptance receipt.
+
+## Vendor orchestration
+
+Draft intake is isolated from live supplier/engagement creation. Submission preserves a source revision. Owner confirmation and independent risk approval launch a service-specific program, named baseline/questionnaire assignments and canonical document requests. Required-document rules depend on criticality and data context. Planned external respondents always have internal accountable coordinators.
+
+The dossier exposes unmet requirements rather than marking a service active on collection. Activation/resumption require current accepted responses, exact-version independently approved current documents, explicit applicable requirement conclusions and an approved intake. Approval records and file validity are checked again against the captured lifecycle request basis. Returned intake and document work remain actionable until their correct source transition.
+
+## Earlier source mappings retained
+
+The Branch KRI and LOSS DATA BASE mappings remain in their existing source mapping files. Loss accounting classification, loss group and linked risk category are separate; explicit reporting period does not replace occurrence or recognition. Recovery narratives do not create received or verified cash, currencies remain distinct and closed losses remain in financial reporting. Original private source transaction detail is not distributed in synthetic records.
+
+## Integration still required
+
+This is a local interactive design package. Authenticated identity, server-scoped retrieval, authoritative permission checks, transactions, immutable storage, secure file access, real notification delivery, supplier invitations and scheduled monitoring belong in the production implementation. CSV import remains supported; native XLSX ingestion is not added. Real-browser layout, storage/download and printing remain unverified here.

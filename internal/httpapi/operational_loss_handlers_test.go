@@ -52,6 +52,46 @@ func TestOperationalLossRoutesUseGovernedAuthorityContracts(t *testing.T) {
 	}
 }
 
+func TestLossReadsRequireGlobalOversightPermission(t *testing.T) {
+	service := oploss.NewService(oploss.NewMemoryRepository())
+	now := time.Now().UTC()
+	value, err := service.Create(t.Context(), oploss.CreateInput{TenantID: "bank", LegalEntityID: "entity-a", OrganizationScopeID: "restricted-unit", Code: "LOSS-PRIVATE", Title: "Scoped loss", EventType: oploss.EventOther, Cause: "Scoped event.", GrossAmountMinor: 10000, Currency: "NGN", OccurredAt: now.Add(-time.Hour), DiscoveredAt: now, OwnerPrincipalID: "owner", ActorID: "owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name   string
+		roles  []string
+		status int
+	}{
+		{"no oversight", nil, http.StatusForbidden},
+		{"global oversight", []string{"CRO"}, http.StatusOK},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			h := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "reader", "entity-a", test.roles...), OperationalLoss: service})
+			for _, path := range []string{"/api/v1/losses", "/api/v1/losses/" + value.ID} {
+				rec := httptest.NewRecorder()
+				h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+				if rec.Code != test.status {
+					t.Fatalf("%s status=%d want %d body=%s", path, rec.Code, test.status, rec.Body.String())
+				}
+				if test.status == http.StatusForbidden && strings.Contains(rec.Body.String(), "Scoped loss") {
+					t.Fatalf("loss leaked: %s", rec.Body.String())
+				}
+			}
+		})
+	}
+	departmentOnly := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reader", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour), DepartmentGrants: []identity.DepartmentGrant{{Path: []string{"BANK", "RISK"}, PermissionCodes: []string{identity.PermissionOversightRead}}}}
+	h := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: staticIdentityAuthenticator{actor: departmentOnly}, OperationalLoss: service})
+	for _, path := range []string{"/api/v1/losses", "/api/v1/losses/" + value.ID} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("department-only %s status=%d body=%s", path, rec.Code, rec.Body.String())
+		}
+	}
+}
+
 func TestOperationalLossHTTPBindsVerifiedScopeAndActor(t *testing.T) {
 	service := oploss.NewService(oploss.NewMemoryRepository())
 	now := time.Date(2026, 10, 3, 19, 0, 0, 0, time.UTC)
@@ -150,7 +190,7 @@ func TestOperationalLossHTTPOrganizationScopeIncludesAuthorizedDescendants(t *te
 	sibling := runtimecontext.ScopeNode{ID: "scope-finance", Name: "Finance", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "FINANCE"}, Filterable: true}
 	handler := New(Dependencies{
 		Logger:          slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity:        identity.NewDevelopmentAuthenticator("bank", "loss-owner", "entity-a"),
+		Identity:        identity.NewDevelopmentAuthenticator("bank", "loss-owner", "entity-a", "CRO"),
 		OperationalLoss: service,
 		RuntimeContext: scopeContextResolverStub{
 			hierarchy: runtimecontext.ScopeHierarchy{State: runtimecontext.HierarchyComplete, Current: entity, LegalEntities: []runtimecontext.ScopeNode{entity}, OrganizationScopes: []runtimecontext.ScopeNode{parent, child, sibling}},
@@ -268,7 +308,7 @@ func TestOperationalLossHTTPRejectsCrossEntityRead(t *testing.T) {
 	}
 	handler := New(Dependencies{
 		Logger:          slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity:        identity.NewDevelopmentAuthenticator("bank", "owner-b", "entity-b"),
+		Identity:        identity.NewDevelopmentAuthenticator("bank", "owner-b", "entity-b", "CRO"),
 		OperationalLoss: service,
 	})
 	response := httptest.NewRecorder()

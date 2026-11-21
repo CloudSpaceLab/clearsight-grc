@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -271,6 +272,14 @@ type policyConflictQuerier interface {
 }
 
 func policyConflicts(ctx context.Context, querier policyConflictQuerier, policy RoutingPolicy) ([]ConflictFinding, error) {
+	return policyConflictsScoped(ctx, querier, policy, false)
+}
+
+func policyConflictsScoped(ctx context.Context, querier policyConflictQuerier, policy RoutingPolicy, pinned bool) ([]ConflictFinding, error) {
+	tenantExpression := `(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`
+	if pinned {
+		tenantExpression = `$1::uuid`
+	}
 	var definition struct {
 		Rules []struct {
 			ID            string `json:"id"`
@@ -300,7 +309,7 @@ func policyConflicts(ctx context.Context, querier policyConflictQuerier, policy 
 				JOIN org_positions op ON op.id=prb.position_id AND op.tenant_id=rt.tenant_id
 				JOIN principals p ON p.id=op.occupant_principal_id AND p.tenant_id=rt.tenant_id
 				JOIN legal_entities le ON le.id=op.legal_entity_id AND le.tenant_id=rt.tenant_id
-				WHERE rt.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+				WHERE rt.tenant_id=`+tenantExpression+`
 				  AND rt.code=$2 AND le.id=$3::uuid
 				  AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id'=le.id::text)
 				  AND rt.valid_from<=statement_timestamp() AND (rt.valid_until IS NULL OR statement_timestamp()<rt.valid_until)
@@ -315,7 +324,7 @@ func policyConflicts(ctx context.Context, querier policyConflictQuerier, policy 
 				FROM org_positions op
 				JOIN principals p ON p.id=op.occupant_principal_id AND p.tenant_id=op.tenant_id
 				JOIN legal_entities le ON le.id=op.legal_entity_id AND le.tenant_id=op.tenant_id
-				WHERE op.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+				WHERE op.tenant_id=`+tenantExpression+`
 				  AND op.code=$2 AND le.id=$3::uuid
 				  AND op.valid_from<=statement_timestamp() AND (op.valid_until IS NULL OR statement_timestamp()<op.valid_until)
 				  AND p.status='ACTIVE' AND p.valid_from<=statement_timestamp() AND (p.valid_until IS NULL OR statement_timestamp()<p.valid_until)`, policy.TenantID, rule.Selector.Ref, entity).Scan(&count)
@@ -324,7 +333,7 @@ func policyConflicts(ctx context.Context, querier policyConflictQuerier, policy 
 			}
 		default:
 			err := querier.QueryRow(ctx, `SELECT count(DISTINCT id) FROM principals
-				WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+				WHERE tenant_id=`+tenantExpression+`
 				  AND (id::text=$2 OR external_ref=$2) AND status='ACTIVE'
 				  AND valid_from<=statement_timestamp() AND (valid_until IS NULL OR statement_timestamp()<valid_until)`, policy.TenantID, rule.Selector.Ref).Scan(&count)
 			if err != nil {
@@ -403,11 +412,47 @@ func (r *PostgresRepository) GetDelegationForEntity(ctx context.Context, tenantI
 	return d, err
 }
 func (r *PostgresRepository) CreateDelegation(ctx context.Context, d Delegation) (Delegation, error) {
-	_, err := r.pool.Exec(ctx, `INSERT INTO delegations(id,tenant_id,legal_entity_id,from_principal_id,to_principal_id,responsibility,scope,starts_at,ends_at,status,reason,created_by,created_at,updated_at,version) VALUES($1,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$13,$14)`, d.ID, d.TenantID, d.LegalEntityID, d.FromPrincipalID, d.ToPrincipalID, d.Responsibility, d.Scope, d.StartsAt, d.EndsAt, d.Status, d.Reason, d.MakerID, d.CreatedAt, d.Version)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return Delegation{}, err
 	}
-	return r.GetDelegationForEntity(ctx, d.TenantID, d.LegalEntityID, d.ID)
+	defer tx.Rollback(ctx)
+	created, err := createDelegationInTx(ctx, tx, d)
+	if err != nil {
+		return Delegation{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return Delegation{}, err
+	}
+	return created, nil
+}
+
+func createDelegationInTx(ctx context.Context, tx pgx.Tx, d Delegation) (Delegation, error) {
+	tenant, err := createDelegationScoped(ctx, tx, d)
+	if err != nil {
+		return Delegation{}, err
+	}
+	return scanDelegation(tx.QueryRow(ctx, delegationSelect+` WHERE d.tenant_id=$1 AND d.legal_entity_id=$2::uuid AND d.id::text=$3`, tenant, d.LegalEntityID, d.ID))
+}
+
+// Resolve the verified tenant once so the insert and receipt share its scope.
+func createDelegationScoped(ctx context.Context, tx pgx.Tx, d Delegation) (pgtype.UUID, error) {
+	var candidate pgtype.UUID
+	if err := candidate.Scan(d.TenantID); err != nil {
+		candidate = pgtype.UUID{}
+	}
+	var tenant pgtype.UUID
+	if err := tx.QueryRow(ctx, `SELECT CASE WHEN count(*)=1 THEN min(id::text)::uuid END FROM tenants WHERE id=$2 OR slug=$1`, d.TenantID, candidate).Scan(&tenant); err != nil {
+		return pgtype.UUID{}, err
+	}
+	if !tenant.Valid || tenant.Bytes == ([16]byte{}) {
+		return pgtype.UUID{}, ErrNotFound
+	}
+	_, err := tx.Exec(ctx, `INSERT INTO delegations(id,tenant_id,legal_entity_id,from_principal_id,to_principal_id,responsibility,scope,starts_at,ends_at,status,reason,created_by,created_at,updated_at,version) VALUES($1,$2,$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$13,$14)`, d.ID, tenant, d.LegalEntityID, d.FromPrincipalID, d.ToPrincipalID, d.Responsibility, d.Scope, d.StartsAt, d.EndsAt, d.Status, d.Reason, d.MakerID, d.CreatedAt, d.Version)
+	if err != nil {
+		return pgtype.UUID{}, err
+	}
+	return tenant, nil
 }
 func (r *PostgresRepository) TransitionDelegation(ctx context.Context, tenantID, legalEntityID, id string, expected int64, from, to DelegationState, actor, rationale string, at time.Time) (Delegation, error) {
 	tx, err := r.pool.Begin(ctx)

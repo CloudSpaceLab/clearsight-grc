@@ -1,0 +1,19 @@
+/* Reporting boundaries stay visible without a second filter toolbar. */
+.sa212-context{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 18px;padding:10px 14px;background:var(--surface,#fff);border:1px solid var(--line,#dce4e9);border-radius:12px;font-size:12px}
+.sa212-context-path{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.sa212-context-path>span{color:var(--muted,#687985)}
+.sa212-chip{display:inline-block;padding:3px 6px;text-decoration:none;border-radius:6px;color:var(--muted,#526675)}
+.sa212-chip.current{color:var(--ink,#172f3c);background:var(--soft,#eff4f7)}.sa212-chip:hover{background:var(--soft,#eff4f7)}
+.sa212-context-note{color:var(--muted,#687985);font-size:11px}.sa212-blocked{max-width:850px}.sa212-blocked .pad{padding:28px}.sa212-blocked h2{margin-top:8px}
+.sa212-scope-choices{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.sa212-location-link{font-weight:650;text-decoration:none}
+@media(max-width:720px){.sa212-context{align-items:flex-start;flex-direction:column}.sa212-blocked .pad{padding:20px}}
+@media print{.sa212-context{break-inside:avoid;border:1px solid #aaa;background:#fff}.sa212-context a{color:#111;text-decoration:none}.sa212-context-note{color:#333}.sa212-scope-choices{display:none}}
+
+/* V2.15 applied/pending controls use the existing report filter surface. */
+.sa215-filter-state{flex-basis:100%;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;border-top:1px solid var(--line);padding-top:12px;margin-top:2px;min-width:0}
+.sa215-filter-state>p{flex:1 1 300px;margin:0;color:var(--muted);font-size:12px;line-height:1.65}
+.sa215-filter-state>small{flex-basis:100%;font-size:11px;color:var(--muted);line-height:1.6}
+.sa215-filter-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sa215-filter-actions .btn[hidden]{display:none!important}
+form[data-sa215-pending="true"] .sa215-filter-state>p{color:var(--amber);font-weight:650}
+@media(max-width:700px),(pointer:coarse){.sa215-filter-actions{width:100%}.sa215-filter-actions .btn{flex:1;min-height:44px}.sa215-filter-state>p{flex-basis:100%}}
+@media print{.sa215-filter-state{display:none!important}}

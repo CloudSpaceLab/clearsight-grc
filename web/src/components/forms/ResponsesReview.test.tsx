@@ -58,3 +58,33 @@ it("retries failed response history without reloading or discarding the selected
   await waitFor(() => expect(api.loadResponseRevisions).toHaveBeenCalledTimes(2));
   expect(api.loadCompletedResponse).toHaveBeenCalledTimes(1);
 });
+
+it("opens the exact earlier response from history", async () => {
+  const previous = { id: "earlier", revision: 1, current: false, created_at: "2026-08-08T10:00:00Z", achieved_assurance: "EMAIL_VERIFIED" };
+  api.loadResponseRevisions.mockResolvedValue({ items: [previous] });
+  api.loadCompletedResponse.mockImplementation(async (id: string) => id === "earlier"
+    ? { response: { ...response, id: "earlier", revision: 1, current: false }, revision: previous }
+    : { response: { ...response, revision: 2 }, revision: { id: "response", revision: 2, achieved_assurance: "EMAIL_VERIFIED" } });
+  render(<ResponsesView/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Review Security review response" }));
+  fireEvent.click(await screen.findByRole("tab", { name: "History" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Open response revision 1" }));
+  await waitFor(() => expect(api.loadCompletedResponse).toHaveBeenCalledWith("earlier"));
+  expect(await screen.findByText("1 · Historical")).toBeTruthy();
+});
+
+it("rejects a history response returned from another distribution", async () => {
+  const previous = { id: "earlier", revision: 1, current: false, created_at: "2026-08-08T10:00:00Z", achieved_assurance: "EMAIL_VERIFIED" };
+  api.loadResponseRevisions.mockResolvedValue({ items: [previous] });
+  api.loadCompletedResponse.mockImplementation(async (id: string) => id === "earlier"
+    ? { response: { ...response, id: "earlier", distribution_id: "other", current: false }, revision: previous }
+    : { response, revision: { id: "response", revision: 1, achieved_assurance: "EMAIL_VERIFIED" } });
+  render(<ResponsesView/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Review Security review response" }));
+  fireEvent.click(await screen.findByRole("tab", { name: "History" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Open response revision 1" }));
+  expect(await screen.findByText("Response details could not be loaded")).toBeTruthy();
+  expect(screen.getByText(/does not match the selected response history/i)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Retry response" }));
+  expect(await screen.findByText(/does not match the selected response history/i)).toBeTruthy();
+});

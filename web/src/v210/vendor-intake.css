@@ -1,0 +1,7 @@
+.v-intake-review { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 0; }
+.v-intake-review dt { color: #536c90; font-size: 12px; font-weight: 700; }
+.v-intake-review dd { margin: 6px 0 0; overflow-wrap: anywhere; }
+.v-intake-candidates { list-style: none; margin: 0; padding: 0; }
+.v-intake .v-intake-candidates a { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #f5f8fd; color: #18335e; overflow-wrap: anywhere; }
+.v-intake-edit { display: flex; flex-wrap: wrap; gap: 8px; }
+.v-intake-edit button, .v-intake > button { min-height: 44px; padding: 0 14px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }

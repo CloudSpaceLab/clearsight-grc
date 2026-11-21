@@ -1,0 +1,43 @@
+{
+  "suite": "V2.14 premium operational risk presentation",
+  "runtime": "Actual integrated application sources with a substituted DOM shell",
+  "browserLayoutValidated": false,
+  "assignedRoutes": 15,
+  "routeVariants": 18,
+  "results": [
+    {
+      "name": "All 15 operational routes and 18 variants retain source markup, state and query context",
+      "status": "PASS"
+    },
+    {
+      "name": "Route changes reset the marker and preserve existing capture and review presentation families",
+      "status": "PASS"
+    },
+    {
+      "name": "Risk, RCSA and control forms keep native draft keys, fields and registered commands",
+      "status": "PASS"
+    },
+    {
+      "name": "Heatmap bands, dated observation scales and accepted loss summaries retain exact source values",
+      "status": "PASS"
+    },
+    {
+      "name": "Unauthorized, out-of-scope and unavailable records retain the canonical blocked states",
+      "status": "PASS"
+    },
+    {
+      "name": "Accessible region names add keyboard entry without replacing existing roles or labels",
+      "status": "PASS"
+    },
+    {
+      "name": "Presentation API and stylesheet stay scoped, with normal-flow actions and touch-size rules",
+      "status": "PASS"
+    },
+    {
+      "name": "Live document labels are consistent while canonical evidence keys and source text remain intact",
+      "status": "PASS"
+    }
+  ],
+  "passed": 8,
+  "failed": 0
+}

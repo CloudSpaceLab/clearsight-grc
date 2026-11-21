@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadProgramSummaries } from "../api";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
@@ -69,5 +69,26 @@ describe("Framework Library to Program route", () => {
     expect(window.location.hash).toContain("#programs?");
     expect(window.location.hash).toContain("edition_id=0199f39a-dac6-7be2-a4ca-1f6d2c7d6001");
     expect(window.location.hash).toContain("q=security");
+  });
+
+  it("reports a failed next page and retries the same cursor without discarding loaded Programs", async () => {
+    const program: Awaited<ReturnType<typeof loadProgramSummaries>>["items"][number] = {
+      program: {id: "program-1", tenant_id: "bank", name: "Information security", code: "ISMS-001", type: "ASSURANCE", scope: {}, effective_from: "2026-01-01T00:00:00Z", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-10-17T00:00:00Z", owning_function: "Risk", status: "ACTIVE", version: 3},
+      state_label: "Up to date", overall_state: "CURRENT", program_version: 3, assessed_program_version: 3, projection_stale: false,
+      requirement_count: 1, safeguard_count: 0, evidence_check_count: 1, open_matter_count: 0,
+      reasons: [], reasons_total: 0, reasons_omitted: 0, projection_version: 1,
+    };
+    vi.mocked(loadProgramSummaries)
+      .mockResolvedValueOnce({generated_at: "2026-10-17T00:00:00Z", items: [program], next_cursor: "next-page"})
+      .mockRejectedValueOnce(new Error("unavailable"))
+      .mockResolvedValueOnce({generated_at: "2026-10-17T00:00:00Z", items: []});
+    render(<ProgramsWorkspace/>);
+    await screen.findByRole("link", {name: /Information security/});
+    fireEvent.click(screen.getByRole("button", {name: "Load more programs"}));
+    expect((await screen.findByRole("alert")).textContent).toContain("Additional Programs could not be loaded.");
+    expect(screen.getByRole("link", {name: /Information security/})).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", {name: "Retry loading Programs"}));
+    await waitFor(() => expect(loadProgramSummaries).toHaveBeenCalledTimes(3));
+    expect(vi.mocked(loadProgramSummaries).mock.calls[2]?.[0]?.cursor).toBe("next-page");
   });
 });

@@ -2,6 +2,9 @@ package thirdparty
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"net/url"
 	"strings"
@@ -53,6 +56,10 @@ func (s *Service) CreateRelationship(ctx context.Context, actor Actor, input Cre
 	input.ExistingRelationshipID = strings.TrimSpace(input.ExistingRelationshipID)
 	input.LegalName = strings.TrimSpace(input.LegalName)
 	input.ServiceName = strings.TrimSpace(input.ServiceName)
+	input.IdempotencyKey = strings.TrimSpace(input.IdempotencyKey)
+	if len(input.IdempotencyKey) > 200 || (input.ExistingRelationshipID != "" && (input.ExpectedExistingRelationshipVersion < 1 || input.ExpectedVendorVersion < 1)) || (input.ExistingRelationshipID == "" && (input.ExpectedExistingRelationshipVersion != 0 || input.ExpectedVendorVersion != 0)) {
+		return Aggregate{}, ErrInvalid
+	}
 	registeredAddress, err := normalizeRegisteredAddress(input.RegisteredAddress)
 	if err != nil {
 		return Aggregate{}, err
@@ -64,14 +71,16 @@ func (s *Service) CreateRelationship(ctx context.Context, actor Actor, input Cre
 	if strings.TrimSpace(actor.TenantID) == "" || strings.TrimSpace(actor.LegalEntityID) == "" || strings.TrimSpace(actor.PrincipalID) == "" || (input.ExistingRelationshipID == "" && input.LegalName == "") || input.ServiceName == "" || !validCriticality(input.Criticality) || !validPrivacyRole(input.PrivacyRole) {
 		return Aggregate{}, ErrInvalid
 	}
+	encoded, err := json.Marshal(input)
+	if err != nil {
+		return Aggregate{}, ErrInvalid
+	}
+	sum := sha256.Sum256(encoded)
+	digest := hex.EncodeToString(sum[:])
 	var vendor Vendor
 	reuseVendor := input.ExistingRelationshipID != ""
 	if reuseVendor {
-		existing, err := s.repo.GetRelationship(ctx, scopeFrom(actor), input.ExistingRelationshipID)
-		if err != nil {
-			return Aggregate{}, err
-		}
-		vendor = existing.Vendor
+		vendor = Vendor{TenantID: strings.TrimSpace(actor.TenantID)}
 	} else {
 		vendorID, err := s.newID()
 		if err != nil {
@@ -111,7 +120,7 @@ func (s *Service) CreateRelationship(ctx context.Context, actor Actor, input Cre
 			Criticality: input.Criticality, PrivacyRole: input.PrivacyRole, Status: RelationshipProposed,
 			EffectiveFrom: input.EffectiveFrom, RenewalAt: input.RenewalAt, SourceID: strings.TrimSpace(input.SourceID),
 			ExternalRef: strings.TrimSpace(input.ExternalRef), CreatedAt: now, UpdatedAt: now, Version: 1,
-		}, ReuseVendor: reuseVendor, ActorID: strings.TrimSpace(actor.PrincipalID), BrandJob: brandJob,
+		}, ReuseVendor: reuseVendor, ActorID: strings.TrimSpace(actor.PrincipalID), BrandJob: brandJob, ExistingRelationshipID: input.ExistingRelationshipID, ExpectedExistingRelationshipVersion: input.ExpectedExistingRelationshipVersion, ExpectedVendorVersion: input.ExpectedVendorVersion, IdempotencyKey: input.IdempotencyKey, PayloadDigest: digest,
 	}
 	created, err := s.repo.CreateRelationship(ctx, record)
 	if err != nil {

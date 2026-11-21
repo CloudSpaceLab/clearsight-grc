@@ -4,7 +4,7 @@ import type { AttentionItem } from "../../types";
 import { OversightWorkspace } from "./OversightWorkspace";
 
 const generatedAt = new Date().toISOString();
-const snapshot: OversightSnapshot = {
+export const homeEvidenceSnapshot: OversightSnapshot = {
   generated_at: generatedAt,
   period_start: "2026-06-03T08:00:00Z",
   period_end: "2026-09-01T08:00:00Z",
@@ -34,7 +34,8 @@ const snapshot: OversightSnapshot = {
   history_quality: { completed_population: 14, complete_lifecycle: 12, missing_created_event: 1, missing_terminal_event: 1, excluded_from_durations: 2, reassigned_owner_excluded: 3 },
 };
 
-const metrics: HomeMetricBundle = {
+const snapshot = homeEvidenceSnapshot;
+export const homeEvidenceMetrics: HomeMetricBundle = {
   generated_at: snapshot.generated_at,
   period_start: snapshot.period_start,
   period_end: snapshot.period_end,
@@ -56,6 +57,7 @@ const metrics: HomeMetricBundle = {
     homeMetric("outcome_failures", "Outcome failures", snapshot.counts.outcome_failures, "outcome-failures"),
   ],
 };
+const metrics = homeEvidenceMetrics;
 
 function homeMetric(id: string, label: string, value: number, filter: string) {
   return {

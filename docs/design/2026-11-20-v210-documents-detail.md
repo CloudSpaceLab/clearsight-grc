@@ -1,0 +1,11 @@
+# V2.10 Documents detail
+
+Status: partial implementation; production cutover remains blocked. The layout reference is `clearsight-v2.10/documents.html`, SHA-256 `951644972ad207e8f69d42eb5e7521a5bb26c5007dbc14e65b1aa7018e8157d2`. The earlier source and runtime list screenshots are listed in `2026-11-20-v210-clean-restart.md`.
+
+The selected-document panel shows the exact submitted occurrence, question, form revision, submission date, expiry and vendor assessment document review when supplied. The inventory provides a submitter principal ID rather than a verified name; the panel does not present that opaque identifier as a name. File-type filtering uses the authorized inventory query. The assessment review history requests prior occurrences as well as current ones. Exact response and vendor-assessment links appear only when their required identifiers are present. Review decisions remain in the owning response or vendor assessment workflow; an assessment decision is not presented as universal document approval.
+
+PDF and raster preview obtains bytes from the protected content endpoint. The panel aborts an unfinished request on close and releases the browser object URL. Preview-only unscanned sample files are labelled as such and do not acquire a review decision. Unknown or unsupported media do not offer preview. The existing API enforces authorization and file integrity on each content request.
+
+The backend inventory covers submitted occurrences, not a complete general-purpose document repository. Standalone uploads, folders, general document versioning, archival and universal document approval are not implemented. No schema change, additional file store, sample-derived counts or inferred approval was introduced. Runtime screen acceptance, a live backend demonstration, keyboard and assistive-technology review, dark theme and complete source-layout comparisons remain outstanding.
+
+The selected occurrence can also filter the inventory by its exact form ID; the filter remains active across views and pagination until cleared. A permitted unscanned demo file displays its scan limitation before download or preview. Focused interaction tests cover both states. The updated states could not be rendered in the current chat because local browser access was unavailable; responsive visual evidence remains outstanding.

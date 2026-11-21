@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/apiquestion"
 	"log/slog"
 	"time"
 
@@ -99,7 +100,10 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		pool.Close()
 		return serviceSet{}, err
 	}
-	distributionService := evidence.NewDistributionService(distributionStore).WithAssessmentAuthorizer(formAssessmentAuthorizer(authorityService)).WithResponseDiscoveryAuthorizer(formResponseDiscoveryAuthorizer(authorityService))
+	if distributionAccess != nil {
+		distributionAccess.WithInternalWorkspaceAuthorizer(internalFormResponseAuthorizer(authorityService))
+	}
+	distributionService := evidence.NewDistributionService(distributionStore).WithAssessmentAuthorizer(formAssessmentAuthorizer(authorityService)).WithResponseDiscoveryAuthorizer(formResponseDiscoveryAuthorizer(authorityService)).WithResponseReviewAuthorizer(formResponseReviewAuthorizer(authorityService))
 	evidence.ConfigureDemoSamplePreview(evidenceService, distributionService, cfg.DemoMode)
 	distributionService.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
 	formPolicies := formpolicy.NewService(formpolicy.NewPostgresRepository(pool), formDistributionReader{repo: monitoringRepo}, distributionService)
@@ -189,6 +193,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	}
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns, "artifact_root", cfg.ArtifactRoot, "demo_mode", cfg.DemoMode)
 	return serviceSet{
+		QuestionTestAudit:  sourceaccess.NewPostgresQuestionTestAudit(pool),
+		QuestionDrafts:     &apiquestion.PostgresStore{Pool: pool, FormAccess: apiquestion.NewAdoptionFormAccess(monitoringService), BindingAccess: apiquestion.NewCatalogBindingVerifier(sourceCatalog, evidenceService)},
 		RegisterMigrations: registermigration.NewPostgresRepository(pool),
 		Mode:               "postgres", Authority: authorityService, Governance: governance.NewService(governance.NewPostgresRepository(pool)),
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,

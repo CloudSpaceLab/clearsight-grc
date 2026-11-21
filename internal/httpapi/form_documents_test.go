@@ -20,6 +20,7 @@ type documentContentStore struct {
 	value  evidence.DocumentOccurrence
 	query  evidence.DocumentQuery
 	denied bool
+	next   string
 }
 
 func (s *documentContentStore) ListDocuments(_ context.Context, q evidence.DocumentQuery) (evidence.DocumentPage, error) {
@@ -27,7 +28,10 @@ func (s *documentContentStore) ListDocuments(_ context.Context, q evidence.Docum
 	if s.denied {
 		return evidence.DocumentPage{Items: []evidence.DocumentOccurrence{}}, nil
 	}
-	return evidence.DocumentPage{Items: []evidence.DocumentOccurrence{s.value}}, nil
+	return evidence.DocumentPage{Items: []evidence.DocumentOccurrence{s.value}, NextCursor: s.next}, nil
+}
+func (s *documentContentStore) ListExactDocuments(ctx context.Context, q evidence.DocumentQuery) (evidence.DocumentPage, error) {
+	return s.ListDocuments(ctx, q)
 }
 
 func TestDemoDocumentContentRequiresBothServerFlagsAndFreshAuthorizedOccurrence(t *testing.T) {
@@ -214,5 +218,78 @@ func TestDocumentContentCannotBeGuessedWithoutOccurrence(t *testing.T) {
 	api.openFormDocument(w, r)
 	if w.Code != 404 || strings.Contains(w.Body.String(), "storage_key") {
 		t.Fatalf("%d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestExactDocumentMetadataUsesVerifiedScopeAndRejectsAmbiguity(t *testing.T) {
+	actor := identity.Actor{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "reader", Kind: "PERSON", AuthenticationMethod: "TEST", AssuranceLevel: "HIGH", SessionID: "session", IssuedAt: time.Now().Add(-time.Minute), ExpiresAt: time.Now().Add(time.Hour)}
+	store := &documentContentStore{MemoryDistributionStore: evidence.NewMemoryDistributionStore(evidence.NewMemoryRepository(nil, nil), nil, nil), value: evidence.DocumentOccurrence{ID: "occurrence", SubmissionID: "sub", FieldID: "field", ArtifactID: "artifact", ResponseRevisionID: "revision", FileName: "report.pdf"}}
+	api := &API{deps: Dependencies{FormDistributions: evidence.NewDistributionService(store)}}
+	request := func(auth bool) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(http.MethodGet, "/metadata?response_revision_id=revision", nil)
+		if auth {
+			r = r.WithContext(identity.WithActor(context.Background(), actor))
+		}
+		r.SetPathValue("submission_id", "sub")
+		r.SetPathValue("field_id", "field")
+		r.SetPathValue("artifact_id", "artifact")
+		w := httptest.NewRecorder()
+		api.getFormDocument(w, r)
+		return w
+	}
+	if w := request(false); w.Code != http.StatusUnauthorized {
+		t.Fatalf("missing identity: %d", w.Code)
+	}
+	if w := request(true); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "report.pdf") || w.Header().Get("Cache-Control") != "private, no-store" {
+		t.Fatalf("read %d %s", w.Code, w.Body.String())
+	}
+	if store.query.TenantID != "tenant" || store.query.LegalEntityID != "entity" || store.query.PrincipalID != "reader" || store.query.SubmissionID != "sub" || store.query.FieldID != "field" || store.query.ArtifactID != "artifact" || store.query.ResponseRevisionID != "revision" || store.query.Limit != 1 {
+		t.Fatalf("scope %+v", store.query)
+	}
+	oversized := httptest.NewRequest(http.MethodGet, "/metadata", nil).WithContext(identity.WithActor(context.Background(), actor))
+	oversized.SetPathValue("submission_id", "sub")
+	oversized.SetPathValue("field_id", strings.Repeat("x", 81))
+	oversized.SetPathValue("artifact_id", "artifact")
+	bad := httptest.NewRecorder()
+	api.getFormDocument(bad, oversized)
+	if bad.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("oversized field: %d", bad.Code)
+	}
+	store.denied = true
+	if w := request(true); w.Code != http.StatusNotFound {
+		t.Fatalf("denied: %d", w.Code)
+	}
+	store.denied = false
+	store.next = "more"
+	if w := request(true); w.Code != http.StatusNotFound {
+		t.Fatalf("ambiguous occurrence: %d", w.Code)
+	}
+	store.next = ""
+	store.value.ResponseRevisionID = "other"
+	if w := request(true); w.Code != http.StatusNotFound {
+		t.Fatalf("wrong revision: %d", w.Code)
+	}
+}
+
+func TestDocumentContentRejectsAmbiguousOccurrence(t *testing.T) {
+	documents := &documentContentStore{MemoryDistributionStore: evidence.NewMemoryDistributionStore(evidence.NewMemoryRepository(nil, nil), nil, nil), value: evidence.DocumentOccurrence{SubmissionID: "sub", FieldID: "field", ArtifactID: "artifact", ArtifactStatus: evidence.ArtifactAvailable}, next: "more"}
+	api := &API{deps: Dependencies{FormDistributions: evidence.NewDistributionService(documents)}}
+	actor := identity.Actor{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "reader", Kind: "PERSON", AuthenticationMethod: "TEST", AssuranceLevel: "HIGH", SessionID: "session", IssuedAt: time.Now().Add(-time.Minute), ExpiresAt: time.Now().Add(time.Hour)}
+	req := httptest.NewRequest(http.MethodGet, "/content", nil).WithContext(identity.WithActor(context.Background(), actor))
+	req.SetPathValue("submission_id", "sub")
+	req.SetPathValue("field_id", "field")
+	req.SetPathValue("artifact_id", "artifact")
+	w := httptest.NewRecorder()
+	api.openFormDocument(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("ambiguous occurrence: %d", w.Code)
+	}
+}
+
+func TestExactDocumentMetadataRouteRemainsUnregistered(t *testing.T) {
+	for _, route := range (&API{}).productionRoutes() {
+		if route.Method == http.MethodGet && route.Path == "/api/v1/forms/documents/{submission_id}/{field_id}/{artifact_id}" {
+			t.Fatal("exact metadata route requires real database plan and access verification before enablement")
+		}
 	}
 }

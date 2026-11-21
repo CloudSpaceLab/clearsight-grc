@@ -1,0 +1,860 @@
+{
+  "generatedAt": "2026-11-03T19:37:12.395Z",
+  "baseURL": "http://127.0.0.1:4178",
+  "failure": "226-notifications-inbox-light-390x844: The loaded notification count must remain on one line: {\"x\":288.53125,\"y\":348.59375,\"width\":76.46875,\"height\":44,\"right\":365,\"bottom\":392.59375}",
+  "captures": [
+    {
+      "name": "226-notifications-inbox-light-1440x900",
+      "route": "#notifications",
+      "fixture": "notifications-loaded",
+      "state": "notifications-inbox-light-1440",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "notificationsLayout": {
+        "kind": "inbox",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 120,
+          "right": 1408,
+          "bottom": 212
+        },
+        "headingText": "Notifications",
+        "localTabs": [
+          "Inbox",
+          "Activity",
+          "Preferences"
+        ],
+        "selectedTab": "Inbox",
+        "tablist": {
+          "x": 260,
+          "y": 228,
+          "width": 1148,
+          "height": 54,
+          "right": 1408,
+          "bottom": 282
+        },
+        "selectedTabBounds": {
+          "x": 269,
+          "y": 233,
+          "width": 66.515625,
+          "height": 44,
+          "right": 335.515625,
+          "bottom": 277
+        },
+        "selectedTabVisible": true,
+        "main": {
+          "x": 260,
+          "y": 362,
+          "width": 696.609375,
+          "height": 785.1875,
+          "right": 956.609375,
+          "bottom": 1147.1875
+        },
+        "aside": {
+          "x": 972.609375,
+          "y": 362,
+          "width": 435.390625,
+          "height": 734.5625,
+          "right": 1408,
+          "bottom": 1096.5625
+        },
+        "placement": "beside",
+        "toolbar": {
+          "x": 260,
+          "y": 302,
+          "width": 1148,
+          "height": 44,
+          "right": 1408,
+          "bottom": 346
+        },
+        "firstUsefulContent": {
+          "x": 269,
+          "y": 545.1875,
+          "width": 678.609375,
+          "height": 100,
+          "right": 947.609375,
+          "bottom": 645.1875
+        },
+        "firstUsefulContentText": "Review the Sample annual-return evidence changeWork assignmentReview the annual-return evidence requirements before recording the next action.21 OctUnread",
+        "firstUsefulContentVisible": true,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "recordCount": 5,
+        "recordHeights": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "firstRecord": {
+          "x": 269,
+          "y": 545.1875,
+          "width": 678.609375,
+          "height": 100,
+          "right": 947.609375,
+          "bottom": 645.1875
+        },
+        "firstRecordVisible": true,
+        "selectedCount": 1,
+        "selectedRecord": "Review the Sample annual-return evidence change",
+        "detailTitle": "Review the Sample annual-return evidence change",
+        "inboxCount": {
+          "x": 854.71875,
+          "y": 492.890625,
+          "width": 84.890625,
+          "height": 26,
+          "right": 939.609375,
+          "bottom": 518.890625
+        },
+        "readFilter": [
+          {
+            "label": "All",
+            "selected": true
+          },
+          {
+            "label": "Unread (7)",
+            "selected": false
+          }
+        ],
+        "unreadHeader": "Notifications, 7 unread",
+        "searchVisible": true,
+        "filtersToggleVisible": false,
+        "emptyHeadings": [],
+        "activityEvents": [],
+        "activityVersionLimitation": null,
+        "activityProof": [],
+        "preferences": null,
+        "unsupportedControls": 0,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "apiReads": [
+          {
+            "path": "/api/v1/notifications",
+            "query": "?limit=25&unread_only=false",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/system-activity",
+            "query": "?limit=25&from=2026-10-04T19%3A37%3A06.644Z&to=2026-11-03T19%3A37%3A06.644Z&legal_entity_id=bank-ng",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/preferences/notifications",
+            "query": "",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/notifications",
+            "query": "?limit=25&unread_only=true",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/notifications",
+            "query": "?limit=25&unread_only=false",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/notifications",
+            "query": "?limit=25&unread_only=false&cursor=sample-notifications%2Folder%3Fbatch%3D2%26recipient%3Dsample",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/notifications",
+            "query": "?limit=25&unread_only=false",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "interaction": {
+          "navigation": {
+            "arrowSequence": [
+              "Activity",
+              "Preferences",
+              "Inbox"
+            ],
+            "routesMatched": true,
+            "count": 3
+          },
+          "searchEmptyAndRecovery": true,
+          "keyboardSelection": true,
+          "selectedContextWithoutRead": true,
+          "backRestoredFocus": null,
+          "serverUnreadFilter": true,
+          "pagedRows": 10,
+          "opaqueCursorPreserved": true,
+          "refreshedRows": 5,
+          "serverUnreadCount": 7,
+          "assignedWorkHandoff": true,
+          "bellReturned": true,
+          "baselineRestored": true
+        }
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Work & Approvals"
+        ],
+        "activeLocation": [],
+        "railWidth": 228,
+        "railX": 0,
+        "labelMode": "expanded",
+        "maxLabelLines": 1,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": false,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1230,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Notifications, 7 unread"
+      }
+    },
+    {
+      "name": "226-notifications-inbox-light-1280x800",
+      "route": "#notifications",
+      "fixture": "notifications-loaded",
+      "state": "notifications-inbox-light-1280",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "notificationsLayout": {
+        "kind": "inbox",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 988,
+          "height": 120,
+          "right": 1248,
+          "bottom": 212
+        },
+        "headingText": "Notifications",
+        "localTabs": [
+          "Inbox",
+          "Activity",
+          "Preferences"
+        ],
+        "selectedTab": "Inbox",
+        "tablist": {
+          "x": 260,
+          "y": 228,
+          "width": 988,
+          "height": 54,
+          "right": 1248,
+          "bottom": 282
+        },
+        "selectedTabBounds": {
+          "x": 269,
+          "y": 233,
+          "width": 66.515625,
+          "height": 44,
+          "right": 335.515625,
+          "bottom": 277
+        },
+        "selectedTabVisible": true,
+        "main": {
+          "x": 260,
+          "y": 362,
+          "width": 598.140625,
+          "height": 794.1875,
+          "right": 858.140625,
+          "bottom": 1156.1875
+        },
+        "aside": {
+          "x": 874.140625,
+          "y": 362,
+          "width": 373.859375,
+          "height": 752.5625,
+          "right": 1248,
+          "bottom": 1114.5625
+        },
+        "placement": "beside",
+        "toolbar": {
+          "x": 260,
+          "y": 302,
+          "width": 988,
+          "height": 44,
+          "right": 1248,
+          "bottom": 346
+        },
+        "firstUsefulContent": {
+          "x": 269,
+          "y": 545.1875,
+          "width": 580.140625,
+          "height": 109,
+          "right": 849.140625,
+          "bottom": 654.1875
+        },
+        "firstUsefulContentText": "Review the Sample annual-return evidence changeWork assignmentReview the annual-return evidence requirements before recording the next action.21 OctUnread",
+        "firstUsefulContentVisible": true,
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "recordCount": 5,
+        "recordHeights": [
+          109,
+          100,
+          100,
+          100,
+          100
+        ],
+        "firstRecord": {
+          "x": 269,
+          "y": 545.1875,
+          "width": 580.140625,
+          "height": 109,
+          "right": 849.140625,
+          "bottom": 654.1875
+        },
+        "firstRecordVisible": true,
+        "selectedCount": 1,
+        "selectedRecord": "Review the Sample annual-return evidence change",
+        "detailTitle": "Review the Sample annual-return evidence change",
+        "inboxCount": {
+          "x": 756.25,
+          "y": 492.890625,
+          "width": 84.890625,
+          "height": 26,
+          "right": 841.140625,
+          "bottom": 518.890625
+        },
+        "readFilter": [
+          {
+            "label": "All",
+            "selected": true
+          },
+          {
+            "label": "Unread (7)",
+            "selected": false
+          }
+        ],
+        "unreadHeader": "Notifications, 7 unread",
+        "searchVisible": true,
+        "filtersToggleVisible": false,
+        "emptyHeadings": [],
+        "activityEvents": [],
+        "activityVersionLimitation": null,
+        "activityProof": [],
+        "preferences": null,
+        "unsupportedControls": 0,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "apiReads": [
+          {
+            "path": "/api/v1/notifications",
+            "query": "?limit=25&unread_only=false",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION"
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Work & Approvals"
+        ],
+        "activeLocation": [],
+        "railWidth": 228,
+        "railX": 0,
+        "labelMode": "expanded",
+        "maxLabelLines": 1,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": false,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "clientHeight": 800,
+        "scrollHeight": 1239,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "ClearSightGovernance, risk & complianceHomeFrameworksProgramsFormsVendorsRisk & "
+      }
+    },
+    {
+      "name": "226-notifications-inbox-light-1024x768",
+      "route": "#notifications",
+      "fixture": "notifications-loaded",
+      "state": "notifications-inbox-light-1024",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "notificationsLayout": {
+        "kind": "inbox",
+        "heading": {
+          "x": 104,
+          "y": 92,
+          "width": 888,
+          "height": 120,
+          "right": 992,
+          "bottom": 212
+        },
+        "headingText": "Notifications",
+        "localTabs": [
+          "Inbox",
+          "Activity",
+          "Preferences"
+        ],
+        "selectedTab": "Inbox",
+        "tablist": {
+          "x": 104,
+          "y": 228,
+          "width": 888,
+          "height": 54,
+          "right": 992,
+          "bottom": 282
+        },
+        "selectedTabBounds": {
+          "x": 113,
+          "y": 233,
+          "width": 66.515625,
+          "height": 44,
+          "right": 179.515625,
+          "bottom": 277
+        },
+        "selectedTabVisible": true,
+        "main": {
+          "x": 104,
+          "y": 362,
+          "width": 501.140625,
+          "height": 842.1875,
+          "right": 605.140625,
+          "bottom": 1204.1875
+        },
+        "aside": {
+          "x": 621.140625,
+          "y": 362,
+          "width": 370.859375,
+          "height": 744.5625,
+          "right": 992,
+          "bottom": 1106.5625
+        },
+        "placement": "beside",
+        "toolbar": {
+          "x": 104,
+          "y": 302,
+          "width": 888,
+          "height": 44,
+          "right": 992,
+          "bottom": 346
+        },
+        "firstUsefulContent": {
+          "x": 113,
+          "y": 545.1875,
+          "width": 483.140625,
+          "height": 130,
+          "right": 596.140625,
+          "bottom": 675.1875
+        },
+        "firstUsefulContentText": "Review the Sample annual-return evidence changeWork assignmentReview the annual-return evidence requirements before recording the next action.21 OctUnread",
+        "firstUsefulContentVisible": true,
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "recordCount": 5,
+        "recordHeights": [
+          130,
+          109,
+          100,
+          109,
+          109
+        ],
+        "firstRecord": {
+          "x": 113,
+          "y": 545.1875,
+          "width": 483.140625,
+          "height": 130,
+          "right": 596.140625,
+          "bottom": 675.1875
+        },
+        "firstRecordVisible": true,
+        "selectedCount": 1,
+        "selectedRecord": "Review the Sample annual-return evidence change",
+        "detailTitle": "Review the Sample annual-return evidence change",
+        "inboxCount": {
+          "x": 503.25,
+          "y": 492.890625,
+          "width": 84.890625,
+          "height": 26,
+          "right": 588.140625,
+          "bottom": 518.890625
+        },
+        "readFilter": [
+          {
+            "label": "All",
+            "selected": true
+          },
+          {
+            "label": "Unread (7)",
+            "selected": false
+          }
+        ],
+        "unreadHeader": "Notifications, 7 unread",
+        "searchVisible": true,
+        "filtersToggleVisible": false,
+        "emptyHeadings": [],
+        "activityEvents": [],
+        "activityVersionLimitation": null,
+        "activityProof": [],
+        "preferences": null,
+        "unsupportedControls": 0,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "apiReads": [
+          {
+            "path": "/api/v1/notifications",
+            "query": "?limit=25&unread_only=false",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION"
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Work & Approvals"
+        ],
+        "activeLocation": [],
+        "railWidth": 72,
+        "railX": 0,
+        "labelMode": "icons",
+        "maxLabelLines": 0,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": true,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "clientHeight": 768,
+        "scrollHeight": 1287,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "ClearSightGovernance, risk & complianceHomeFrameworksProgramsFormsVendorsRisk & "
+      }
+    },
+    {
+      "name": "226-notifications-inbox-light-768x900",
+      "route": "#notifications",
+      "fixture": "notifications-loaded",
+      "state": "notifications-inbox-light-768",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "notificationsLayout": {
+        "kind": "inbox",
+        "heading": {
+          "x": 80,
+          "y": 88,
+          "width": 680,
+          "height": 120,
+          "right": 760,
+          "bottom": 208
+        },
+        "headingText": "Notifications",
+        "localTabs": [
+          "Inbox",
+          "Activity",
+          "Preferences"
+        ],
+        "selectedTab": "Inbox",
+        "tablist": {
+          "x": 80,
+          "y": 224,
+          "width": 680,
+          "height": 54,
+          "right": 760,
+          "bottom": 278
+        },
+        "selectedTabBounds": {
+          "x": 89,
+          "y": 229,
+          "width": 66.515625,
+          "height": 44,
+          "right": 155.515625,
+          "bottom": 273
+        },
+        "selectedTabVisible": true,
+        "main": {
+          "x": 80,
+          "y": 358,
+          "width": 680,
+          "height": 785.1875,
+          "right": 760,
+          "bottom": 1143.1875
+        },
+        "aside": {
+          "x": 80,
+          "y": 1159.1875,
+          "width": 680,
+          "height": 731.171875,
+          "right": 760,
+          "bottom": 1890.359375
+        },
+        "placement": "stacked",
+        "toolbar": {
+          "x": 80,
+          "y": 298,
+          "width": 680,
+          "height": 44,
+          "right": 760,
+          "bottom": 342
+        },
+        "firstUsefulContent": {
+          "x": 89,
+          "y": 541.1875,
+          "width": 662,
+          "height": 100,
+          "right": 751,
+          "bottom": 641.1875
+        },
+        "firstUsefulContentText": "Review the Sample annual-return evidence changeWork assignmentReview the annual-return evidence requirements before recording the next action.21 OctUnread",
+        "firstUsefulContentVisible": true,
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "recordCount": 5,
+        "recordHeights": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "firstRecord": {
+          "x": 89,
+          "y": 541.1875,
+          "width": 662,
+          "height": 100,
+          "right": 751,
+          "bottom": 641.1875
+        },
+        "firstRecordVisible": true,
+        "selectedCount": 1,
+        "selectedRecord": "Review the Sample annual-return evidence change",
+        "detailTitle": "Review the Sample annual-return evidence change",
+        "inboxCount": {
+          "x": 658.109375,
+          "y": 488.890625,
+          "width": 84.890625,
+          "height": 26,
+          "right": 743,
+          "bottom": 514.890625
+        },
+        "readFilter": [
+          {
+            "label": "All",
+            "selected": true
+          },
+          {
+            "label": "Unread (7)",
+            "selected": false
+          }
+        ],
+        "unreadHeader": "Notifications, 7 unread",
+        "searchVisible": true,
+        "filtersToggleVisible": false,
+        "emptyHeadings": [],
+        "activityEvents": [],
+        "activityVersionLimitation": null,
+        "activityProof": [],
+        "preferences": null,
+        "unsupportedControls": 0,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "apiReads": [
+          {
+            "path": "/api/v1/notifications",
+            "query": "?limit=25&unread_only=false",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION"
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Work & Approvals"
+        ],
+        "activeLocation": [],
+        "railWidth": 72,
+        "railX": 0,
+        "labelMode": "icons",
+        "maxLabelLines": 0,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": true,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "clientHeight": 900,
+        "scrollHeight": 1949,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "ClearSightGovernance, risk & complianceHomeFrameworksProgramsFormsVendorsRisk & "
+      }
+    }
+  ]
+}

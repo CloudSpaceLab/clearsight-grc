@@ -1,0 +1,37 @@
+{
+  "suite": "V2.15 applied reporting filters",
+  "runtime": "Actual application handlers and controlled filter-form DOM",
+  "browserLayoutValidated": false,
+  "results": [
+    {
+      "name": "Edited loss filters leave the displayed cohort intact and block report output until apply or revert",
+      "status": "PASS"
+    },
+    {
+      "name": "Revert restores exact applied form values and original control availability without rendering",
+      "status": "PASS"
+    },
+    {
+      "name": "Named-response edits are isolated from applied identities and reset preserves organization and clocks",
+      "status": "PASS"
+    },
+    {
+      "name": "Loss reset uses stated defaults and clears stale drilldowns while preserving exact scope and period",
+      "status": "PASS"
+    },
+    {
+      "name": "Invalid response recovery actually clears inherited filters rather than returning to the same error",
+      "status": "PASS"
+    },
+    {
+      "name": "Grouping cannot silently discard edited dates and current permission guards still run after revert",
+      "status": "PASS"
+    },
+    {
+      "name": "Captured report output remains unchanged and has no live filter-edit controls",
+      "status": "PASS"
+    }
+  ],
+  "passed": 7,
+  "failed": 0
+}

@@ -1,0 +1,4 @@
+.v-privacy-detail > .v-panel { margin-bottom: 16px; }
+.v-privacy-detail dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; margin-bottom: 0; }
+.v-privacy-detail dt { color: #627b9f; font-size: 12px; }
+.v-privacy-detail dd { margin: 5px 0 0; overflow-wrap: anywhere; }

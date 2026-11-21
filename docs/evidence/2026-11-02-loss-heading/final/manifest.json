@@ -1,0 +1,3912 @@
+{
+  "generatedAt": "2026-11-02T22:31:09.054Z",
+  "baseURL": "http://127.0.0.1:4178",
+  "failure": null,
+  "captures": [
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "253-risk-loss-losses-light-1440x900",
+      "state": "risk-loss-losses-layout-light-1440",
+      "riskLossView": "losses",
+      "riskLossCheck": "layout",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 111,
+          "right": 1408,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 551.09375,
+          "right": 1408,
+          "bottom": 643.09375
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 374.09375,
+          "right": 1408,
+          "bottom": 643.09375
+        },
+        "controls": {
+          "x": 260,
+          "y": 337.09375,
+          "width": 1148,
+          "height": 73,
+          "right": 1408,
+          "bottom": 410.09375
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 1148,
+          "height": 49,
+          "right": 1408,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 261,
+          "y": 459.09375,
+          "width": 1146,
+          "height": 123,
+          "right": 1407,
+          "bottom": 582.09375
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "table",
+        "records": 1,
+        "firstRecord": {
+          "x": 261,
+          "y": 505.59375,
+          "width": 1146,
+          "height": 76.5,
+          "right": 1407,
+          "bottom": 582.09375
+        },
+        "firstIdentity": {
+          "x": 273,
+          "y": 525.890625,
+          "width": 293.28125,
+          "height": 18,
+          "right": 566.28125,
+          "bottom": 543.890625
+        },
+        "firstRecordColumns": 0,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 1296.9375,
+              "y": 522.09375,
+              "width": 98.0625,
+              "height": 44,
+              "right": 1395,
+              "bottom": 566.09375
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.7442303212295033",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900
+      },
+      "imageBytes": 77075,
+      "imageSHA256": "18d76b277d47448f65c328c26937c9e0e353b6269b31b605fe607c6eb14457f0"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "253-risk-loss-losses-light-1280x800",
+      "state": "risk-loss-losses-layout-light-1280",
+      "riskLossView": "losses",
+      "riskLossCheck": "layout",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "touch": false,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 988,
+          "height": 111,
+          "right": 1248,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 988,
+          "height": 569.09375,
+          "right": 1248,
+          "bottom": 661.09375
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 988,
+          "height": 392.09375,
+          "right": 1248,
+          "bottom": 661.09375
+        },
+        "controls": {
+          "x": 260,
+          "y": 337.09375,
+          "width": 988,
+          "height": 73,
+          "right": 1248,
+          "bottom": 410.09375
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 988,
+          "height": 49,
+          "right": 1248,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 261,
+          "y": 459.09375,
+          "width": 986,
+          "height": 141,
+          "right": 1247,
+          "bottom": 600.09375
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "table",
+        "records": 1,
+        "firstRecord": {
+          "x": 261,
+          "y": 505.59375,
+          "width": 986,
+          "height": 94.5,
+          "right": 1247,
+          "bottom": 600.09375
+        },
+        "firstIdentity": {
+          "x": 273,
+          "y": 527.703125,
+          "width": 231.9375,
+          "height": 18,
+          "right": 504.9375,
+          "bottom": 545.703125
+        },
+        "firstRecordColumns": 0,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 1136.9375,
+              "y": 531.09375,
+              "width": 98.0625,
+              "height": 44,
+              "right": 1235,
+              "bottom": 575.09375
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.6400732464027298",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "clientHeight": 800,
+        "scrollHeight": 800
+      },
+      "imageBytes": 74264,
+      "imageSHA256": "e8d75293f9c2256f8e90ccc54757dc3a4556b2bc187df96cc73a629e861bf4ff"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "253-risk-loss-losses-light-1024x768",
+      "state": "risk-loss-losses-layout-light-1024",
+      "riskLossView": "losses",
+      "riskLossCheck": "layout",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 112.953125,
+          "y": 124,
+          "width": 870.09375,
+          "height": 111,
+          "right": 983.046875,
+          "bottom": 235
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 112.953125,
+          "y": 124,
+          "width": 870.09375,
+          "height": 571.875,
+          "right": 983.046875,
+          "bottom": 695.875
+        },
+        "collection": {
+          "x": 112.953125,
+          "y": 301,
+          "width": 870.09375,
+          "height": 394.875,
+          "right": 983.046875,
+          "bottom": 695.875
+        },
+        "controls": {
+          "x": 112.953125,
+          "y": 369.09375,
+          "width": 870.09375,
+          "height": 73,
+          "right": 983.046875,
+          "bottom": 442.09375
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 112.953125,
+          "y": 235,
+          "width": 870.09375,
+          "height": 49,
+          "right": 983.046875,
+          "bottom": 284
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 113.953125,
+          "y": 491.09375,
+          "width": 868.09375,
+          "height": 143.78125,
+          "right": 982.046875,
+          "bottom": 634.875
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "table",
+        "records": 1,
+        "firstRecord": {
+          "x": 113.953125,
+          "y": 537.59375,
+          "width": 868.09375,
+          "height": 97.28125,
+          "right": 982.046875,
+          "bottom": 634.875
+        },
+        "firstIdentity": {
+          "x": 125.953125,
+          "y": 552.09375,
+          "width": 158.0625,
+          "height": 36,
+          "right": 284.015625,
+          "bottom": 588.09375
+        },
+        "firstRecordColumns": 0,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 871.984375,
+              "y": 564.484375,
+              "width": 98.0625,
+              "height": 44,
+              "right": 970.046875,
+              "bottom": 608.484375
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.4365209226247406",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "clientHeight": 768,
+        "scrollHeight": 768
+      },
+      "imageBytes": 61508,
+      "imageSHA256": "42526aef32a84738612d71897fcd4e8a67e329133598b030a38f77987ba99be6"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "253-risk-loss-losses-light-768x900",
+      "state": "risk-loss-losses-layout-light-768",
+      "riskLossView": "losses",
+      "riskLossCheck": "layout",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 80,
+          "y": 101,
+          "width": 680,
+          "height": 111,
+          "right": 760,
+          "bottom": 212
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 80,
+          "y": 101,
+          "width": 680,
+          "height": 798.484375,
+          "right": 760,
+          "bottom": 899.484375
+        },
+        "collection": {
+          "x": 80,
+          "y": 278,
+          "width": 680,
+          "height": 621.484375,
+          "right": 760,
+          "bottom": 899.484375
+        },
+        "controls": {
+          "x": 80,
+          "y": 346.09375,
+          "width": 680,
+          "height": 73,
+          "right": 760,
+          "bottom": 419.09375
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 80,
+          "y": 212,
+          "width": 680,
+          "height": 49,
+          "right": 760,
+          "bottom": 261
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 80,
+          "y": 467.09375,
+          "width": 680,
+          "height": 372.390625,
+          "right": 760,
+          "bottom": 839.484375
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "stacked-records",
+        "records": 1,
+        "firstRecord": {
+          "x": 80,
+          "y": 467.09375,
+          "width": 680,
+          "height": 372.390625,
+          "right": 760,
+          "bottom": 839.484375
+        },
+        "firstIdentity": {
+          "x": 97,
+          "y": 510.09375,
+          "width": 646,
+          "height": 18,
+          "right": 743,
+          "bottom": 528.09375
+        },
+        "firstRecordColumns": 2,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 97,
+              "y": 778.484375,
+              "width": 646,
+              "height": 44,
+              "right": 743,
+              "bottom": 822.484375
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.3201281557932757",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "clientHeight": 900,
+        "scrollHeight": 923
+      },
+      "imageBytes": 53588,
+      "imageSHA256": "aa6cd03acccb06f4cc2609fe83907ca4be0aec51b03f07acb19af3a0ca1faa57"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "253-risk-loss-losses-light-390x844",
+      "state": "risk-loss-losses-layout-light-390",
+      "riskLossView": "losses",
+      "riskLossCheck": "layout",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 135.375,
+          "right": 382,
+          "bottom": 223.375
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 906.453125,
+          "right": 382,
+          "bottom": 994.453125
+        },
+        "collection": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 706.078125,
+          "right": 382,
+          "bottom": 994.453125
+        },
+        "controls": {
+          "x": 64,
+          "y": 375.0625,
+          "width": 318,
+          "height": 129,
+          "right": 382,
+          "bottom": 504.0625
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 64,
+          "y": 223.375,
+          "width": 318,
+          "height": 49,
+          "right": 382,
+          "bottom": 272.375
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 64,
+          "y": 552.0625,
+          "width": 318,
+          "height": 382.390625,
+          "right": 382,
+          "bottom": 934.453125
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "stacked-records",
+        "records": 1,
+        "firstRecord": {
+          "x": 64,
+          "y": 552.0625,
+          "width": 318,
+          "height": 382.390625,
+          "right": 382,
+          "bottom": 934.453125
+        },
+        "firstIdentity": {
+          "x": 81,
+          "y": 595.0625,
+          "width": 284,
+          "height": 18,
+          "right": 365,
+          "bottom": 613.0625
+        },
+        "firstRecordColumns": 2,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 81,
+              "y": 873.453125,
+              "width": 284,
+              "height": 44,
+              "right": 365,
+              "bottom": 917.453125
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.5174012440449695",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1018
+      },
+      "imageBytes": 44560,
+      "imageSHA256": "c4c2277c51f92ad895317bf4cd0730d360ba442cb8148f8520304c430fe8e31e"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "253-risk-loss-losses-dark-1440x900",
+      "state": "risk-loss-losses-layout-dark-1440",
+      "riskLossView": "losses",
+      "riskLossCheck": "layout",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 111,
+          "right": 1408,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 551.09375,
+          "right": 1408,
+          "bottom": 643.09375
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 374.09375,
+          "right": 1408,
+          "bottom": 643.09375
+        },
+        "controls": {
+          "x": 260,
+          "y": 337.09375,
+          "width": 1148,
+          "height": 73,
+          "right": 1408,
+          "bottom": 410.09375
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 1148,
+          "height": 49,
+          "right": 1408,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 261,
+          "y": 459.09375,
+          "width": 1146,
+          "height": 123,
+          "right": 1407,
+          "bottom": 582.09375
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "table",
+        "records": 1,
+        "firstRecord": {
+          "x": 261,
+          "y": 505.59375,
+          "width": 1146,
+          "height": 76.5,
+          "right": 1407,
+          "bottom": 582.09375
+        },
+        "firstIdentity": {
+          "x": 273,
+          "y": 525.890625,
+          "width": 293.28125,
+          "height": 18,
+          "right": 566.28125,
+          "bottom": 543.890625
+        },
+        "firstRecordColumns": 0,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 1296.9375,
+              "y": 522.09375,
+              "width": 98.0625,
+              "height": 44,
+              "right": 1395,
+              "bottom": 566.09375
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.2012659395170685",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900
+      },
+      "imageBytes": 77412,
+      "imageSHA256": "d843fa0330a7e14ac1f9622d1d976479968c0f2b31ff5a6f5156c8c4a8c81add"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "253-risk-loss-losses-dark-1280x800",
+      "state": "risk-loss-losses-layout-dark-1280",
+      "riskLossView": "losses",
+      "riskLossCheck": "layout",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "touch": false,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 988,
+          "height": 111,
+          "right": 1248,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 988,
+          "height": 569.09375,
+          "right": 1248,
+          "bottom": 661.09375
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 988,
+          "height": 392.09375,
+          "right": 1248,
+          "bottom": 661.09375
+        },
+        "controls": {
+          "x": 260,
+          "y": 337.09375,
+          "width": 988,
+          "height": 73,
+          "right": 1248,
+          "bottom": 410.09375
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 988,
+          "height": 49,
+          "right": 1248,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 261,
+          "y": 459.09375,
+          "width": 986,
+          "height": 141,
+          "right": 1247,
+          "bottom": 600.09375
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "table",
+        "records": 1,
+        "firstRecord": {
+          "x": 261,
+          "y": 505.59375,
+          "width": 986,
+          "height": 94.5,
+          "right": 1247,
+          "bottom": 600.09375
+        },
+        "firstIdentity": {
+          "x": 273,
+          "y": 527.703125,
+          "width": 231.9375,
+          "height": 18,
+          "right": 504.9375,
+          "bottom": 545.703125
+        },
+        "firstRecordColumns": 0,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 1136.9375,
+              "y": 531.09375,
+              "width": 98.0625,
+              "height": 44,
+              "right": 1235,
+              "bottom": 575.09375
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.07797886522310848",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "clientHeight": 800,
+        "scrollHeight": 800
+      },
+      "imageBytes": 74443,
+      "imageSHA256": "a229aaf30b360d266ed3524f5fb377de6071aacf4e706e45cf878a03d25788de"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "253-risk-loss-losses-dark-1024x768",
+      "state": "risk-loss-losses-layout-dark-1024",
+      "riskLossView": "losses",
+      "riskLossCheck": "layout",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 112.953125,
+          "y": 124,
+          "width": 870.09375,
+          "height": 111,
+          "right": 983.046875,
+          "bottom": 235
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 112.953125,
+          "y": 124,
+          "width": 870.09375,
+          "height": 571.875,
+          "right": 983.046875,
+          "bottom": 695.875
+        },
+        "collection": {
+          "x": 112.953125,
+          "y": 301,
+          "width": 870.09375,
+          "height": 394.875,
+          "right": 983.046875,
+          "bottom": 695.875
+        },
+        "controls": {
+          "x": 112.953125,
+          "y": 369.09375,
+          "width": 870.09375,
+          "height": 73,
+          "right": 983.046875,
+          "bottom": 442.09375
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 112.953125,
+          "y": 235,
+          "width": 870.09375,
+          "height": 49,
+          "right": 983.046875,
+          "bottom": 284
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 113.953125,
+          "y": 491.09375,
+          "width": 868.09375,
+          "height": 143.78125,
+          "right": 982.046875,
+          "bottom": 634.875
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "table",
+        "records": 1,
+        "firstRecord": {
+          "x": 113.953125,
+          "y": 537.59375,
+          "width": 868.09375,
+          "height": 97.28125,
+          "right": 982.046875,
+          "bottom": 634.875
+        },
+        "firstIdentity": {
+          "x": 125.953125,
+          "y": 552.09375,
+          "width": 158.0625,
+          "height": 36,
+          "right": 284.015625,
+          "bottom": 588.09375
+        },
+        "firstRecordColumns": 0,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 871.984375,
+              "y": 564.484375,
+              "width": 98.0625,
+              "height": 44,
+              "right": 970.046875,
+              "bottom": 608.484375
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.3953777780516574",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "clientHeight": 768,
+        "scrollHeight": 768
+      },
+      "imageBytes": 60515,
+      "imageSHA256": "5a0aaf24795b35c00bc2373b95235b162b3b6d33b55ff188e2634be5c93d01d9"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "253-risk-loss-losses-dark-768x900",
+      "state": "risk-loss-losses-layout-dark-768",
+      "riskLossView": "losses",
+      "riskLossCheck": "layout",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 80,
+          "y": 101,
+          "width": 680,
+          "height": 111,
+          "right": 760,
+          "bottom": 212
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 80,
+          "y": 101,
+          "width": 680,
+          "height": 798.484375,
+          "right": 760,
+          "bottom": 899.484375
+        },
+        "collection": {
+          "x": 80,
+          "y": 278,
+          "width": 680,
+          "height": 621.484375,
+          "right": 760,
+          "bottom": 899.484375
+        },
+        "controls": {
+          "x": 80,
+          "y": 346.09375,
+          "width": 680,
+          "height": 73,
+          "right": 760,
+          "bottom": 419.09375
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 80,
+          "y": 212,
+          "width": 680,
+          "height": 49,
+          "right": 760,
+          "bottom": 261
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 80,
+          "y": 467.09375,
+          "width": 680,
+          "height": 372.390625,
+          "right": 760,
+          "bottom": 839.484375
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "stacked-records",
+        "records": 1,
+        "firstRecord": {
+          "x": 80,
+          "y": 467.09375,
+          "width": 680,
+          "height": 372.390625,
+          "right": 760,
+          "bottom": 839.484375
+        },
+        "firstIdentity": {
+          "x": 97,
+          "y": 510.09375,
+          "width": 646,
+          "height": 18,
+          "right": 743,
+          "bottom": 528.09375
+        },
+        "firstRecordColumns": 2,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 97,
+              "y": 778.484375,
+              "width": 646,
+              "height": 44,
+              "right": 743,
+              "bottom": 822.484375
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.9454616211009296",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "clientHeight": 900,
+        "scrollHeight": 923
+      },
+      "imageBytes": 53930,
+      "imageSHA256": "7ffb99daeaaef76a8a23374d1804056368332edb6e800b413be8d06837673473"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "253-risk-loss-losses-dark-390x844",
+      "state": "risk-loss-losses-layout-dark-390",
+      "riskLossView": "losses",
+      "riskLossCheck": "layout",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "riskLossMatrix": true,
+      "verifyRiskLossNavigation": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 135.375,
+          "right": 382,
+          "bottom": 223.375
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 906.453125,
+          "right": 382,
+          "bottom": 994.453125
+        },
+        "collection": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 706.078125,
+          "right": 382,
+          "bottom": 994.453125
+        },
+        "controls": {
+          "x": 64,
+          "y": 375.0625,
+          "width": 318,
+          "height": 129,
+          "right": 382,
+          "bottom": 504.0625
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 64,
+          "y": 223.375,
+          "width": 318,
+          "height": 49,
+          "right": 382,
+          "bottom": 272.375
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 64,
+          "y": 552.0625,
+          "width": 318,
+          "height": 382.390625,
+          "right": 382,
+          "bottom": 934.453125
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "stacked-records",
+        "records": 1,
+        "firstRecord": {
+          "x": 64,
+          "y": 552.0625,
+          "width": 318,
+          "height": 382.390625,
+          "right": 382,
+          "bottom": 934.453125
+        },
+        "firstIdentity": {
+          "x": 81,
+          "y": 595.0625,
+          "width": 284,
+          "height": 18,
+          "right": 365,
+          "bottom": 613.0625
+        },
+        "firstRecordColumns": 2,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 81,
+              "y": 873.453125,
+              "width": 284,
+              "height": 44,
+              "right": 365,
+              "bottom": 917.453125
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "layout",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.5500444228890159",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1018
+      },
+      "imageBytes": 44805,
+      "imageSHA256": "42546b8b62eb5626db07789bab78761f612886455c9869179873635a8c76b2cf"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "2543-risk-loss-losses-detail-light-1440",
+      "state": "risk-loss-losses-detail-light-1440",
+      "riskLossView": "losses",
+      "riskLossCheck": "detail",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses/loss-s5-1",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": null,
+        "headingText": null,
+        "main": null,
+        "collection": null,
+        "controls": null,
+        "localTabs": [],
+        "selectedTab": null,
+        "selectedTabID": null,
+        "menu": null,
+        "menuRows": 0,
+        "selectedTabVisible": false,
+        "menuMatches": false,
+        "table": null,
+        "grid": null,
+        "columns": null,
+        "presentation": "state",
+        "records": 0,
+        "firstRecord": null,
+        "firstIdentity": null,
+        "firstRecordColumns": null,
+        "rowActions": [],
+        "statusBadges": [],
+        "recordTitles": [],
+        "recordAccessibleNames": [],
+        "rowValues": [],
+        "cardNumbers": [],
+        "stateText": "",
+        "disclosures": [],
+        "firstUsefulContentVisible": false,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "detail": {
+        "route": "#losses/loss-s5-1",
+        "exactTarget": true,
+        "titleMatches": true,
+        "placement": "standalone",
+        "width": 1148,
+        "x": 260,
+        "height": 969.140625,
+        "titleVisible": true,
+        "close": null,
+        "closeVisible": false,
+        "focusContained": false,
+        "primaryAction": {
+          "label": "Back to losses",
+          "bounds": {
+            "x": 1282.671875,
+            "y": 92,
+            "width": 125.328125,
+            "height": 44,
+            "right": 1408,
+            "bottom": 136
+          },
+          "visible": true
+        },
+        "internalTables": [
+          {
+            "clientWidth": 1148,
+            "scrollWidth": 1148,
+            "presentation": "table"
+          }
+        ],
+        "rcsaPopulation": null,
+        "pendingReads": 0,
+        "commands": [],
+        "documentToken": "risk-loss-0.7129611386480706"
+      },
+      "observation": {
+        "view": "losses",
+        "check": "detail",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses/loss-s5-1",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/risks/risk-loss-s5",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.7129611386480706",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1109
+      },
+      "imageBytes": 153919,
+      "imageSHA256": "9bdd78c685b04b1f248df02162d18ab621f9560f214c54264fd64bc5dadfefb0"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "2553-risk-loss-losses-detail-dark-390",
+      "state": "risk-loss-losses-detail-dark-390",
+      "riskLossView": "losses",
+      "riskLossCheck": "detail",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses/loss-s5-1",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": null,
+        "headingText": null,
+        "main": null,
+        "collection": null,
+        "controls": null,
+        "localTabs": [],
+        "selectedTab": null,
+        "selectedTabID": null,
+        "menu": null,
+        "menuRows": 0,
+        "selectedTabVisible": false,
+        "menuMatches": false,
+        "table": null,
+        "grid": null,
+        "columns": null,
+        "presentation": "state",
+        "records": 0,
+        "firstRecord": null,
+        "firstIdentity": null,
+        "firstRecordColumns": null,
+        "rowActions": [],
+        "statusBadges": [],
+        "recordTitles": [],
+        "recordAccessibleNames": [],
+        "rowValues": [],
+        "cardNumbers": [],
+        "stateText": "",
+        "disclosures": [],
+        "firstUsefulContentVisible": false,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "detail": {
+        "route": "#losses/loss-s5-1",
+        "exactTarget": true,
+        "titleMatches": true,
+        "placement": "standalone",
+        "width": 318,
+        "x": 64,
+        "height": 2245.28125,
+        "titleVisible": true,
+        "close": null,
+        "closeVisible": false,
+        "focusContained": false,
+        "primaryAction": {
+          "label": "Back to losses",
+          "bounds": {
+            "x": 64,
+            "y": 258,
+            "width": 125.328125,
+            "height": 44,
+            "right": 189.328125,
+            "bottom": 302
+          },
+          "visible": true
+        },
+        "internalTables": [
+          {
+            "clientWidth": 318,
+            "scrollWidth": 318,
+            "presentation": "block"
+          }
+        ],
+        "rcsaPopulation": null,
+        "pendingReads": 0,
+        "commands": [],
+        "documentToken": "risk-loss-0.18851806465021093"
+      },
+      "observation": {
+        "view": "losses",
+        "check": "detail",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses/loss-s5-1",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/risks/risk-loss-s5",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.18851806465021093",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 2357
+      },
+      "imageBytes": 62789,
+      "imageSHA256": "0aa4dde040a616e2c0c2a84863e23901c439c460d598a6c1a5e44925c58fe91f"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "2563-risk-loss-losses-history-dark-390",
+      "state": "risk-loss-losses-history-dark-390",
+      "riskLossView": "losses",
+      "riskLossCheck": "history",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 135.375,
+          "right": 382,
+          "bottom": 223.375
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 906.453125,
+          "right": 382,
+          "bottom": 994.453125
+        },
+        "collection": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 706.078125,
+          "right": 382,
+          "bottom": 994.453125
+        },
+        "controls": {
+          "x": 64,
+          "y": 375.0625,
+          "width": 318,
+          "height": 129,
+          "right": 382,
+          "bottom": 504.0625
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 64,
+          "y": 223.375,
+          "width": 318,
+          "height": 49,
+          "right": 382,
+          "bottom": 272.375
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 64,
+          "y": 552.0625,
+          "width": 318,
+          "height": 382.390625,
+          "right": 382,
+          "bottom": 934.453125
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "stacked-records",
+        "records": 1,
+        "firstRecord": {
+          "x": 64,
+          "y": 552.0625,
+          "width": 318,
+          "height": 382.390625,
+          "right": 382,
+          "bottom": 934.453125
+        },
+        "firstIdentity": {
+          "x": 81,
+          "y": 595.0625,
+          "width": 284,
+          "height": 18,
+          "right": 365,
+          "bottom": 613.0625
+        },
+        "firstRecordColumns": 2,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 81,
+              "y": 873.453125,
+              "width": 284,
+              "height": 44,
+              "right": 365,
+              "bottom": 917.453125
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "history": {
+        "actualBack": true,
+        "sameDocument": true,
+        "selectedMenu": "Loss events",
+        "noSelectedDetail": true,
+        "backRoute": "#losses",
+        "populationBefore": [
+          "loss-s5-1"
+        ],
+        "populationAfter": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "backLayout": {
+          "kind": "losses",
+          "route": "#losses",
+          "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+          "heading": {
+            "x": 64,
+            "y": 88,
+            "width": 318,
+            "height": 135.375,
+            "right": 382,
+            "bottom": 223.375
+          },
+          "headingText": "Risk & Losses",
+          "main": {
+            "x": 64,
+            "y": 88,
+            "width": 318,
+            "height": 906.453125,
+            "right": 382,
+            "bottom": 994.453125
+          },
+          "collection": {
+            "x": 64,
+            "y": 288.375,
+            "width": 318,
+            "height": 706.078125,
+            "right": 382,
+            "bottom": 994.453125
+          },
+          "controls": {
+            "x": 64,
+            "y": 375.0625,
+            "width": 318,
+            "height": 129,
+            "right": 382,
+            "bottom": 504.0625
+          },
+          "localTabs": [
+            "Risks",
+            "RCSA",
+            "Key indicators",
+            "Loss events"
+          ],
+          "selectedTab": "Loss events",
+          "selectedTabID": "losses",
+          "menu": {
+            "x": 64,
+            "y": 223.375,
+            "width": 318,
+            "height": 49,
+            "right": 382,
+            "bottom": 272.375
+          },
+          "menuRows": 1,
+          "selectedTabVisible": true,
+          "menuMatches": true,
+          "table": {
+            "x": 64,
+            "y": 552.0625,
+            "width": 318,
+            "height": 382.390625,
+            "right": 382,
+            "bottom": 934.453125
+          },
+          "grid": null,
+          "columns": null,
+          "presentation": "stacked-records",
+          "records": 1,
+          "firstRecord": {
+            "x": 64,
+            "y": 552.0625,
+            "width": 318,
+            "height": 382.390625,
+            "right": 382,
+            "bottom": 934.453125
+          },
+          "firstIdentity": {
+            "x": 81,
+            "y": 595.0625,
+            "width": 284,
+            "height": 18,
+            "right": 365,
+            "bottom": 613.0625
+          },
+          "firstRecordColumns": 2,
+          "rowActions": [
+            {
+              "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+              "bounds": {
+                "x": 81,
+                "y": 873.453125,
+                "width": 284,
+                "height": 44,
+                "right": 365,
+                "bottom": 917.453125
+              },
+              "lines": 2
+            }
+          ],
+          "statusBadges": [],
+          "recordTitles": [
+            "Duplicate merchant settlement"
+          ],
+          "recordAccessibleNames": [
+            "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+          ],
+          "rowValues": [
+            {
+              "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+              "Organization": "BANK / RISK / OPERATIONS",
+              "Occurred": "3 Oct 2026",
+              "Gross": "₦18,400,000.00",
+              "Recovered": "₦8,000,000.00Partly recovered",
+              "Net": "₦10,400,000.00Active"
+            }
+          ],
+          "cardNumbers": [],
+          "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossFinancial impact for this pageFinancial impact1 on this pageActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+          "disclosures": [
+            {
+              "label": "Financial impact for this page",
+              "open": false
+            }
+          ],
+          "firstUsefulContentVisible": true,
+          "tableHeaders": [
+            "Loss",
+            "Organization",
+            "Occurred",
+            "Gross",
+            "Recovered",
+            "Net",
+            "Row action"
+          ],
+          "primaryCurrent": [
+            "Risk & Losses"
+          ],
+          "dialogVisible": false,
+          "documentWidth": 390,
+          "scrollWidth": 390,
+          "populatedIDs": [
+            "loss-s5-1"
+          ],
+          "pendingReads": 0,
+          "commands": []
+        },
+        "backDocumentToken": "risk-loss-0.6724273948941611",
+        "initialDocumentToken": "risk-loss-0.6724273948941611",
+        "forwardDocumentToken": "risk-loss-0.6724273948941611",
+        "forwardExactTarget": true,
+        "forwardRoute": "#losses/loss-s5-1",
+        "explicitReturn": true,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "history",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses/loss-s5-1",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/risks/risk-loss-s5",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses/loss-s5-1",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/risks/risk-loss-s5",
+            "query": {},
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.6724273948941611",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1018
+      },
+      "imageBytes": 44805,
+      "imageSHA256": "42546b8b62eb5626db07789bab78761f612886455c9869179873635a8c76b2cf"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "2573-risk-loss-losses-empty-light-1440",
+      "state": "risk-loss-losses-empty-light-1440",
+      "riskLossView": "losses",
+      "riskLossCheck": "empty",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 111,
+          "right": 1408,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 529.375,
+          "right": 1408,
+          "bottom": 621.375
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 352.375,
+          "right": 1408,
+          "bottom": 621.375
+        },
+        "controls": {
+          "x": 260,
+          "y": 337.09375,
+          "width": 1148,
+          "height": 73,
+          "right": 1408,
+          "bottom": 410.09375
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 1148,
+          "height": 49,
+          "right": 1408,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": null,
+        "columns": null,
+        "presentation": "state",
+        "records": 0,
+        "firstRecord": null,
+        "firstIdentity": null,
+        "firstRecordColumns": null,
+        "rowActions": [],
+        "statusBadges": [],
+        "recordTitles": [],
+        "recordAccessibleNames": [],
+        "rowValues": [],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters0 shownMeridian Trust Bank Nigeria · current loss registerNo losses in this scopeNo losses recorded for Meridian Trust Bank Nigeria.",
+        "disclosures": [],
+        "firstUsefulContentVisible": false,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "populatedIDs": [],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "empty",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.47549285157196086",
+        "responsePopulation": [],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [],
+            "titles": [],
+            "complete": null,
+            "nextCursor": null
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900
+      },
+      "imageBytes": 71112,
+      "imageSHA256": "d7137579d6e56e1f0ce642cc44cd46e20c756ccc2b65cc912547ebfe6f270a8a"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "2583-risk-loss-losses-denied-dark-390",
+      "state": "risk-loss-losses-denied-dark-390",
+      "riskLossView": "losses",
+      "riskLossCheck": "denied",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 135.375,
+          "right": 382,
+          "bottom": 223.375
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 502.0625,
+          "right": 382,
+          "bottom": 590.0625
+        },
+        "collection": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 301.6875,
+          "right": 382,
+          "bottom": 590.0625
+        },
+        "controls": {
+          "x": 64,
+          "y": 375.0625,
+          "width": 318,
+          "height": 129,
+          "right": 382,
+          "bottom": 504.0625
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 64,
+          "y": 223.375,
+          "width": 318,
+          "height": 49,
+          "right": 382,
+          "bottom": 272.375
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": null,
+        "grid": null,
+        "columns": null,
+        "presentation": "state",
+        "records": 0,
+        "firstRecord": null,
+        "firstIdentity": null,
+        "firstRecordColumns": null,
+        "rowActions": [],
+        "statusBadges": [],
+        "recordTitles": [],
+        "recordAccessibleNames": [],
+        "rowValues": [],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFiltersLoss register unavailable. Try again",
+        "disclosures": [],
+        "firstUsefulContentVisible": false,
+        "tableHeaders": [],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "denied",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 403
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.35203960731249306",
+        "responsePopulation": [],
+        "responses": []
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 844
+      },
+      "imageBytes": 37115,
+      "imageSHA256": "9af856f31e109099b4bd7c45036f274a8976f117fc2366d07769e05dcabe759a"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "2593-risk-loss-losses-partial-light-1440",
+      "state": "risk-loss-losses-partial-light-1440",
+      "riskLossView": "losses",
+      "riskLossCheck": "partial",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 111,
+          "right": 1408,
+          "bottom": 203
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 684.09375,
+          "right": 1408,
+          "bottom": 776.09375
+        },
+        "collection": {
+          "x": 260,
+          "y": 269,
+          "width": 1148,
+          "height": 507.09375,
+          "right": 1408,
+          "bottom": 776.09375
+        },
+        "controls": {
+          "x": 260,
+          "y": 337.09375,
+          "width": 1148,
+          "height": 73,
+          "right": 1408,
+          "bottom": 410.09375
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 260,
+          "y": 203,
+          "width": 1148,
+          "height": 49,
+          "right": 1408,
+          "bottom": 252
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 261,
+          "y": 459.09375,
+          "width": 1146,
+          "height": 200,
+          "right": 1407,
+          "bottom": 659.09375
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "table",
+        "records": 2,
+        "firstRecord": {
+          "x": 261,
+          "y": 505.59375,
+          "width": 1146,
+          "height": 77,
+          "right": 1407,
+          "bottom": 582.59375
+        },
+        "firstIdentity": {
+          "x": 273,
+          "y": 525.890625,
+          "width": 293.28125,
+          "height": 18,
+          "right": 566.28125,
+          "bottom": 543.890625
+        },
+        "firstRecordColumns": 0,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 1296.9375,
+              "y": 522.09375,
+              "width": 98.0625,
+              "height": 44,
+              "right": 1395,
+              "bottom": 566.09375
+            },
+            "lines": 2
+          },
+          {
+            "label": "Open loss for Sample foreign-currency settlement loss, LOSS-USD-02, $1,000.00 net",
+            "bounds": {
+              "x": 1296.9375,
+              "y": 599.09375,
+              "width": 98.0625,
+              "height": 44,
+              "right": 1395,
+              "bottom": 643.09375
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement",
+          "Sample foreign-currency settlement loss"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+          "Sample foreign-currency settlement loss, LOSS-USD-02, $1,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          },
+          {
+            "Loss": "Sample foreign-currency settlement lossLOSS-USD-02 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "$1,200.00",
+            "Recovered": "$200.00Partly recovered",
+            "Net": "$1,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters2 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossSample foreign-currency settlement lossLOSS-USD-02 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026$1,200.00$200.00Partly recovered$1,000.00ActiveOpen lossLoad next pageFinancial impact for this pageFinancial impact2 on this page · More pagesActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00USD1 lossShow USD lossesGross$1,200.00Net outstanding$1,000.00Recovered$200.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "populatedIDs": [
+          "loss-s5-1",
+          "sample-loss-usd"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "partial",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.7726483109645398",
+        "responsePopulation": [
+          "loss-s5-1",
+          "sample-loss-usd"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1",
+              "sample-loss-usd"
+            ],
+            "titles": [
+              "Duplicate merchant settlement",
+              "Sample foreign-currency settlement loss"
+            ],
+            "complete": null,
+            "nextCursor": "sample-risk-loss-next-page"
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900
+      },
+      "imageBytes": 89332,
+      "imageSHA256": "b18bcdb178aa7b572e6afb85dab9018d0adf09ddb67c24c3fe43c2236f837850"
+    },
+    {
+      "id": "losses",
+      "label": "Loss events",
+      "heading": "Loss ledger",
+      "baselineHeading": "Losses",
+      "fixture": "loss-s5",
+      "route": "#losses",
+      "source": "losses",
+      "sourceComparison": "SAME_SCREEN",
+      "population": "Operational loss register",
+      "firstRecord": "Duplicate merchant settlement",
+      "detailID": "loss-s5-1",
+      "name": "2603-risk-loss-losses-filters-light-390",
+      "state": "risk-loss-losses-filters-light-390",
+      "riskLossView": "losses",
+      "riskLossCheck": "filters",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "baseline": false,
+      "buildDigest": null,
+      "riskLossLayout": {
+        "kind": "losses",
+        "route": "#losses",
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 135.375,
+          "right": 382,
+          "bottom": 223.375
+        },
+        "headingText": "Risk & Losses",
+        "main": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 962.453125,
+          "right": 382,
+          "bottom": 1050.453125
+        },
+        "collection": {
+          "x": 64,
+          "y": 288.375,
+          "width": 318,
+          "height": 762.078125,
+          "right": 382,
+          "bottom": 1050.453125
+        },
+        "controls": {
+          "x": 64,
+          "y": 375.0625,
+          "width": 318,
+          "height": 129,
+          "right": 382,
+          "bottom": 504.0625
+        },
+        "localTabs": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ],
+        "selectedTab": "Loss events",
+        "selectedTabID": "losses",
+        "menu": {
+          "x": 64,
+          "y": 223.375,
+          "width": 318,
+          "height": 49,
+          "right": 382,
+          "bottom": 272.375
+        },
+        "menuRows": 1,
+        "selectedTabVisible": true,
+        "menuMatches": true,
+        "table": {
+          "x": 64,
+          "y": 552.0625,
+          "width": 318,
+          "height": 382.390625,
+          "right": 382,
+          "bottom": 934.453125
+        },
+        "grid": null,
+        "columns": null,
+        "presentation": "stacked-records",
+        "records": 1,
+        "firstRecord": {
+          "x": 64,
+          "y": 552.0625,
+          "width": 318,
+          "height": 382.390625,
+          "right": 382,
+          "bottom": 934.453125
+        },
+        "firstIdentity": {
+          "x": 81,
+          "y": 595.0625,
+          "width": 284,
+          "height": 18,
+          "right": 365,
+          "bottom": 613.0625
+        },
+        "firstRecordColumns": 2,
+        "rowActions": [
+          {
+            "label": "Open loss for Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net",
+            "bounds": {
+              "x": 81,
+              "y": 873.453125,
+              "width": 284,
+              "height": 44,
+              "right": 365,
+              "bottom": 917.453125
+            },
+            "lines": 2
+          }
+        ],
+        "statusBadges": [],
+        "recordTitles": [
+          "Duplicate merchant settlement"
+        ],
+        "recordAccessibleNames": [
+          "Duplicate merchant settlement, LOSS-2026-041, ₦10,400,000.00 net"
+        ],
+        "rowValues": [
+          {
+            "Loss": "Duplicate merchant settlementLOSS-2026-041 · Execution, delivery & process management",
+            "Organization": "BANK / RISK / OPERATIONS",
+            "Occurred": "3 Oct 2026",
+            "Gross": "₦18,400,000.00",
+            "Recovered": "₦8,000,000.00Partly recovered",
+            "Net": "₦10,400,000.00Active"
+          }
+        ],
+        "cardNumbers": [],
+        "stateText": "Loss ledgerRecorded losses and recoveries for Meridian Trust Bank Nigeria.Record lossSearch lossesStatusAll statuses⌄ All statusesActiveVoidedFilters1 shownLossOrganizationOccurredGrossRecoveredNetRow actionDuplicate merchant settlementLOSS-2026-041 · Execution, delivery & process managementBANK / RISK / OPERATIONS3 Oct 2026₦18,400,000.00₦8,000,000.00Partly recovered₦10,400,000.00ActiveOpen lossLoad next pageFinancial impact for this pageFinancial impact1 on this page · More pagesActive losses by currency · No conversionNGN1 lossShow NGN lossesGross₦18,400,000.00Net outstanding₦10,400,000.00Recovered₦8,000,000.00",
+        "disclosures": [
+          {
+            "label": "Financial impact for this page",
+            "open": false
+          }
+        ],
+        "firstUsefulContentVisible": true,
+        "tableHeaders": [
+          "Loss",
+          "Organization",
+          "Occurred",
+          "Gross",
+          "Recovered",
+          "Net",
+          "Row action"
+        ],
+        "primaryCurrent": [
+          "Risk & Losses"
+        ],
+        "dialogVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "populatedIDs": [
+          "loss-s5-1"
+        ],
+        "pendingReads": 0,
+        "commands": []
+      },
+      "filters": {
+        "nextPageDistinct": true,
+        "previousPageRestored": true,
+        "filterSentToReader": true,
+        "phoneFiltersAccessible": true,
+        "pages": {
+          "before": {
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "query": {
+              "limit": "25"
+            }
+          },
+          "next": {
+            "ids": [
+              "sample-loss-second"
+            ],
+            "titles": [
+              "Sample duplicate payment correction"
+            ],
+            "query": {
+              "cursor": "sample-risk-loss-next-page",
+              "limit": "25"
+            }
+          },
+          "previous": {
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "query": {
+              "limit": "25"
+            }
+          },
+          "filtered": {
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "query": {
+              "search": "merchant",
+              "limit": "25"
+            }
+          },
+          "restored": {
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "query": {
+              "limit": "25"
+            }
+          }
+        },
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "cursor": "sample-risk-loss-next-page",
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "search": "merchant",
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": []
+      },
+      "observation": {
+        "view": "losses",
+        "check": "filters",
+        "reads": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "cursor": "sample-risk-loss-next-page",
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "search": "merchant",
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "documentToken": "risk-loss-0.4580445269460778",
+        "responsePopulation": [
+          "loss-s5-1"
+        ],
+        "responses": [
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": "sample-risk-loss-next-page"
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "cursor": "sample-risk-loss-next-page",
+              "limit": "25"
+            },
+            "ids": [
+              "sample-loss-second"
+            ],
+            "titles": [
+              "Sample duplicate payment correction"
+            ],
+            "complete": null,
+            "nextCursor": null
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": "sample-risk-loss-next-page"
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "search": "merchant",
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": "sample-risk-loss-next-page"
+          },
+          {
+            "path": "/api/v1/losses",
+            "query": {
+              "limit": "25"
+            },
+            "ids": [
+              "loss-s5-1"
+            ],
+            "titles": [
+              "Duplicate merchant settlement"
+            ],
+            "complete": null,
+            "nextCursor": "sample-risk-loss-next-page"
+          }
+        ]
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1074
+      },
+      "imageBytes": 44557,
+      "imageSHA256": "c7323dacd7989d6061991f10f41a21d358a5b5df258231efcae4db1f64f038b1"
+    }
+  ],
+  "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION"
+}

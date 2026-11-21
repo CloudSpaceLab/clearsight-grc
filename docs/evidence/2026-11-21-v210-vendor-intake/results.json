@@ -1,0 +1,34 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "focus": true,
+      "backRetainsValue": true
+    },
+    {
+      "width": 1280,
+      "overflow": false,
+      "focus": true,
+      "backRetainsValue": true
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "focus": true,
+      "backRetainsValue": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "focus": true,
+      "backRetainsValue": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "focus": true,
+      "backRetainsValue": true
+    }
+  ]
+}

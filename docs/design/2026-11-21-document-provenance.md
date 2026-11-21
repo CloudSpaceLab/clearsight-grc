@@ -1,0 +1,5 @@
+# Document provenance
+
+The selected document shows the recorded upload, submission and assessment-document-review events separately. Each event shows its own stored timestamp and actor. The inventory contract currently supplies principal IDs, not display names; IDs are labelled as such. Missing actors or timestamps show “Not recorded”, and an invalid timestamp shows “Date unavailable”. The assessment review is displayed only when supplied by the source; its state is not a universal approval of the document.
+
+The legacy document facts tests now exercise the current runtime provenance component, including an absent review timestamp and distinct actors and timestamps. The Documents workflow test checks the same values in the selected record. Sample-data renders at 1440, 1280, 1024, 768 and 390 pixels and overflow results are retained in `docs/evidence/2026-11-21-document-provenance/`. The desktop and 390-pixel captures were inspected by Codex on 21 November 2026. They do not verify production identity resolution, authorization, dark mode, or full screen acceptance. Names require an authorized backend display-name contract; no ID-to-name inference is made.

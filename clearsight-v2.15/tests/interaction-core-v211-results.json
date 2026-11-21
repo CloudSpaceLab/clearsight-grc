@@ -1,0 +1,68 @@
+{
+  "suite": "V2.11 shared interaction safeguards",
+  "runtime": "Actual source; browser/DOM shell substituted",
+  "passed": 15,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Contextual route updates preserve source ID, target, filter and exact focus",
+      "status": "PASS"
+    },
+    {
+      "name": "Actionable correction lists escape source copy and preserve explicit routes",
+      "status": "PASS"
+    },
+    {
+      "name": "Search opens exact records beyond programs and excludes out-of-scope records",
+      "status": "PASS"
+    },
+    {
+      "name": "Global starting points never expose record-detail routes without their IDs",
+      "status": "PASS"
+    },
+    {
+      "name": "Pending modal save stays open, prevents double submission and closes after completion",
+      "status": "PASS"
+    },
+    {
+      "name": "Failed asynchronous save keeps user entries and displays the actual failure",
+      "status": "PASS"
+    },
+    {
+      "name": "A review-before-commit continuation retains its next-step label and stays open",
+      "status": "PASS"
+    },
+    {
+      "name": "Previewing a proposed change does not mark its unsaved fields as committed",
+      "status": "PASS"
+    },
+    {
+      "name": "A command opening its next dialog does not have the new dialog closed by old completion",
+      "status": "PASS"
+    },
+    {
+      "name": "Blank required values fail before invoking the mutation and retain the dialog",
+      "status": "PASS"
+    },
+    {
+      "name": "Repeated validation keeps unique focus destinations when different fields become invalid",
+      "status": "PASS"
+    },
+    {
+      "name": "Dirty-dialog dismissal preserves entries until an explicit discard",
+      "status": "PASS"
+    },
+    {
+      "name": "Keeping a dirty modal leaves source and entries unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "Back-style hash navigation preserves dirty entries and follows the target only on discard",
+      "status": "PASS"
+    },
+    {
+      "name": "Async action failures unlock the same control and do not produce an unhandled rejection",
+      "status": "PASS"
+    }
+  ]
+}

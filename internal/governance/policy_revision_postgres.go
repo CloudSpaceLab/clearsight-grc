@@ -12,7 +12,32 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+// Resolve the verified tenant once before the existing entity advisory lock.
+func preparePolicyRevisionTx(ctx context.Context, tx pgx.Tx, tenantID, policyID string) (pgtype.UUID, error) {
+	var candidate pgtype.UUID
+	if err := candidate.Scan(tenantID); err != nil {
+		candidate = pgtype.UUID{}
+	}
+	var tenant pgtype.UUID
+	if err := tx.QueryRow(ctx, `SELECT CASE WHEN count(*)=1 THEN min(id::text)::uuid END FROM tenants WHERE id=$2 OR slug=$1`, tenantID, candidate).Scan(&tenant); err != nil {
+		return pgtype.UUID{}, err
+	}
+	if !tenant.Valid || tenant.Bytes == ([16]byte{}) {
+		return pgtype.UUID{}, ErrNotFound
+	}
+	var scope string
+	if err := tx.QueryRow(ctx, `SELECT legal_entity_id::text FROM routing_policies WHERE tenant_id=$1 AND id::text=$2`, tenant, policyID).Scan(&scope); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return pgtype.UUID{}, ErrNotFound
+		}
+		return pgtype.UUID{}, err
+	}
+	_, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1::uuid::text||':'||$2,0))`, tenant, scope)
+	return tenant, err
+}
 
 func (r *PostgresRepository) CreatePolicyRevision(ctx context.Context, tenantID, policyID string, expected int64, actor string, definition []byte, checksum string, at time.Time) (RoutingPolicyRevision, error) {
 	tx, err := r.pool.Begin(ctx)
@@ -20,14 +45,8 @@ func (r *PostgresRepository) CreatePolicyRevision(ctx context.Context, tenantID,
 		return RoutingPolicyRevision{}, err
 	}
 	defer tx.Rollback(ctx)
-	var revisionScopeLock string
-	if err := tx.QueryRow(ctx, `SELECT legal_entity_id::text FROM routing_policies WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id::text=$2`, tenantID, policyID).Scan(&revisionScopeLock); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return RoutingPolicyRevision{}, ErrNotFound
-		}
-		return RoutingPolicyRevision{}, err
-	}
-	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended((SELECT id::text FROM tenants WHERE id::text=$1 OR slug=$1)||':'||$2,0))`, tenantID, revisionScopeLock); err != nil {
+	tenant, err := preparePolicyRevisionTx(ctx, tx, tenantID, policyID)
+	if err != nil {
 		return RoutingPolicyRevision{}, err
 	}
 
@@ -38,8 +57,8 @@ func (r *PostgresRepository) CreatePolicyRevision(ctx context.Context, tenantID,
 	err = tx.QueryRow(ctx, `
 		SELECT status,current_version,version,legal_entity_id::text
 		FROM routing_policies
-		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id::text=$2
-		FOR UPDATE`, tenantID, policyID).Scan(&status, &currentVersion, &policyVersion, &legalEntityID)
+		WHERE tenant_id=$1::uuid AND id::text=$2
+		FOR UPDATE`, tenant, policyID).Scan(&status, &currentVersion, &policyVersion, &legalEntityID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return RoutingPolicyRevision{}, ErrNotFound
 	}
@@ -67,7 +86,7 @@ func (r *PostgresRepository) CreatePolicyRevision(ctx context.Context, tenantID,
 	_, err = tx.Exec(ctx, `
 		UPDATE routing_policies
 		SET updated_at=$3,version=version+1
-		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id::text=$2`, tenantID, policyID, at)
+		WHERE tenant_id=$1::uuid AND id::text=$2`, tenant, policyID, at)
 	if err != nil {
 		return RoutingPolicyRevision{}, err
 	}
@@ -147,14 +166,8 @@ func (r *PostgresRepository) ActivatePolicyRevision(ctx context.Context, tenantI
 		return RoutingPolicy{}, err
 	}
 	defer tx.Rollback(ctx)
-	var revisionScopeLock string
-	if err := tx.QueryRow(ctx, `SELECT legal_entity_id::text FROM routing_policies WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id::text=$2`, tenantID, policyID).Scan(&revisionScopeLock); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return RoutingPolicy{}, ErrNotFound
-		}
-		return RoutingPolicy{}, err
-	}
-	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended((SELECT id::text FROM tenants WHERE id::text=$1 OR slug=$1)||':'||$2,0))`, tenantID, revisionScopeLock); err != nil {
+	tenant, err := preparePolicyRevisionTx(ctx, tx, tenantID, policyID)
+	if err != nil {
 		return RoutingPolicy{}, err
 	}
 
@@ -165,8 +178,8 @@ func (r *PostgresRepository) ActivatePolicyRevision(ctx context.Context, tenantI
 	err = tx.QueryRow(ctx, `
 		SELECT status,current_version,version,legal_entity_id::text
 		FROM routing_policies
-		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND id::text=$2
-		FOR UPDATE`, tenantID, policyID).Scan(&status, &currentVersion, &policyVersion, &legalEntityID)
+		WHERE tenant_id=$1::uuid AND id::text=$2
+		FOR UPDATE`, tenant, policyID).Scan(&status, &currentVersion, &policyVersion, &legalEntityID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return RoutingPolicy{}, ErrNotFound
 	}
@@ -209,14 +222,22 @@ func (r *PostgresRepository) ActivatePolicyRevision(ctx context.Context, tenantI
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
-	findings, err := policyConflicts(ctx, tx, RoutingPolicy{ID: policyID, TenantID: tenantID, LegalEntityID: legalEntityID, Definition: authorityDefinition})
+	tenantValue, err := tenant.Value()
+	if err != nil {
+		return RoutingPolicy{}, err
+	}
+	pinnedTenant, ok := tenantValue.(string)
+	if !ok {
+		return RoutingPolicy{}, ErrNotFound
+	}
+	findings, err := policyConflictsScoped(ctx, tx, RoutingPolicy{ID: policyID, TenantID: pinnedTenant, LegalEntityID: legalEntityID, Definition: authorityDefinition}, true)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
 	if len(findings) > 0 {
 		return RoutingPolicy{}, fmt.Errorf("%w: %s", ErrConflict, findings[0].Summary)
 	}
-	findings, err = escalationReferenceConflicts(ctx, tx, tenantID, legalEntityID, revisionDefinition)
+	findings, err = escalationReferenceConflictsScoped(ctx, tx, pinnedTenant, legalEntityID, revisionDefinition, true)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
@@ -241,28 +262,32 @@ func (r *PostgresRepository) ActivatePolicyRevision(ctx context.Context, tenantI
 	_, err = tx.Exec(ctx, `
 		UPDATE routing_policies
 		SET current_version=$3,checker_id=$4::uuid,approved_at=$5,updated_at=$5,version=version+1
-		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND legal_entity_id=$6::uuid AND id::text=$2`, tenantID, policyID, revisionVersion, actor, at, legalEntityID)
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$6::uuid AND id::text=$2`, tenant, policyID, revisionVersion, actor, at, legalEntityID)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
 	_, err = tx.Exec(ctx, `
 		INSERT INTO governance_decisions(tenant_id,object_type,object_id,from_state,to_state,actor_id,rationale,decided_at)
-		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'ROUTING_POLICY',$2::uuid,'ACTIVE','ACTIVE',$3::uuid,$4,$5)`, tenantID, policyID, actor, rationale, at)
+		VALUES($1::uuid,'ROUTING_POLICY',$2::uuid,'ACTIVE','ACTIVE',$3::uuid,$4,$5)`, tenant, policyID, actor, rationale, at)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
 	_, err = tx.Exec(ctx, `
 		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
-		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'ROUTING_POLICY',$2::uuid,'RoutingPolicyRevisionActivated',
+		VALUES($1::uuid,'ROUTING_POLICY',$2::uuid,'RoutingPolicyRevisionActivated',
 		       jsonb_build_object('from_version',$3::int,'to_version',$4::int,'actor_id',$5::text,'rationale',$6::text,'legal_entity_id',$8::text),$7,$7)`,
-		tenantID, policyID, currentVersion, revisionVersion, actor, rationale, at, legalEntityID)
+		tenant, policyID, currentVersion, revisionVersion, actor, rationale, at, legalEntityID)
+	if err != nil {
+		return RoutingPolicy{}, err
+	}
+	result, err := scanPolicy(tx.QueryRow(ctx, policySelect+` WHERE rp.tenant_id=$1::uuid AND rp.legal_entity_id=$2::uuid AND rp.id::text=$3`, tenant, legalEntityID, policyID))
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return RoutingPolicy{}, err
 	}
-	return r.GetPolicyForEntity(ctx, tenantID, legalEntityID, policyID)
+	return result, nil
 }
 
 func (r *PostgresRepository) EscalationReferenceConflicts(ctx context.Context, tenantID, legalEntityID string, definition []byte) ([]ConflictFinding, error) {
@@ -270,6 +295,14 @@ func (r *PostgresRepository) EscalationReferenceConflicts(ctx context.Context, t
 }
 
 func escalationReferenceConflicts(ctx context.Context, querier policyConflictQuerier, tenantID, legalEntityID string, definition []byte) ([]ConflictFinding, error) {
+	return escalationReferenceConflictsScoped(ctx, querier, tenantID, legalEntityID, definition, false)
+}
+
+func escalationReferenceConflictsScoped(ctx context.Context, querier policyConflictQuerier, tenantID, legalEntityID string, definition []byte, pinned bool) ([]ConflictFinding, error) {
+	tenantExpression := `(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`
+	if pinned {
+		tenantExpression = `$1::uuid`
+	}
 	sequences, err := ParseEscalationSequences(json.RawMessage(definition))
 	if err != nil {
 		return nil, err
@@ -316,7 +349,7 @@ func escalationReferenceConflicts(ctx context.Context, querier policyConflictQue
 		if err := querier.QueryRow(ctx, `
 			SELECT count(*)
 			FROM role_templates
-			WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+			WHERE tenant_id=`+tenantExpression+`
 			  AND code=$2
 			  AND valid_from<=clock_timestamp() AND (valid_until IS NULL OR clock_timestamp()<valid_until)`, tenantID, role).Scan(&count); err != nil {
 			return nil, err
@@ -331,7 +364,7 @@ func escalationReferenceConflicts(ctx context.Context, querier policyConflictQue
 			SELECT count(*)
 			FROM directory_groups dg
 			JOIN scim_sources ss ON ss.tenant_id=dg.tenant_id AND ss.id=dg.source_id AND ss.status='ACTIVE'
-			WHERE dg.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+			WHERE dg.tenant_id=`+tenantExpression+`
 			  AND dg.id::text=$2 AND dg.deleted_at IS NULL`, tenantID, groupID).Scan(&count); err != nil {
 			return nil, err
 		}
@@ -344,7 +377,7 @@ func escalationReferenceConflicts(ctx context.Context, querier policyConflictQue
 		if err := querier.QueryRow(ctx, `
 			SELECT count(*)
 			FROM org_positions op
-			WHERE op.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+			WHERE op.tenant_id=`+tenantExpression+`
 			  AND op.legal_entity_id=$2::uuid AND op.id::text=$3
 			  AND op.valid_from<=clock_timestamp() AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)`,
 			tenantID, legalEntityID, positionID).Scan(&count); err != nil {

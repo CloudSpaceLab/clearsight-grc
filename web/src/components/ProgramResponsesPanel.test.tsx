@@ -32,12 +32,30 @@ beforeEach(() => {
 });
 
 describe("Program submitted data panel", () => {
+  it("shows the person who submitted each response without inventing missing names", async () => {
+    api.loadCompletedResponses.mockResolvedValue({ items: [{ ...response, submitted_by: "person-1", submitted_by_display_name: "Ada Okafor", submission_recipient: { type: "EXTERNAL_AUDIENCE", label: "Chidi at Acme" } }, earlier] });
+    render(<ProgramResponsesPanel programID="program-1"/>);
+    expect(await screen.findByText("Ada Okafor")).toBeTruthy();
+    expect(screen.getByText("Chidi at Acme")).toBeTruthy();
+    expect(screen.getByText("Submitter not recorded")).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Submitted by" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Recipient" })).toBeTruthy();
+  }, 15000);
+  it("loads historical response revisions within the same Program scope on request", async () => {
+    api.loadCompletedResponses.mockResolvedValueOnce({ items: [response] }).mockResolvedValue({ items: [response, earlier] });
+    render(<ProgramResponsesPanel programID="program-1"/>);
+    await screen.findByText(response.title);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Include historical responses" }));
+    expect(await screen.findByText(earlier.title)).toBeTruthy();
+    expect(api.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({ subject_type: "PROGRAM", subject_id: "program-1", current_only: false }));
+    expect(screen.getByText(/Revision 1 · Historical/)).toBeTruthy();
+  });
   it("hides optional columns without changing the response query", async () => {
     render(<ProgramResponsesPanel programID="program-1"/>);
     await screen.findByText(response.title);
     fireEvent.click(screen.getByText("Columns"));
     fireEvent.click(screen.getByRole("checkbox", { name: "Submitted" }));
-    expect(screen.queryByRole("columnheader", { name: /Submitted/ })).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: "Submitted" })).toBeNull();
     expect(screen.getByRole("columnheader", { name: "Form" })).toBeTruthy();
     expect(screen.getByRole("button", { name: `Review ${response.title} response` })).toBeTruthy();
     expect(api.loadCompletedResponses).toHaveBeenCalledTimes(1);

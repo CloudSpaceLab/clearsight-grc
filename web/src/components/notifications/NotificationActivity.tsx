@@ -57,7 +57,7 @@ export function NotificationActivity({ canRead, legalEntityID, legalEntityName, 
     {!canRead ? <RestrictedActivity/> : !hasEntity ? <EmptyState
       population="Activity history"
       title="Choose a legal entity"
-      description="Select one legal entity to view its recorded activity. Group activity is not available in this view."
+      description="Select a legal entity. Group activity is unavailable."
     /> : <ActivityHistory
       // A new scope or period must hide the former history immediately, before
       // passive effect cleanup can invalidate its outstanding responses.
@@ -172,14 +172,14 @@ function ActivityHistory({ legalEntityID, legalEntityName, period, load, onRetry
     <aside className="notification-activity__aside" aria-label="Activity context">
       <span className="notification-activity__eyebrow">Activity records</span>
       <h3>Recorded actions</h3>
-      <p>Each event shows its actor, record and recorded outcome. A successful action does not establish that the related work is complete.</p>
+      <p>A successful action does not establish that the related work is complete.</p>
       <dl className="notification-activity__proof">
         <div><dt>Selected scope</dt><dd>{legalEntityName}</dd></div>
         <div><dt>Period</dt><dd>Last {period} days</dd></div>
         <div><dt>History through</dt><dd>{formatTimestamp(query.to)}</dd></div>
         <div><dt>Last checked</dt><dd>{history.asOf ? formatTimestamp(history.asOf) : "Not yet available"}</dd></div>
       </dl>
-      <p className="notification-activity__hint">Record versions are not recorded in this history. Check the related record for its current version and available actions.</p>
+      <p className="notification-activity__hint">Activity events omit record versions. Open the related record for its current version and actions.</p>
     </aside>
   </div>;
 }
@@ -203,7 +203,7 @@ function ActivityRecord({ event }: { event: SystemActivityEvent }) {
 }
 
 function RestrictedActivity() {
-  return <EmptyState population="Activity history" title="Activity access is restricted" description="Your permissions do not allow this activity history. Your personal notifications remain available in the Inbox."/>;
+  return <EmptyState population="Activity history" title="Activity access is restricted" description="Request activity access from your administrator."/>;
 }
 
 class ScopeMismatch extends Error {}

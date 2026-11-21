@@ -12,6 +12,7 @@ func (s *MemoryDistributionStore) ListDocuments(ctx context.Context, q DocumentQ
 	if err != nil {
 		return DocumentPage{}, err
 	}
+	q.asOf = time.Now().UTC()
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.repo == nil {
@@ -167,5 +168,5 @@ func documentFieldKey(work, assessment, field string) string {
 	return work + "\x00" + assessment + "\x00" + field
 }
 func documentMatches(v DocumentOccurrence, q DocumentQuery, c documentCursor) bool {
-	return (!q.CurrentOnly || v.Current) && (q.FileKind == "" || v.FileKind == q.FileKind) && (q.Query == "" || strings.Contains(strings.ToLower(v.FileName), strings.ToLower(q.Query))) && (q.FormTemplateID == "" || v.FormTemplateID == q.FormTemplateID) && (q.RelationshipID == "" || v.RelationshipID == q.RelationshipID) && (q.ResponseRevisionID == "" || v.ResponseRevisionID == q.ResponseRevisionID) && (q.SubmissionID == "" || v.SubmissionID == q.SubmissionID) && (q.FieldID == "" || v.FieldID == q.FieldID) && (q.ArtifactID == "" || v.ArtifactID == q.ArtifactID) && (c.ID == "" || v.SubmittedAt.Before(c.SubmittedAt) || v.SubmittedAt.Equal(c.SubmittedAt) && v.ID < c.ID)
+	return documentViewMatches(v, q.View, q.asOf) && (!q.CurrentOnly || v.Current) && (q.FileKind == "" || v.FileKind == q.FileKind) && (q.Query == "" || strings.Contains(strings.ToLower(v.FileName), strings.ToLower(q.Query))) && (q.FormTemplateID == "" || v.FormTemplateID == q.FormTemplateID) && (q.RelationshipID == "" || v.RelationshipID == q.RelationshipID) && (q.ResponseRevisionID == "" || v.ResponseRevisionID == q.ResponseRevisionID) && (q.SubmissionID == "" || v.SubmissionID == q.SubmissionID) && (q.FieldID == "" || v.FieldID == q.FieldID) && (q.ArtifactID == "" || v.ArtifactID == q.ArtifactID) && (c.ID == "" || v.SubmittedAt.Before(c.SubmittedAt) || v.SubmittedAt.Equal(c.SubmittedAt) && v.ID < c.ID)
 }

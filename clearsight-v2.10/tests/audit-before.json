@@ -1,0 +1,43 @@
+{
+  "missing_program_fallback": {
+    "heading": "Bank assurance \u00b7 2026",
+    "resolved_program": "PRG-104"
+  },
+  "unknown_target_fallback": "Meridian Bank",
+  "missing_expiry_quality": "Needs refresh",
+  "new_action_disappears": {
+    "created": "Review branch settlement exception",
+    "scope": null,
+    "visible": false
+  },
+  "actions_drilldown_projection_ids": [
+    {
+      "id": "ACT-mwfan45keer9",
+      "source": null,
+      "existsInTaskStore": true
+    },
+    {
+      "id": "ACT-01",
+      "source": null,
+      "existsInTaskStore": true
+    },
+    {
+      "id": "ACT-02",
+      "source": null,
+      "existsInTaskStore": true
+    },
+    {
+      "id": "ACT-03",
+      "source": null,
+      "existsInTaskStore": true
+    }
+  ],
+  "bank_scope_source_choices": [
+    "RSK-01",
+    "RSK-02",
+    "RSK-03",
+    "RSK-04",
+    "RSK-05",
+    "RSK-06"
+  ]
+}

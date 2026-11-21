@@ -46,6 +46,8 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 	t.Cleanup(func() { cleanupGovernanceRevisionFixture(context.Background(), pool, tenantID) })
 
 	mustExecGovernanceRevision(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,'EIA5 policy revision')`, tenantID, tenantSlug)
+	// Policy revision and maker-checker decisions do not require the unfinished epoch protocol.
+	mustExecGovernanceRevision(t, ctx, pool, `DELETE FROM tenant_authority_epochs WHERE tenant_id=$1::uuid`, tenantID)
 	mustExecGovernanceRevision(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'EIA5-NG','EIA5 Nigeria','NG')`, entityID, tenantID)
 	mustExecGovernanceRevision(t, ctx, pool, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
 		($1::uuid,$4::uuid,'PERSON','Guard maker','ACTIVE',$5),

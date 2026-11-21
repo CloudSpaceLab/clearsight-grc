@@ -90,7 +90,7 @@ func (s *Service) ValidateActiveSourcesForEntity(ctx context.Context, tenant, le
 	if tenant == "" || legalEntity == "" || legalEntity == "*" {
 		return ErrSourceScopeRequired
 	}
-	if s.legalEntities != nil {
+	if s.legalEntities != nil && !hasCatalogProofTransaction(ctx) {
 		resolved, err := s.legalEntities.ResolveLegalEntity(ctx, tenant, legalEntity)
 		if err != nil {
 			return err

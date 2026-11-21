@@ -548,20 +548,17 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		}
 		decisionType := stringValue(payload["type"])
 		target := continuity.DecisionStatus(strings.ToUpper(stringValue(payload["status"])))
-		if err := continuity.ValidateDecisionLifecycle(aggregate.Decisions, decisionType, target); err != nil {
-			return policy, err
-		}
-		lifecycle, err := continuity.DecisionLifecyclePolicy(target)
+		requirement, err := continuity.DecisionAuthorityRequirement(*aggregate, decisionType, target)
 		if err != nil {
 			return policy, err
 		}
 		policy.ActorField = "authority_principal_id"
-		policy.Responsibility = authority.Responsibility(lifecycle.Responsibility)
-		policy.Materiality = max(lifecycle.Materiality, matterPriority)
-		if current := currentMatterDecision(*aggregate, decisionType); current != nil {
+		policy.Responsibility = authority.Responsibility(requirement.Responsibility)
+		policy.Materiality = requirement.Materiality
+		if requirement.ObjectType == "DECISION" {
 			policy.ObjectType = "DECISION"
 			policy.ObjectIDPath = "decision_id"
-			payload["decision_id"] = current.ID
+			payload["decision_id"] = requirement.ObjectID
 		}
 		return policy, nil
 
@@ -1067,17 +1064,6 @@ func (a *API) validateMatterAssignmentCandidateForRoute(ctx context.Context, ten
 	}
 	if !resolution.AllowsPrincipal(candidateID) {
 		return fmt.Errorf("%w: selected person is not eligible for this responsibility", continuity.ErrInvalidState)
-	}
-	return nil
-}
-
-func currentMatterDecision(aggregate continuity.MatterAggregate, decisionType string) *continuity.Decision {
-	decisionType = strings.ToUpper(strings.TrimSpace(decisionType))
-	for index := len(aggregate.Decisions) - 1; index >= 0; index-- {
-		if strings.ToUpper(strings.TrimSpace(aggregate.Decisions[index].Type)) == decisionType {
-			value := aggregate.Decisions[index]
-			return &value
-		}
 	}
 	return nil
 }

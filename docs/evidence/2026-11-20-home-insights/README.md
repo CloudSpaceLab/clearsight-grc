@@ -1,0 +1,5 @@
+# Home insight evidence
+
+The reference is `clearsight-v2.9/index.html`, SHA-256 `f103c5b06cab7b43bf150cb864db89c592eaad114e60f0d24af20f0bcb79c60d`; the user-supplied annotated screenshot supplements that reference. The runtime screenshots use the isolated `home-shell-insights` synthetic fixture and are not evidence of a bank's data or backend authorization. The working tree is based on `910598ff1bbd2ccb2758af0b257d95fceeefb8f4` and contains additional uncommitted changes.
+
+Overview is captured at 1440, 1280, 1024, 768 and 390px in light and dark themes; Attention is also captured at 1440 and 390px in both themes. The browser script checks the labelled 50% fractions and document overflow. Component tests cover missing and incomplete denominators, colour and text for recorded severities, date-range propagation and unavailable states. Codex AI inspected desktop light and phone dark renders; this is not production acceptance or a screen-reader audit. RCSA, program satisfaction and outdated-document population measures are not present in these fixtures or claimed as implemented.

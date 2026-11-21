@@ -82,3 +82,13 @@ func TestVendorApplicationReceiptLabelKeepsRecordedActor(t *testing.T) {
 		t.Fatalf("scope: %v", resolver.calls)
 	}
 }
+
+func TestResponseAssessmentSubmitterLabelUsesRecordedIdentity(t *testing.T) {
+	resolver := &assessmentLabelResolver{resolution: access.Resolution{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "submitter", DisplayName: "Ada Okafor"}}
+	api := &API{deps: Dependencies{Access: resolver}}
+	actor := identity.Actor{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "reviewer"}
+	result := api.responseAssessmentWithLabels(t.Context(), actor, "entity", evidence.ResponseAssessment{SubmittedBy: "submitter"})
+	if result.SubmittedByDisplayName != "Ada Okafor" || result.SubmittedBy != "submitter" {
+		t.Fatalf("incorrect submitter: %+v", result)
+	}
+}

@@ -1,0 +1,5 @@
+# Approved source artifacts are hash-pinned to their original archive bytes.
+docs/design/references/clearsight-2026-10/source/** -text
+
+# The synthetic catalog source is verified against a pinned byte digest.
+internal/frameworkcatalog/testdata/synthetic_source.txt -text

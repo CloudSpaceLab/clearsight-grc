@@ -111,6 +111,14 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(ctx context.
 	if err := validateMemoryDistributionWorkspaceLocked(distributions, command.Session, state.workspace, command.Now); err != nil {
 		return WorkspaceSubmissionResult{}, err
 	}
+	metadata.SubmittedRecipientID = command.Session.RecipientID
+	recipient, err := distributions.submittedRecipient(distributions.distributions[command.Session.DistributionID], metadata, command.Session.RequestID)
+	if err != nil {
+		return WorkspaceSubmissionResult{}, ErrWorkspaceUnavailable
+	}
+	metadata.SubmittedRecipientPrincipalID = recipient.PrincipalID
+	metadata.SubmittedRecipientType = recipient.Type
+	metadata.SubmittedRecipientLabel = recipient.ContactLabel
 	eligibleRequests := memoryDistributionTORequestIDsLocked(distributions, command.Session.DistributionID)
 	repo := distributions.repo
 	repo.mu.Lock()

@@ -1,0 +1,133 @@
+{
+  "runtime": "Actual V2.12 modules and exported recipient script with substituted DOM shells; no browser or hosted-auth claim",
+  "results": [
+    {
+      "name": "Recipient export contains only selected human questions and explicit public context",
+      "status": "PASS"
+    },
+    {
+      "name": "Reference file selection requires export authority before a request is prepared",
+      "status": "PASS"
+    },
+    {
+      "name": "Only explicitly selected reference bytes are exported and their exact source is checked",
+      "status": "PASS"
+    },
+    {
+      "name": "Reference export permission is rechecked after the final asynchronous byte read",
+      "status": "PASS"
+    },
+    {
+      "name": "Changed reference handling metadata during final byte read prevents recipient export",
+      "status": "PASS"
+    },
+    {
+      "name": "Exported HTML runs independently and saves/resumes a portable draft before creating a response",
+      "status": "PASS"
+    },
+    {
+      "name": "Recipient file attachments survive portable draft resume and the submit control becomes usable",
+      "status": "PASS"
+    },
+    {
+      "name": "Altered response checksum or request manifest is rejected before source mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "Unknown internal fields, injected authority and changed named recipient cannot be imported",
+      "status": "PASS"
+    },
+    {
+      "name": "Expired requests use wall-clock expiry and reject otherwise valid responses",
+      "status": "PASS"
+    },
+    {
+      "name": "Revocation and reissue invalidate the old package while preserving request lineage",
+      "status": "PASS"
+    },
+    {
+      "name": "Changed program basis, published definition and internal human draft require a fresh request",
+      "status": "PASS"
+    },
+    {
+      "name": "Bank technical observations remain bank-owned when human answers are received",
+      "status": "PASS"
+    },
+    {
+      "name": "An optional blank mixed grid clears only human cells and retains bank-owned observations",
+      "status": "PASS"
+    },
+    {
+      "name": "A hidden mixed grid clears only requested human cells and preserves the protected source",
+      "status": "PASS"
+    },
+    {
+      "name": "Receiving records the supplier declaration and actual coordinator without acceptance",
+      "status": "PASS"
+    },
+    {
+      "name": "A realistic 1 MB document roundtrip retains its exact bytes and avoids regex-stack failure",
+      "status": "PASS"
+    },
+    {
+      "name": "Corrupt file bytes, MIME mismatch, active-content names and malformed base64 are rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "Coordinator identity and exact scope are required to inspect and receive a response",
+      "status": "PASS"
+    },
+    {
+      "name": "Unrelated branch contributors cannot read external requests through all-location lists or direct routes",
+      "status": "PASS"
+    },
+    {
+      "name": "An explicit scoped view denial blocks even the named program owner and coordinator",
+      "status": "PASS"
+    },
+    {
+      "name": "A verified named coordinator retains read access without unrelated location-wide grants",
+      "status": "PASS"
+    },
+    {
+      "name": "Report-only board access does not grant external request or recipient visibility",
+      "status": "PASS"
+    },
+    {
+      "name": "Source drift during file persistence rolls back stored bytes without accepting a response",
+      "status": "PASS"
+    },
+    {
+      "name": "Document permission revocation during persistence prevents metadata and answer commit",
+      "status": "PASS"
+    },
+    {
+      "name": "Duplicate receipt attempts cannot create duplicate documents or source responses",
+      "status": "PASS"
+    },
+    {
+      "name": "Bank edits to imported answers need an explicit source adjustment reason before submission",
+      "status": "PASS"
+    },
+    {
+      "name": "Review return and reissued response preserve the original receipt, answers and review lineage",
+      "status": "PASS"
+    },
+    {
+      "name": "Canonical external responses create pending contextual Document reviews rather than accepted evidence",
+      "status": "PASS"
+    },
+    {
+      "name": "Document request preparation requires the assigned coordinator’s exact file authority",
+      "status": "PASS"
+    },
+    {
+      "name": "Multi-location targets cannot export unusable required Document questions",
+      "status": "PASS"
+    },
+    {
+      "name": "Recipient strings are escaped and every internal external-management control is registered",
+      "status": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,411 @@
+{
+  "scenario": {
+    "name": "270-privacy-register-layout-light-390",
+    "state": "privacy-register-layout-light-390",
+    "privacyView": "register",
+    "privacyCheck": "layout",
+    "route": "#ropa",
+    "theme": "light",
+    "density": "comfortable",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "touch": true,
+    "fixture": "privacy-v2-current",
+    "privacyMatrix": true
+  },
+  "layout": {
+    "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+    "kind": "register",
+    "route": "#ropa",
+    "heading": {
+      "x": 64,
+      "y": 88,
+      "width": 318,
+      "height": 136.9375,
+      "right": 382,
+      "bottom": 224.9375
+    },
+    "headingText": "Privacy & data",
+    "headingCount": 1,
+    "localTabs": [
+      "Overview",
+      "ROPA"
+    ],
+    "selectedTab": "ROPA",
+    "menu": {
+      "x": 64,
+      "y": 224.9375,
+      "width": 318,
+      "height": 48,
+      "right": 382,
+      "bottom": 272.9375
+    },
+    "selectedBounds": {
+      "x": 143.84375,
+      "y": 224.9375,
+      "width": 44,
+      "height": 47,
+      "right": 187.84375,
+      "bottom": 271.9375
+    },
+    "selectedVisible": true,
+    "selectedPanelID": "react-aria4676671517-_r_e_-tabpanel-register",
+    "visiblePanelIDs": [
+      "react-aria4676671517-_r_e_-tabpanel-register"
+    ],
+    "primaryCurrent": [
+      "Privacy"
+    ],
+    "controls": {
+      "x": 64,
+      "y": 373.515625,
+      "width": 318,
+      "height": 155,
+      "right": 382,
+      "bottom": 528.515625
+    },
+    "table": {
+      "x": 64,
+      "y": 542.515625,
+      "width": 318,
+      "height": 2163.5,
+      "right": 382,
+      "bottom": 2706.015625
+    },
+    "tablePresentation": "block",
+    "headers": [
+      "Processing activity",
+      "Data subjects",
+      "Lawful basis",
+      "Next review",
+      "Owner",
+      "Status",
+      "Row action"
+    ],
+    "recordNames": [
+      "Customer account opening",
+      "Loan application assessment",
+      "Customer service channel monitoring",
+      "Payments and treasury operations",
+      "Security monitoring and control review",
+      "Azure user access management",
+      "Azure device compliance management"
+    ],
+    "recordValues": [
+      {
+        "Processing activity": "Customer account openingPA-CUSTOMER-ACCOUNT-OPENING",
+        "Data subjects": "Customers; Prospective customers",
+        "Lawful basis": "Contract",
+        "Next review": "22 Jan 2027",
+        "Owner": "Assigned",
+        "Status": "In progress"
+      },
+      {
+        "Processing activity": "Loan application assessmentPA-LOAN-APPLICATION",
+        "Data subjects": "Customers; prospective customers",
+        "Lawful basis": "Not recorded",
+        "Next review": "23 Dec 2026",
+        "Owner": "Assigned",
+        "Status": "In progress"
+      },
+      {
+        "Processing activity": "Customer service channel monitoringPA-CUSTOMER-SERVICE-CHANNEL",
+        "Data subjects": "Customers",
+        "Lawful basis": "Legitimate interests",
+        "Next review": "17 Sept 2026",
+        "Owner": "Assigned",
+        "Status": "In progress"
+      },
+      {
+        "Processing activity": "Payments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONS",
+        "Data subjects": "Customers; Cardholders; Service providers",
+        "Lawful basis": "Contract",
+        "Next review": "31 Mar 2026",
+        "Owner": "Assigned",
+        "Status": "In progress"
+      },
+      {
+        "Processing activity": "Security monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEW",
+        "Data subjects": "Staff; Contractors; Customers",
+        "Lawful basis": "Legitimate interests",
+        "Next review": "23 Nov 2026",
+        "Owner": "Assigned",
+        "Status": "In progress"
+      },
+      {
+        "Processing activity": "Azure user access managementPA-AZURE-USER-ACCESS-MANAGEMENT",
+        "Data subjects": "Staff; Guests; Prospective customers",
+        "Lawful basis": "Not recorded",
+        "Next review": "31 Jan 2026",
+        "Owner": "Assigned",
+        "Status": "In progress"
+      },
+      {
+        "Processing activity": "Azure device compliance managementPA-AZURE-DEVICE-COMPLIANCE",
+        "Data subjects": "Staff; Guests; Service providers",
+        "Lawful basis": "Legitimate interests",
+        "Next review": "31 Jan 2026",
+        "Owner": "Assigned",
+        "Status": "In progress"
+      }
+    ],
+    "firstRow": {
+      "x": 64,
+      "y": 542.515625,
+      "width": 318,
+      "height": 306.5,
+      "right": 382,
+      "bottom": 849.015625
+    },
+    "firstRowCells": [
+      {
+        "label": "Processing activity",
+        "bounds": {
+          "x": 81,
+          "y": 559.515625,
+          "width": 284,
+          "height": 64.5,
+          "right": 365,
+          "bottom": 624.015625
+        },
+        "fullWidth": true,
+        "labelContent": "Processing activity",
+        "columns": 1,
+        "valuesContained": true
+      },
+      {
+        "label": "Data subjects",
+        "bounds": {
+          "x": 81,
+          "y": 632.015625,
+          "width": 284,
+          "height": 36,
+          "right": 365,
+          "bottom": 668.015625
+        },
+        "fullWidth": false,
+        "labelContent": "Data subjects",
+        "columns": 2,
+        "valuesContained": true
+      },
+      {
+        "label": "Lawful basis",
+        "bounds": {
+          "x": 81,
+          "y": 676.015625,
+          "width": 284,
+          "height": 18,
+          "right": 365,
+          "bottom": 694.015625
+        },
+        "fullWidth": false,
+        "labelContent": "Lawful basis",
+        "columns": 2,
+        "valuesContained": true
+      },
+      {
+        "label": "Next review",
+        "bounds": {
+          "x": 81,
+          "y": 702.015625,
+          "width": 284,
+          "height": 18,
+          "right": 365,
+          "bottom": 720.015625
+        },
+        "fullWidth": false,
+        "labelContent": "Next review",
+        "columns": 2,
+        "valuesContained": true
+      },
+      {
+        "label": "Owner",
+        "bounds": {
+          "x": 81,
+          "y": 728.015625,
+          "width": 284,
+          "height": 18,
+          "right": 365,
+          "bottom": 746.015625
+        },
+        "fullWidth": false,
+        "labelContent": "Owner",
+        "columns": 2,
+        "valuesContained": true
+      },
+      {
+        "label": "Status",
+        "bounds": {
+          "x": 81,
+          "y": 754.015625,
+          "width": 284,
+          "height": 26,
+          "right": 365,
+          "bottom": 780.015625
+        },
+        "fullWidth": false,
+        "labelContent": "Status",
+        "columns": 2,
+        "valuesContained": true
+      }
+    ],
+    "firstIdentity": {
+      "x": 81,
+      "y": 585.515625,
+      "width": 284,
+      "height": 18,
+      "right": 365,
+      "bottom": 603.515625
+    },
+    "expectedFirstName": "Customer account opening",
+    "firstUseful": {
+      "x": 81,
+      "y": 585.515625,
+      "width": 284,
+      "height": 18,
+      "right": 365,
+      "bottom": 603.515625
+    },
+    "firstUsefulVisible": true,
+    "metrics": [],
+    "metricColumns": null,
+    "primary": null,
+    "aside": null,
+    "placement": null,
+    "primaryHeadings": [],
+    "coverageText": "",
+    "text": "Processing activitiesMeridian Trust Bank Nigeria · Lawful basis, data subjects and review datesSearch processing activitiesActivity statusAll activity statuses⌄ All activity statusesNot startedIn progressComplete7 shownProcessing activityData subjectsLawful basisNext reviewOwnerStatusRow actionCustomer account openingPA-CUSTOMER-ACCOUNT-OPENINGCustomers; Prospective customersContract22 Jan 2027AssignedIn progressView detailsLoan application assessmentPA-LOAN-APPLICATIONCustomers; prospective customersNot recorded23 Dec 2026AssignedIn progressView detailsCustomer service channel monitoringPA-CUSTOMER-SERVICE-CHANNELCustomersLegitimate interests17 Sept 2026AssignedIn progressView detailsPayments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONSCustomers; Cardholders; Service providersContract31 Mar 2026AssignedIn progressView detailsSecurity monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEWStaff; Contractors; CustomersLegitimate interests23 Nov 2026AssignedIn progressView detailsAzure user access managementPA-AZURE-USER-ACCESS-MANAGEMENTStaff; Guests; Prospective customersNot recorded31 Jan 2026AssignedIn progressView detailsAzure device compliance managementPA-AZURE-DEVICE-COMPLIANCEStaff; Guests; Service providersLegitimate interests31 Jan 2026AssignedIn progressView details",
+    "minTargetWidth": 34,
+    "minTargetHeight": 44,
+    "undersizedTargets": [
+      {
+        "label": "View details for Customer account opening, PA-CUSTOMER-ACCOUNT-OPENING, In progress",
+        "bounds": {
+          "x": 81,
+          "y": 788.015625,
+          "width": 34,
+          "height": 44,
+          "right": 115,
+          "bottom": 832.015625
+        }
+      },
+      {
+        "label": "View details for Loan application assessment, PA-LOAN-APPLICATION, In progress",
+        "bounds": {
+          "x": 81,
+          "y": 1106.515625,
+          "width": 34,
+          "height": 44,
+          "right": 115,
+          "bottom": 1150.515625
+        }
+      },
+      {
+        "label": "View details for Customer service channel monitoring, PA-CUSTOMER-SERVICE-CHANNEL, In progress",
+        "bounds": {
+          "x": 81,
+          "y": 1407.015625,
+          "width": 34,
+          "height": 44,
+          "right": 115,
+          "bottom": 1451.015625
+        }
+      },
+      {
+        "label": "View details for Payments and treasury operations, PA-PAYMENTS-TREASURY-OPERATIONS, In progress",
+        "bounds": {
+          "x": 81,
+          "y": 1725.515625,
+          "width": 34,
+          "height": 44,
+          "right": 115,
+          "bottom": 1769.515625
+        }
+      },
+      {
+        "label": "View details for Security monitoring and control review, PA-SECURITY-MONITORING-CONTROL-REVIEW, In progress",
+        "bounds": {
+          "x": 81,
+          "y": 2026.015625,
+          "width": 34,
+          "height": 44,
+          "right": 115,
+          "bottom": 2070.015625
+        }
+      },
+      {
+        "label": "View details for Azure user access management, PA-AZURE-USER-ACCESS-MANAGEMENT, In progress",
+        "bounds": {
+          "x": 81,
+          "y": 2344.515625,
+          "width": 34,
+          "height": 44,
+          "right": 115,
+          "bottom": 2388.515625
+        }
+      },
+      {
+        "label": "View details for Azure device compliance management, PA-AZURE-DEVICE-COMPLIANCE, In progress",
+        "bounds": {
+          "x": 81,
+          "y": 2645.015625,
+          "width": 34,
+          "height": 44,
+          "right": 115,
+          "bottom": 2689.015625
+        }
+      }
+    ],
+    "documentWidth": 390,
+    "scrollWidth": 390
+  },
+  "observation": {
+    "reads": [
+      {
+        "path": "/api/v1/ropa/processing-activities",
+        "query": "?tenant_id=bank-demo",
+        "status": 200,
+        "records": [
+          {
+            "id": "ropa-activity-customer-account-opening",
+            "name": "Customer account opening",
+            "status": "OPEN"
+          },
+          {
+            "id": "ropa-activity-loan-application",
+            "name": "Loan application assessment",
+            "status": "OPEN"
+          },
+          {
+            "id": "ropa-activity-customer-service-channel",
+            "name": "Customer service channel monitoring",
+            "status": "OPEN"
+          },
+          {
+            "id": "ropa-activity-payments-treasury-operations",
+            "name": "Payments and treasury operations",
+            "status": "OPEN"
+          },
+          {
+            "id": "ropa-activity-security-monitoring-control-review",
+            "name": "Security monitoring and control review",
+            "status": "OPEN"
+          },
+          {
+            "id": "ropa-activity-azure-user-access-management",
+            "name": "Azure user access management",
+            "status": "OPEN"
+          },
+          {
+            "id": "ropa-activity-azure-device-compliance",
+            "name": "Azure device compliance management",
+            "status": "OPEN"
+          }
+        ]
+      }
+    ],
+    "commands": []
+  }
+}

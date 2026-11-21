@@ -1,5 +1,5 @@
 import type { HomeMetricMember, HomeMetricMemberPage } from "../../metricApi";
-import { Button, DataTable, EmptyState, Notice, type DataColumn } from "../ui";
+import { Button, DataTable, EmptyState, Notice, StatusBadge, type DataColumn } from "../ui";
 
 type Props = {
   label: string;
@@ -39,8 +39,12 @@ export function MetricMemberDrill({
     {
       id: "state",
       header: "Snapshot state",
-      render: (item) => humanize(item.state),
-      accessibleText: (item) => humanize(item.state),
+      render: (item) => item.state === "BREACHED" && page?.metric_id === "risks_outside_appetite"
+        ? <StatusBadge tone="error">Outside appetite</StatusBadge>
+        : item.state === "CRITICAL" || item.state === "HIGH"
+        ? <StatusBadge tone={item.state === "CRITICAL" ? "error" : "warning"}>{humanize(item.state)}</StatusBadge>
+        : humanize(item.state),
+      accessibleText: (item) => item.state === "BREACHED" && page?.metric_id === "risks_outside_appetite" ? "Outside appetite" : humanize(item.state),
     },
   ];
 

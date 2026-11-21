@@ -13,6 +13,7 @@ import (
 )
 
 func (a *API) createDocumentFormProposal(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.formProposalService(w)
 	if !ok {
 		return
@@ -43,6 +44,10 @@ func (a *API) createAIFormProposal(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	if input.SourceDocumentID != "" {
+		documentSourceActionUnavailable(w)
+		return
+	}
 	value, err := service.RequestAI(r.Context(), input)
 	if err != nil {
 		writeFormProposalError(w, err)
@@ -66,6 +71,10 @@ func (a *API) createAIFormRevisionProposal(w http.ResponseWriter, r *http.Reques
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	if input.SourceDocumentID != "" {
+		documentSourceActionUnavailable(w)
+		return
+	}
 	value, err := service.RequestAIRevision(r.Context(), r.PathValue("id"), version, input)
 	if err != nil {
 		writeFormProposalError(w, err)
@@ -75,6 +84,7 @@ func (a *API) createAIFormRevisionProposal(w http.ResponseWriter, r *http.Reques
 }
 
 func (a *API) getFormProposal(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.formProposalService(w)
 	if !ok {
 		return
@@ -84,7 +94,41 @@ func (a *API) getFormProposal(w http.ResponseWriter, r *http.Request) {
 		writeFormProposalError(w, err)
 		return
 	}
+	if !a.authorizeFormProposalSource(w, r, value) {
+		return
+	}
 	httpx.WriteJSON(w, http.StatusOK, value)
+}
+
+func (a *API) authorizeFormProposalSource(w http.ResponseWriter, r *http.Request, value monitoring.FormTemplateProposal) bool {
+	if value.SourceDocumentID == "" && value.SourceKind != monitoring.FormProposalSourceDocument {
+		return true
+	}
+	documentSourceActionUnavailable(w)
+	return false
+}
+
+func documentSourceActionUnavailable(w http.ResponseWriter) {
+	documentProtection(w)
+	httpx.WriteError(w, http.StatusServiceUnavailable, "document_action_unavailable", "Document actions are unavailable. Try again later.")
+}
+
+func (a *API) requireFormProposalSourceRead(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		service, ok := a.formProposalService(w)
+		if !ok {
+			return
+		}
+		value, err := service.Get(r.Context(), r.PathValue("id"))
+		if err != nil {
+			writeFormProposalError(w, err)
+			return
+		}
+		if !a.authorizeFormProposalSource(w, r, value) {
+			return
+		}
+		next(w, r)
+	}
 }
 
 func (a *API) acceptFormProposal(w http.ResponseWriter, r *http.Request) {

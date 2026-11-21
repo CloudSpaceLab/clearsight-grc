@@ -44,6 +44,7 @@ type MemoryRepository struct {
 	definitions map[string]ReportDefinition
 	revisions   map[string][]ReportDefinitionRevision
 	runs        map[string]ReportRun
+	receipts    map[string]memoryRunReceipt
 	rows        map[string][]ReportRow
 	downloads   []ReportDownload
 	now         func() time.Time
@@ -64,6 +65,7 @@ func NewMemoryRepository() *MemoryRepository {
 		definitions: make(map[string]ReportDefinition),
 		revisions:   make(map[string][]ReportDefinitionRevision),
 		runs:        make(map[string]ReportRun),
+		receipts:    make(map[string]memoryRunReceipt),
 		rows:        make(map[string][]ReportRow),
 		now:         time.Now,
 	}
@@ -285,6 +287,15 @@ func (r *MemoryRepository) TransitionDefinition(ctx context.Context, scope Repor
 }
 
 func (r *MemoryRepository) CreateRun(ctx context.Context, scope ReportScope, run ReportRun) (ReportRun, error) {
+	if r == nil {
+		return ReportRun{}, ErrInvalid
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.createRunLocked(ctx, scope, run)
+}
+
+func (r *MemoryRepository) createRunLocked(ctx context.Context, scope ReportScope, run ReportRun) (ReportRun, error) {
 	if r == nil || ctx == nil {
 		return ReportRun{}, ErrInvalid
 	}
@@ -309,8 +320,6 @@ func (r *MemoryRepository) CreateRun(ctx context.Context, scope ReportScope, run
 		return ReportRun{}, ErrInvalid
 	}
 
-	r.mu.Lock()
-	defer r.mu.Unlock()
 	if _, exists := r.runs[run.ID]; exists {
 		return ReportRun{}, ErrConflict
 	}

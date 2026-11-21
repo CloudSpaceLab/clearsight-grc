@@ -1,6 +1,9 @@
 package httpapi
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 // productionRoutes is the single executable route catalog. Feature modules may
 // own their route specs, but runtime registration and the OpenAPI parity test
@@ -41,6 +44,12 @@ func (a *API) registerProductionRoutes(mux *http.ServeMux) {
 			} else {
 				handler = a.command(spec.Command.Name, spec.Command.Policy, handler)
 			}
+		}
+		if documentImportNeedsAuthorityGate(spec.Method, spec.Path) {
+			handler = a.requireDocumentImportRead(handler)
+		}
+		if strings.HasPrefix(spec.Path, "/api/v1/forms/proposals/{id}") {
+			handler = a.requireFormProposalSourceRead(handler)
 		}
 		handler = a.routeAccess(spec, handler)
 		mux.HandleFunc(spec.Method+" "+spec.Path, handler)

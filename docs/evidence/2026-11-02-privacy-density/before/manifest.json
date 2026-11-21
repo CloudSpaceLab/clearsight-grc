@@ -1,0 +1,4134 @@
+{
+  "generatedAt": "2026-11-02T22:22:30.294Z",
+  "baseURL": "http://127.0.0.1:4178",
+  "captures": [
+    {
+      "name": "270-privacy-register-layout-light-1440",
+      "state": "privacy-register-layout-light-1440",
+      "privacyView": "register",
+      "privacyCheck": "layout",
+      "route": "#ropa",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "fixture": "privacy-v2-current",
+      "privacyMatrix": true,
+      "buildDigest": "13f023b37a751154a45fd3a68549df1b81bf39dfac5f84bfe74ba7e9b9ef3c22",
+      "evidenceInputDigest": "6c01a935ba2cb010c3db25e34de8d3c935973f4580f3866b3c25561e14f4e60e",
+      "privacyLayout": {
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "kind": "register",
+        "route": "#ropa",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 125,
+          "right": 1408,
+          "bottom": 217
+        },
+        "headingText": "Privacy & data",
+        "headingCount": 1,
+        "localTabs": [
+          "Overview",
+          "ROPA"
+        ],
+        "selectedTab": "ROPA",
+        "menu": {
+          "x": 260,
+          "y": 217,
+          "width": 1148,
+          "height": 48,
+          "right": 1408,
+          "bottom": 265
+        },
+        "selectedBounds": {
+          "x": 339.84375,
+          "y": 217,
+          "width": 44,
+          "height": 47,
+          "right": 383.84375,
+          "bottom": 264
+        },
+        "selectedVisible": true,
+        "selectedPanelID": "react-aria4663489016-_r_e_-tabpanel-register",
+        "visiblePanelIDs": [
+          "react-aria4663489016-_r_e_-tabpanel-register"
+        ],
+        "primaryCurrent": [
+          "Privacy"
+        ],
+        "controls": {
+          "x": 260,
+          "y": 350.984375,
+          "width": 1148,
+          "height": 73,
+          "right": 1408,
+          "bottom": 423.984375
+        },
+        "table": {
+          "x": 261,
+          "y": 442.984375,
+          "width": 1146,
+          "height": 573,
+          "right": 1407,
+          "bottom": 1015.984375
+        },
+        "tablePresentation": "table",
+        "headers": [
+          "Processing activity",
+          "Data subjects",
+          "Lawful basis",
+          "Next review",
+          "Owner",
+          "Status",
+          "Row action"
+        ],
+        "recordNames": [
+          "Customer account opening",
+          "Loan application assessment",
+          "Customer service channel monitoring",
+          "Payments and treasury operations",
+          "Security monitoring and control review",
+          "Azure user access management",
+          "Azure device compliance management"
+        ],
+        "recordValues": [
+          {
+            "Processing activity": "Customer account openingPA-CUSTOMER-ACCOUNT-OPENING",
+            "Data subjects": "Customers; Prospective customers",
+            "Lawful basis": "Contract",
+            "Next review": "22 Jan 2027",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Loan application assessmentPA-LOAN-APPLICATION",
+            "Data subjects": "Customers; prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "23 Dec 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Customer service channel monitoringPA-CUSTOMER-SERVICE-CHANNEL",
+            "Data subjects": "Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "17 Sept 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Payments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONS",
+            "Data subjects": "Customers; Cardholders; Service providers",
+            "Lawful basis": "Contract",
+            "Next review": "31 Mar 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Security monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEW",
+            "Data subjects": "Staff; Contractors; Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "23 Nov 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure user access managementPA-AZURE-USER-ACCESS-MANAGEMENT",
+            "Data subjects": "Staff; Guests; Prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure device compliance managementPA-AZURE-DEVICE-COMPLIANCE",
+            "Data subjects": "Staff; Guests; Service providers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          }
+        ],
+        "firstRow": {
+          "x": 261,
+          "y": 491.484375,
+          "width": 1146,
+          "height": 75,
+          "right": 1407,
+          "bottom": 566.484375
+        },
+        "firstRowCells": [
+          {
+            "label": "Processing activity",
+            "bounds": {
+              "x": 261,
+              "y": 491.484375,
+              "width": 276.71875,
+              "height": 75,
+              "right": 537.71875,
+              "bottom": 566.484375
+            },
+            "fullWidth": true,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Data subjects",
+            "bounds": {
+              "x": 537.71875,
+              "y": 491.484375,
+              "width": 266.28125,
+              "height": 75,
+              "right": 804,
+              "bottom": 566.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Lawful basis",
+            "bounds": {
+              "x": 804,
+              "y": 491.484375,
+              "width": 140.09375,
+              "height": 75,
+              "right": 944.09375,
+              "bottom": 566.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Next review",
+            "bounds": {
+              "x": 944.09375,
+              "y": 491.484375,
+              "width": 103.375,
+              "height": 75,
+              "right": 1047.46875,
+              "bottom": 566.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Owner",
+            "bounds": {
+              "x": 1047.46875,
+              "y": 491.484375,
+              "width": 80.890625,
+              "height": 75,
+              "right": 1128.359375,
+              "bottom": 566.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Status",
+            "bounds": {
+              "x": 1128.359375,
+              "y": 491.484375,
+              "width": 137.375,
+              "height": 75,
+              "right": 1265.734375,
+              "bottom": 566.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          }
+        ],
+        "firstIdentity": {
+          "x": 275,
+          "y": 509.734375,
+          "width": 248.71875,
+          "height": 18,
+          "right": 523.71875,
+          "bottom": 527.734375
+        },
+        "expectedFirstName": "Customer account opening",
+        "firstUseful": {
+          "x": 275,
+          "y": 509.734375,
+          "width": 248.71875,
+          "height": 18,
+          "right": 523.71875,
+          "bottom": 527.734375
+        },
+        "firstUsefulVisible": true,
+        "metrics": [],
+        "metricColumns": null,
+        "primary": null,
+        "aside": null,
+        "placement": null,
+        "primaryHeadings": [],
+        "coverageText": "",
+        "text": "Processing activitiesMeridian Trust Bank Nigeria · Lawful basis, data subjects and review datesSearch processing activitiesActivity statusAll activity statuses⌄ All activity statusesNot startedIn progressComplete7 shownProcessing activityData subjectsLawful basisNext reviewOwnerStatusRow actionCustomer account openingPA-CUSTOMER-ACCOUNT-OPENINGCustomers; Prospective customersContract22 Jan 2027AssignedIn progressView detailsLoan application assessmentPA-LOAN-APPLICATIONCustomers; prospective customersNot recorded23 Dec 2026AssignedIn progressView detailsCustomer service channel monitoringPA-CUSTOMER-SERVICE-CHANNELCustomersLegitimate interests17 Sept 2026AssignedIn progressView detailsPayments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONSCustomers; Cardholders; Service providersContract31 Mar 2026AssignedIn progressView detailsSecurity monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEWStaff; Contractors; CustomersLegitimate interests23 Nov 2026AssignedIn progressView detailsAzure user access managementPA-AZURE-USER-ACCESS-MANAGEMENTStaff; Guests; Prospective customersNot recorded31 Jan 2026AssignedIn progressView detailsAzure device compliance managementPA-AZURE-DEVICE-COMPLIANCEStaff; Guests; Service providersLegitimate interests31 Jan 2026AssignedIn progressView details",
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "documentWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "observation": {
+        "reads": [
+          {
+            "path": "/api/v1/ropa/processing-activities",
+            "query": "?tenant_id=bank-demo",
+            "status": 200,
+            "records": [
+              {
+                "id": "ropa-activity-customer-account-opening",
+                "name": "Customer account opening",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-loan-application",
+                "name": "Loan application assessment",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-customer-service-channel",
+                "name": "Customer service channel monitoring",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-payments-treasury-operations",
+                "name": "Payments and treasury operations",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-security-monitoring-control-review",
+                "name": "Security monitoring and control review",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-user-access-management",
+                "name": "Azure user access management",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-device-compliance",
+                "name": "Azure device compliance management",
+                "status": "OPEN"
+              }
+            ]
+          }
+        ],
+        "commands": []
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "errors": [],
+      "imageBytes": 103038,
+      "imageSHA256": "8174014df8c15b3fc2fcf32dd9862ab5228d2e56df532c05788b37f111ff57a6"
+    },
+    {
+      "name": "270-privacy-register-layout-light-1280",
+      "state": "privacy-register-layout-light-1280",
+      "privacyView": "register",
+      "privacyCheck": "layout",
+      "route": "#ropa",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "touch": false,
+      "fixture": "privacy-v2-current",
+      "privacyMatrix": true,
+      "buildDigest": "13f023b37a751154a45fd3a68549df1b81bf39dfac5f84bfe74ba7e9b9ef3c22",
+      "evidenceInputDigest": "6c01a935ba2cb010c3db25e34de8d3c935973f4580f3866b3c25561e14f4e60e",
+      "privacyLayout": {
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "kind": "register",
+        "route": "#ropa",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 988,
+          "height": 125,
+          "right": 1248,
+          "bottom": 217
+        },
+        "headingText": "Privacy & data",
+        "headingCount": 1,
+        "localTabs": [
+          "Overview",
+          "ROPA"
+        ],
+        "selectedTab": "ROPA",
+        "menu": {
+          "x": 260,
+          "y": 217,
+          "width": 988,
+          "height": 48,
+          "right": 1248,
+          "bottom": 265
+        },
+        "selectedBounds": {
+          "x": 339.84375,
+          "y": 217,
+          "width": 44,
+          "height": 47,
+          "right": 383.84375,
+          "bottom": 264
+        },
+        "selectedVisible": true,
+        "selectedPanelID": "react-aria5009008391-_r_e_-tabpanel-register",
+        "visiblePanelIDs": [
+          "react-aria5009008391-_r_e_-tabpanel-register"
+        ],
+        "primaryCurrent": [
+          "Privacy"
+        ],
+        "controls": {
+          "x": 260,
+          "y": 350.984375,
+          "width": 988,
+          "height": 73,
+          "right": 1248,
+          "bottom": 423.984375
+        },
+        "table": {
+          "x": 261,
+          "y": 442.984375,
+          "width": 986,
+          "height": 645,
+          "right": 1247,
+          "bottom": 1087.984375
+        },
+        "tablePresentation": "table",
+        "headers": [
+          "Processing activity",
+          "Data subjects",
+          "Lawful basis",
+          "Next review",
+          "Owner",
+          "Status",
+          "Row action"
+        ],
+        "recordNames": [
+          "Customer account opening",
+          "Loan application assessment",
+          "Customer service channel monitoring",
+          "Payments and treasury operations",
+          "Security monitoring and control review",
+          "Azure user access management",
+          "Azure device compliance management"
+        ],
+        "recordValues": [
+          {
+            "Processing activity": "Customer account openingPA-CUSTOMER-ACCOUNT-OPENING",
+            "Data subjects": "Customers; Prospective customers",
+            "Lawful basis": "Contract",
+            "Next review": "22 Jan 2027",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Loan application assessmentPA-LOAN-APPLICATION",
+            "Data subjects": "Customers; prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "23 Dec 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Customer service channel monitoringPA-CUSTOMER-SERVICE-CHANNEL",
+            "Data subjects": "Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "17 Sept 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Payments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONS",
+            "Data subjects": "Customers; Cardholders; Service providers",
+            "Lawful basis": "Contract",
+            "Next review": "31 Mar 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Security monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEW",
+            "Data subjects": "Staff; Contractors; Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "23 Nov 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure user access managementPA-AZURE-USER-ACCESS-MANAGEMENT",
+            "Data subjects": "Staff; Guests; Prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure device compliance managementPA-AZURE-DEVICE-COMPLIANCE",
+            "Data subjects": "Staff; Guests; Service providers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          }
+        ],
+        "firstRow": {
+          "x": 261,
+          "y": 509.484375,
+          "width": 986,
+          "height": 75,
+          "right": 1247,
+          "bottom": 584.484375
+        },
+        "firstRowCells": [
+          {
+            "label": "Processing activity",
+            "bounds": {
+              "x": 261,
+              "y": 509.484375,
+              "width": 233.265625,
+              "height": 75,
+              "right": 494.265625,
+              "bottom": 584.484375
+            },
+            "fullWidth": true,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Data subjects",
+            "bounds": {
+              "x": 494.265625,
+              "y": 509.484375,
+              "width": 204.96875,
+              "height": 75,
+              "right": 699.234375,
+              "bottom": 584.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Lawful basis",
+            "bounds": {
+              "x": 699.234375,
+              "y": 509.484375,
+              "width": 117.6875,
+              "height": 75,
+              "right": 816.921875,
+              "bottom": 584.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Next review",
+            "bounds": {
+              "x": 816.921875,
+              "y": 509.484375,
+              "width": 87.84375,
+              "height": 75,
+              "right": 904.765625,
+              "bottom": 584.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Owner",
+            "bounds": {
+              "x": 904.765625,
+              "y": 509.484375,
+              "width": 76.03125,
+              "height": 75,
+              "right": 980.796875,
+              "bottom": 584.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Status",
+            "bounds": {
+              "x": 980.796875,
+              "y": 509.484375,
+              "width": 124.9375,
+              "height": 75,
+              "right": 1105.734375,
+              "bottom": 584.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          }
+        ],
+        "firstIdentity": {
+          "x": 275,
+          "y": 527.734375,
+          "width": 205.265625,
+          "height": 18,
+          "right": 480.265625,
+          "bottom": 545.734375
+        },
+        "expectedFirstName": "Customer account opening",
+        "firstUseful": {
+          "x": 275,
+          "y": 527.734375,
+          "width": 205.265625,
+          "height": 18,
+          "right": 480.265625,
+          "bottom": 545.734375
+        },
+        "firstUsefulVisible": true,
+        "metrics": [],
+        "metricColumns": null,
+        "primary": null,
+        "aside": null,
+        "placement": null,
+        "primaryHeadings": [],
+        "coverageText": "",
+        "text": "Processing activitiesMeridian Trust Bank Nigeria · Lawful basis, data subjects and review datesSearch processing activitiesActivity statusAll activity statuses⌄ All activity statusesNot startedIn progressComplete7 shownProcessing activityData subjectsLawful basisNext reviewOwnerStatusRow actionCustomer account openingPA-CUSTOMER-ACCOUNT-OPENINGCustomers; Prospective customersContract22 Jan 2027AssignedIn progressView detailsLoan application assessmentPA-LOAN-APPLICATIONCustomers; prospective customersNot recorded23 Dec 2026AssignedIn progressView detailsCustomer service channel monitoringPA-CUSTOMER-SERVICE-CHANNELCustomersLegitimate interests17 Sept 2026AssignedIn progressView detailsPayments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONSCustomers; Cardholders; Service providersContract31 Mar 2026AssignedIn progressView detailsSecurity monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEWStaff; Contractors; CustomersLegitimate interests23 Nov 2026AssignedIn progressView detailsAzure user access managementPA-AZURE-USER-ACCESS-MANAGEMENTStaff; Guests; Prospective customersNot recorded31 Jan 2026AssignedIn progressView detailsAzure device compliance managementPA-AZURE-DEVICE-COMPLIANCEStaff; Guests; Service providersLegitimate interests31 Jan 2026AssignedIn progressView details",
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "documentWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "observation": {
+        "reads": [
+          {
+            "path": "/api/v1/ropa/processing-activities",
+            "query": "?tenant_id=bank-demo",
+            "status": 200,
+            "records": [
+              {
+                "id": "ropa-activity-customer-account-opening",
+                "name": "Customer account opening",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-loan-application",
+                "name": "Loan application assessment",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-customer-service-channel",
+                "name": "Customer service channel monitoring",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-payments-treasury-operations",
+                "name": "Payments and treasury operations",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-security-monitoring-control-review",
+                "name": "Security monitoring and control review",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-user-access-management",
+                "name": "Azure user access management",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-device-compliance",
+                "name": "Azure device compliance management",
+                "status": "OPEN"
+              }
+            ]
+          }
+        ],
+        "commands": []
+      },
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "errors": [],
+      "imageBytes": 93171,
+      "imageSHA256": "80b9d02755310d69f948403e8f996d26bf29795f1411f32dde52ae31c5ca9b86"
+    },
+    {
+      "name": "270-privacy-register-layout-light-1024",
+      "state": "privacy-register-layout-light-1024",
+      "privacyView": "register",
+      "privacyCheck": "layout",
+      "route": "#ropa",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "touch": true,
+      "fixture": "privacy-v2-current",
+      "privacyMatrix": true,
+      "buildDigest": "13f023b37a751154a45fd3a68549df1b81bf39dfac5f84bfe74ba7e9b9ef3c22",
+      "evidenceInputDigest": "6c01a935ba2cb010c3db25e34de8d3c935973f4580f3866b3c25561e14f4e60e",
+      "privacyLayout": {
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "kind": "register",
+        "route": "#ropa",
+        "heading": {
+          "x": 112.953125,
+          "y": 124,
+          "width": 870.09375,
+          "height": 125,
+          "right": 983.046875,
+          "bottom": 249
+        },
+        "headingText": "Privacy & data",
+        "headingCount": 1,
+        "localTabs": [
+          "Overview",
+          "ROPA"
+        ],
+        "selectedTab": "ROPA",
+        "menu": {
+          "x": 112.953125,
+          "y": 249,
+          "width": 870.09375,
+          "height": 48,
+          "right": 983.046875,
+          "bottom": 297
+        },
+        "selectedBounds": {
+          "x": 192.796875,
+          "y": 249,
+          "width": 44,
+          "height": 47,
+          "right": 236.796875,
+          "bottom": 296
+        },
+        "selectedVisible": true,
+        "selectedPanelID": "react-aria7445294688-_r_e_-tabpanel-register",
+        "visiblePanelIDs": [
+          "react-aria7445294688-_r_e_-tabpanel-register"
+        ],
+        "primaryCurrent": [
+          "Privacy"
+        ],
+        "controls": {
+          "x": 112.953125,
+          "y": 382.984375,
+          "width": 870.09375,
+          "height": 73,
+          "right": 983.046875,
+          "bottom": 455.984375
+        },
+        "table": {
+          "x": 113.953125,
+          "y": 474.984375,
+          "width": 868.09375,
+          "height": 714,
+          "right": 982.046875,
+          "bottom": 1188.984375
+        },
+        "tablePresentation": "table",
+        "headers": [
+          "Processing activity",
+          "Data subjects",
+          "Lawful basis",
+          "Next review",
+          "Owner",
+          "Status",
+          "Row action"
+        ],
+        "recordNames": [
+          "Customer account opening",
+          "Loan application assessment",
+          "Customer service channel monitoring",
+          "Payments and treasury operations",
+          "Security monitoring and control review",
+          "Azure user access management",
+          "Azure device compliance management"
+        ],
+        "recordValues": [
+          {
+            "Processing activity": "Customer account openingPA-CUSTOMER-ACCOUNT-OPENING",
+            "Data subjects": "Customers; Prospective customers",
+            "Lawful basis": "Contract",
+            "Next review": "22 Jan 2027",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Loan application assessmentPA-LOAN-APPLICATION",
+            "Data subjects": "Customers; prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "23 Dec 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Customer service channel monitoringPA-CUSTOMER-SERVICE-CHANNEL",
+            "Data subjects": "Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "17 Sept 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Payments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONS",
+            "Data subjects": "Customers; Cardholders; Service providers",
+            "Lawful basis": "Contract",
+            "Next review": "31 Mar 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Security monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEW",
+            "Data subjects": "Staff; Contractors; Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "23 Nov 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure user access managementPA-AZURE-USER-ACCESS-MANAGEMENT",
+            "Data subjects": "Staff; Guests; Prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure device compliance managementPA-AZURE-DEVICE-COMPLIANCE",
+            "Data subjects": "Staff; Guests; Service providers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          }
+        ],
+        "firstRow": {
+          "x": 113.953125,
+          "y": 541.484375,
+          "width": 868.09375,
+          "height": 86,
+          "right": 982.046875,
+          "bottom": 627.484375
+        },
+        "firstRowCells": [
+          {
+            "label": "Processing activity",
+            "bounds": {
+              "x": 113.953125,
+              "y": 541.484375,
+              "width": 201.515625,
+              "height": 86,
+              "right": 315.46875,
+              "bottom": 627.484375
+            },
+            "fullWidth": true,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Data subjects",
+            "bounds": {
+              "x": 315.46875,
+              "y": 541.484375,
+              "width": 151.328125,
+              "height": 86,
+              "right": 466.796875,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Lawful basis",
+            "bounds": {
+              "x": 466.796875,
+              "y": 541.484375,
+              "width": 101.140625,
+              "height": 86,
+              "right": 567.9375,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Next review",
+            "bounds": {
+              "x": 567.9375,
+              "y": 541.484375,
+              "width": 76.828125,
+              "height": 86,
+              "right": 644.765625,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Owner",
+            "bounds": {
+              "x": 644.765625,
+              "y": 541.484375,
+              "width": 76.03125,
+              "height": 86,
+              "right": 720.796875,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Status",
+            "bounds": {
+              "x": 720.796875,
+              "y": 541.484375,
+              "width": 119.984375,
+              "height": 86,
+              "right": 840.78125,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          }
+        ],
+        "firstIdentity": {
+          "x": 127.953125,
+          "y": 556.984375,
+          "width": 173.515625,
+          "height": 18,
+          "right": 301.46875,
+          "bottom": 574.984375
+        },
+        "expectedFirstName": "Customer account opening",
+        "firstUseful": {
+          "x": 127.953125,
+          "y": 556.984375,
+          "width": 173.515625,
+          "height": 18,
+          "right": 301.46875,
+          "bottom": 574.984375
+        },
+        "firstUsefulVisible": true,
+        "metrics": [],
+        "metricColumns": null,
+        "primary": null,
+        "aside": null,
+        "placement": null,
+        "primaryHeadings": [],
+        "coverageText": "",
+        "text": "Processing activitiesMeridian Trust Bank Nigeria · Lawful basis, data subjects and review datesSearch processing activitiesActivity statusAll activity statuses⌄ All activity statusesNot startedIn progressComplete7 shownProcessing activityData subjectsLawful basisNext reviewOwnerStatusRow actionCustomer account openingPA-CUSTOMER-ACCOUNT-OPENINGCustomers; Prospective customersContract22 Jan 2027AssignedIn progressView detailsLoan application assessmentPA-LOAN-APPLICATIONCustomers; prospective customersNot recorded23 Dec 2026AssignedIn progressView detailsCustomer service channel monitoringPA-CUSTOMER-SERVICE-CHANNELCustomersLegitimate interests17 Sept 2026AssignedIn progressView detailsPayments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONSCustomers; Cardholders; Service providersContract31 Mar 2026AssignedIn progressView detailsSecurity monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEWStaff; Contractors; CustomersLegitimate interests23 Nov 2026AssignedIn progressView detailsAzure user access managementPA-AZURE-USER-ACCESS-MANAGEMENTStaff; Guests; Prospective customersNot recorded31 Jan 2026AssignedIn progressView detailsAzure device compliance managementPA-AZURE-DEVICE-COMPLIANCEStaff; Guests; Service providersLegitimate interests31 Jan 2026AssignedIn progressView details",
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "documentWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "observation": {
+        "reads": [
+          {
+            "path": "/api/v1/ropa/processing-activities",
+            "query": "?tenant_id=bank-demo",
+            "status": 200,
+            "records": [
+              {
+                "id": "ropa-activity-customer-account-opening",
+                "name": "Customer account opening",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-loan-application",
+                "name": "Loan application assessment",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-customer-service-channel",
+                "name": "Customer service channel monitoring",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-payments-treasury-operations",
+                "name": "Payments and treasury operations",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-security-monitoring-control-review",
+                "name": "Security monitoring and control review",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-user-access-management",
+                "name": "Azure user access management",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-device-compliance",
+                "name": "Azure device compliance management",
+                "status": "OPEN"
+              }
+            ]
+          }
+        ],
+        "commands": []
+      },
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "errors": [],
+      "imageBytes": 71143,
+      "imageSHA256": "d70672f9bd87f2a764ac081de70d04a0c8d7c04eb38b84d873b55841d3284ec5"
+    },
+    {
+      "name": "270-privacy-register-layout-light-768",
+      "state": "privacy-register-layout-light-768",
+      "privacyView": "register",
+      "privacyCheck": "layout",
+      "route": "#ropa",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "touch": true,
+      "fixture": "privacy-v2-current",
+      "privacyMatrix": true,
+      "buildDigest": "13f023b37a751154a45fd3a68549df1b81bf39dfac5f84bfe74ba7e9b9ef3c22",
+      "evidenceInputDigest": "6c01a935ba2cb010c3db25e34de8d3c935973f4580f3866b3c25561e14f4e60e",
+      "privacyLayout": {
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "kind": "register",
+        "route": "#ropa",
+        "heading": {
+          "x": 80,
+          "y": 88,
+          "width": 680,
+          "height": 125,
+          "right": 760,
+          "bottom": 213
+        },
+        "headingText": "Privacy & data",
+        "headingCount": 1,
+        "localTabs": [
+          "Overview",
+          "ROPA"
+        ],
+        "selectedTab": "ROPA",
+        "menu": {
+          "x": 80,
+          "y": 213,
+          "width": 680,
+          "height": 48,
+          "right": 760,
+          "bottom": 261
+        },
+        "selectedBounds": {
+          "x": 159.84375,
+          "y": 213,
+          "width": 44,
+          "height": 47,
+          "right": 203.84375,
+          "bottom": 260
+        },
+        "selectedVisible": true,
+        "selectedPanelID": "react-aria4013982794-_r_e_-tabpanel-register",
+        "visiblePanelIDs": [
+          "react-aria4013982794-_r_e_-tabpanel-register"
+        ],
+        "primaryCurrent": [
+          "Privacy"
+        ],
+        "controls": {
+          "x": 80,
+          "y": 346.984375,
+          "width": 680,
+          "height": 103,
+          "right": 760,
+          "bottom": 449.984375
+        },
+        "table": {
+          "x": 80,
+          "y": 467.984375,
+          "width": 680,
+          "height": 2091.5,
+          "right": 760,
+          "bottom": 2559.484375
+        },
+        "tablePresentation": "block",
+        "headers": [
+          "Processing activity",
+          "Data subjects",
+          "Lawful basis",
+          "Next review",
+          "Owner",
+          "Status",
+          "Row action"
+        ],
+        "recordNames": [
+          "Customer account opening",
+          "Loan application assessment",
+          "Customer service channel monitoring",
+          "Payments and treasury operations",
+          "Security monitoring and control review",
+          "Azure user access management",
+          "Azure device compliance management"
+        ],
+        "recordValues": [
+          {
+            "Processing activity": "Customer account openingPA-CUSTOMER-ACCOUNT-OPENING",
+            "Data subjects": "Customers; Prospective customers",
+            "Lawful basis": "Contract",
+            "Next review": "22 Jan 2027",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Loan application assessmentPA-LOAN-APPLICATION",
+            "Data subjects": "Customers; prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "23 Dec 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Customer service channel monitoringPA-CUSTOMER-SERVICE-CHANNEL",
+            "Data subjects": "Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "17 Sept 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Payments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONS",
+            "Data subjects": "Customers; Cardholders; Service providers",
+            "Lawful basis": "Contract",
+            "Next review": "31 Mar 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Security monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEW",
+            "Data subjects": "Staff; Contractors; Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "23 Nov 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure user access managementPA-AZURE-USER-ACCESS-MANAGEMENT",
+            "Data subjects": "Staff; Guests; Prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure device compliance managementPA-AZURE-DEVICE-COMPLIANCE",
+            "Data subjects": "Staff; Guests; Service providers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          }
+        ],
+        "firstRow": {
+          "x": 80,
+          "y": 467.984375,
+          "width": 680,
+          "height": 288.5,
+          "right": 760,
+          "bottom": 756.484375
+        },
+        "firstRowCells": [
+          {
+            "label": "Processing activity",
+            "bounds": {
+              "x": 97,
+              "y": 484.984375,
+              "width": 646,
+              "height": 64.5,
+              "right": 743,
+              "bottom": 549.484375
+            },
+            "fullWidth": true,
+            "labelContent": "Processing activity",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Data subjects",
+            "bounds": {
+              "x": 97,
+              "y": 557.484375,
+              "width": 646,
+              "height": 18,
+              "right": 743,
+              "bottom": 575.484375
+            },
+            "fullWidth": false,
+            "labelContent": "Data subjects",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Lawful basis",
+            "bounds": {
+              "x": 97,
+              "y": 583.484375,
+              "width": 646,
+              "height": 18,
+              "right": 743,
+              "bottom": 601.484375
+            },
+            "fullWidth": false,
+            "labelContent": "Lawful basis",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Next review",
+            "bounds": {
+              "x": 97,
+              "y": 609.484375,
+              "width": 646,
+              "height": 18,
+              "right": 743,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "Next review",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Owner",
+            "bounds": {
+              "x": 97,
+              "y": 635.484375,
+              "width": 646,
+              "height": 18,
+              "right": 743,
+              "bottom": 653.484375
+            },
+            "fullWidth": false,
+            "labelContent": "Owner",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Status",
+            "bounds": {
+              "x": 97,
+              "y": 661.484375,
+              "width": 646,
+              "height": 26,
+              "right": 743,
+              "bottom": 687.484375
+            },
+            "fullWidth": false,
+            "labelContent": "Status",
+            "columns": 2,
+            "valuesContained": true
+          }
+        ],
+        "firstIdentity": {
+          "x": 97,
+          "y": 510.984375,
+          "width": 646,
+          "height": 18,
+          "right": 743,
+          "bottom": 528.984375
+        },
+        "expectedFirstName": "Customer account opening",
+        "firstUseful": {
+          "x": 97,
+          "y": 510.984375,
+          "width": 646,
+          "height": 18,
+          "right": 743,
+          "bottom": 528.984375
+        },
+        "firstUsefulVisible": true,
+        "metrics": [],
+        "metricColumns": null,
+        "primary": null,
+        "aside": null,
+        "placement": null,
+        "primaryHeadings": [],
+        "coverageText": "",
+        "text": "Processing activitiesMeridian Trust Bank Nigeria · Lawful basis, data subjects and review datesSearch processing activitiesActivity statusAll activity statuses⌄ All activity statusesNot startedIn progressComplete7 shownProcessing activityData subjectsLawful basisNext reviewOwnerStatusRow actionCustomer account openingPA-CUSTOMER-ACCOUNT-OPENINGCustomers; Prospective customersContract22 Jan 2027AssignedIn progressView detailsLoan application assessmentPA-LOAN-APPLICATIONCustomers; prospective customersNot recorded23 Dec 2026AssignedIn progressView detailsCustomer service channel monitoringPA-CUSTOMER-SERVICE-CHANNELCustomersLegitimate interests17 Sept 2026AssignedIn progressView detailsPayments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONSCustomers; Cardholders; Service providersContract31 Mar 2026AssignedIn progressView detailsSecurity monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEWStaff; Contractors; CustomersLegitimate interests23 Nov 2026AssignedIn progressView detailsAzure user access managementPA-AZURE-USER-ACCESS-MANAGEMENTStaff; Guests; Prospective customersNot recorded31 Jan 2026AssignedIn progressView detailsAzure device compliance managementPA-AZURE-DEVICE-COMPLIANCEStaff; Guests; Service providersLegitimate interests31 Jan 2026AssignedIn progressView details",
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "documentWidth": 768,
+        "scrollWidth": 768
+      },
+      "observation": {
+        "reads": [
+          {
+            "path": "/api/v1/ropa/processing-activities",
+            "query": "?tenant_id=bank-demo",
+            "status": 200,
+            "records": [
+              {
+                "id": "ropa-activity-customer-account-opening",
+                "name": "Customer account opening",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-loan-application",
+                "name": "Loan application assessment",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-customer-service-channel",
+                "name": "Customer service channel monitoring",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-payments-treasury-operations",
+                "name": "Payments and treasury operations",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-security-monitoring-control-review",
+                "name": "Security monitoring and control review",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-user-access-management",
+                "name": "Azure user access management",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-device-compliance",
+                "name": "Azure device compliance management",
+                "status": "OPEN"
+              }
+            ]
+          }
+        ],
+        "commands": []
+      },
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "errors": [],
+      "imageBytes": 58632,
+      "imageSHA256": "60c4a3f5a471bad0e8728de60dc47feba6ed534ab1bc8cd03f1b2cca3c5a510b"
+    },
+    {
+      "name": "270-privacy-register-layout-light-390",
+      "state": "privacy-register-layout-light-390",
+      "privacyView": "register",
+      "privacyCheck": "layout",
+      "route": "#ropa",
+      "theme": "light",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "fixture": "privacy-v2-current",
+      "privacyMatrix": true,
+      "buildDigest": "13f023b37a751154a45fd3a68549df1b81bf39dfac5f84bfe74ba7e9b9ef3c22",
+      "evidenceInputDigest": "6c01a935ba2cb010c3db25e34de8d3c935973f4580f3866b3c25561e14f4e60e",
+      "privacyLayout": {
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "kind": "register",
+        "route": "#ropa",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 136.9375,
+          "right": 382,
+          "bottom": 224.9375
+        },
+        "headingText": "Privacy & data",
+        "headingCount": 1,
+        "localTabs": [
+          "Overview",
+          "ROPA"
+        ],
+        "selectedTab": "ROPA",
+        "menu": {
+          "x": 64,
+          "y": 224.9375,
+          "width": 318,
+          "height": 48,
+          "right": 382,
+          "bottom": 272.9375
+        },
+        "selectedBounds": {
+          "x": 143.84375,
+          "y": 224.9375,
+          "width": 44,
+          "height": 47,
+          "right": 187.84375,
+          "bottom": 271.9375
+        },
+        "selectedVisible": true,
+        "selectedPanelID": "react-aria6295532353-_r_e_-tabpanel-register",
+        "visiblePanelIDs": [
+          "react-aria6295532353-_r_e_-tabpanel-register"
+        ],
+        "primaryCurrent": [
+          "Privacy"
+        ],
+        "controls": {
+          "x": 64,
+          "y": 373.515625,
+          "width": 318,
+          "height": 155,
+          "right": 382,
+          "bottom": 528.515625
+        },
+        "table": {
+          "x": 64,
+          "y": 542.515625,
+          "width": 318,
+          "height": 2163.5,
+          "right": 382,
+          "bottom": 2706.015625
+        },
+        "tablePresentation": "block",
+        "headers": [
+          "Processing activity",
+          "Data subjects",
+          "Lawful basis",
+          "Next review",
+          "Owner",
+          "Status",
+          "Row action"
+        ],
+        "recordNames": [
+          "Customer account opening",
+          "Loan application assessment",
+          "Customer service channel monitoring",
+          "Payments and treasury operations",
+          "Security monitoring and control review",
+          "Azure user access management",
+          "Azure device compliance management"
+        ],
+        "recordValues": [
+          {
+            "Processing activity": "Customer account openingPA-CUSTOMER-ACCOUNT-OPENING",
+            "Data subjects": "Customers; Prospective customers",
+            "Lawful basis": "Contract",
+            "Next review": "22 Jan 2027",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Loan application assessmentPA-LOAN-APPLICATION",
+            "Data subjects": "Customers; prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "23 Dec 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Customer service channel monitoringPA-CUSTOMER-SERVICE-CHANNEL",
+            "Data subjects": "Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "17 Sept 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Payments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONS",
+            "Data subjects": "Customers; Cardholders; Service providers",
+            "Lawful basis": "Contract",
+            "Next review": "31 Mar 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Security monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEW",
+            "Data subjects": "Staff; Contractors; Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "23 Nov 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure user access managementPA-AZURE-USER-ACCESS-MANAGEMENT",
+            "Data subjects": "Staff; Guests; Prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure device compliance managementPA-AZURE-DEVICE-COMPLIANCE",
+            "Data subjects": "Staff; Guests; Service providers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          }
+        ],
+        "firstRow": {
+          "x": 64,
+          "y": 542.515625,
+          "width": 318,
+          "height": 306.5,
+          "right": 382,
+          "bottom": 849.015625
+        },
+        "firstRowCells": [
+          {
+            "label": "Processing activity",
+            "bounds": {
+              "x": 81,
+              "y": 559.515625,
+              "width": 284,
+              "height": 64.5,
+              "right": 365,
+              "bottom": 624.015625
+            },
+            "fullWidth": true,
+            "labelContent": "Processing activity",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Data subjects",
+            "bounds": {
+              "x": 81,
+              "y": 632.015625,
+              "width": 284,
+              "height": 36,
+              "right": 365,
+              "bottom": 668.015625
+            },
+            "fullWidth": false,
+            "labelContent": "Data subjects",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Lawful basis",
+            "bounds": {
+              "x": 81,
+              "y": 676.015625,
+              "width": 284,
+              "height": 18,
+              "right": 365,
+              "bottom": 694.015625
+            },
+            "fullWidth": false,
+            "labelContent": "Lawful basis",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Next review",
+            "bounds": {
+              "x": 81,
+              "y": 702.015625,
+              "width": 284,
+              "height": 18,
+              "right": 365,
+              "bottom": 720.015625
+            },
+            "fullWidth": false,
+            "labelContent": "Next review",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Owner",
+            "bounds": {
+              "x": 81,
+              "y": 728.015625,
+              "width": 284,
+              "height": 18,
+              "right": 365,
+              "bottom": 746.015625
+            },
+            "fullWidth": false,
+            "labelContent": "Owner",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Status",
+            "bounds": {
+              "x": 81,
+              "y": 754.015625,
+              "width": 284,
+              "height": 26,
+              "right": 365,
+              "bottom": 780.015625
+            },
+            "fullWidth": false,
+            "labelContent": "Status",
+            "columns": 2,
+            "valuesContained": true
+          }
+        ],
+        "firstIdentity": {
+          "x": 81,
+          "y": 585.515625,
+          "width": 284,
+          "height": 18,
+          "right": 365,
+          "bottom": 603.515625
+        },
+        "expectedFirstName": "Customer account opening",
+        "firstUseful": {
+          "x": 81,
+          "y": 585.515625,
+          "width": 284,
+          "height": 18,
+          "right": 365,
+          "bottom": 603.515625
+        },
+        "firstUsefulVisible": true,
+        "metrics": [],
+        "metricColumns": null,
+        "primary": null,
+        "aside": null,
+        "placement": null,
+        "primaryHeadings": [],
+        "coverageText": "",
+        "text": "Processing activitiesMeridian Trust Bank Nigeria · Lawful basis, data subjects and review datesSearch processing activitiesActivity statusAll activity statuses⌄ All activity statusesNot startedIn progressComplete7 shownProcessing activityData subjectsLawful basisNext reviewOwnerStatusRow actionCustomer account openingPA-CUSTOMER-ACCOUNT-OPENINGCustomers; Prospective customersContract22 Jan 2027AssignedIn progressView detailsLoan application assessmentPA-LOAN-APPLICATIONCustomers; prospective customersNot recorded23 Dec 2026AssignedIn progressView detailsCustomer service channel monitoringPA-CUSTOMER-SERVICE-CHANNELCustomersLegitimate interests17 Sept 2026AssignedIn progressView detailsPayments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONSCustomers; Cardholders; Service providersContract31 Mar 2026AssignedIn progressView detailsSecurity monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEWStaff; Contractors; CustomersLegitimate interests23 Nov 2026AssignedIn progressView detailsAzure user access managementPA-AZURE-USER-ACCESS-MANAGEMENTStaff; Guests; Prospective customersNot recorded31 Jan 2026AssignedIn progressView detailsAzure device compliance managementPA-AZURE-DEVICE-COMPLIANCEStaff; Guests; Service providersLegitimate interests31 Jan 2026AssignedIn progressView details",
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "documentWidth": 390,
+        "scrollWidth": 390
+      },
+      "observation": {
+        "reads": [
+          {
+            "path": "/api/v1/ropa/processing-activities",
+            "query": "?tenant_id=bank-demo",
+            "status": 200,
+            "records": [
+              {
+                "id": "ropa-activity-customer-account-opening",
+                "name": "Customer account opening",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-loan-application",
+                "name": "Loan application assessment",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-customer-service-channel",
+                "name": "Customer service channel monitoring",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-payments-treasury-operations",
+                "name": "Payments and treasury operations",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-security-monitoring-control-review",
+                "name": "Security monitoring and control review",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-user-access-management",
+                "name": "Azure user access management",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-device-compliance",
+                "name": "Azure device compliance management",
+                "status": "OPEN"
+              }
+            ]
+          }
+        ],
+        "commands": []
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "errors": [],
+      "imageBytes": 48062,
+      "imageSHA256": "b9dcf5ec0b627e6fb726691b7d16f1824c49d885966e9a0b967edd309e2c1763"
+    },
+    {
+      "name": "270-privacy-register-layout-dark-1440",
+      "state": "privacy-register-layout-dark-1440",
+      "privacyView": "register",
+      "privacyCheck": "layout",
+      "route": "#ropa",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "touch": false,
+      "fixture": "privacy-v2-current",
+      "privacyMatrix": true,
+      "buildDigest": "13f023b37a751154a45fd3a68549df1b81bf39dfac5f84bfe74ba7e9b9ef3c22",
+      "evidenceInputDigest": "6c01a935ba2cb010c3db25e34de8d3c935973f4580f3866b3c25561e14f4e60e",
+      "privacyLayout": {
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "kind": "register",
+        "route": "#ropa",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 125,
+          "right": 1408,
+          "bottom": 217
+        },
+        "headingText": "Privacy & data",
+        "headingCount": 1,
+        "localTabs": [
+          "Overview",
+          "ROPA"
+        ],
+        "selectedTab": "ROPA",
+        "menu": {
+          "x": 260,
+          "y": 217,
+          "width": 1148,
+          "height": 48,
+          "right": 1408,
+          "bottom": 265
+        },
+        "selectedBounds": {
+          "x": 339.84375,
+          "y": 217,
+          "width": 44,
+          "height": 47,
+          "right": 383.84375,
+          "bottom": 264
+        },
+        "selectedVisible": true,
+        "selectedPanelID": "react-aria2585832417-_r_e_-tabpanel-register",
+        "visiblePanelIDs": [
+          "react-aria2585832417-_r_e_-tabpanel-register"
+        ],
+        "primaryCurrent": [
+          "Privacy"
+        ],
+        "controls": {
+          "x": 260,
+          "y": 350.984375,
+          "width": 1148,
+          "height": 73,
+          "right": 1408,
+          "bottom": 423.984375
+        },
+        "table": {
+          "x": 261,
+          "y": 442.984375,
+          "width": 1146,
+          "height": 573,
+          "right": 1407,
+          "bottom": 1015.984375
+        },
+        "tablePresentation": "table",
+        "headers": [
+          "Processing activity",
+          "Data subjects",
+          "Lawful basis",
+          "Next review",
+          "Owner",
+          "Status",
+          "Row action"
+        ],
+        "recordNames": [
+          "Customer account opening",
+          "Loan application assessment",
+          "Customer service channel monitoring",
+          "Payments and treasury operations",
+          "Security monitoring and control review",
+          "Azure user access management",
+          "Azure device compliance management"
+        ],
+        "recordValues": [
+          {
+            "Processing activity": "Customer account openingPA-CUSTOMER-ACCOUNT-OPENING",
+            "Data subjects": "Customers; Prospective customers",
+            "Lawful basis": "Contract",
+            "Next review": "22 Jan 2027",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Loan application assessmentPA-LOAN-APPLICATION",
+            "Data subjects": "Customers; prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "23 Dec 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Customer service channel monitoringPA-CUSTOMER-SERVICE-CHANNEL",
+            "Data subjects": "Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "17 Sept 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Payments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONS",
+            "Data subjects": "Customers; Cardholders; Service providers",
+            "Lawful basis": "Contract",
+            "Next review": "31 Mar 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Security monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEW",
+            "Data subjects": "Staff; Contractors; Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "23 Nov 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure user access managementPA-AZURE-USER-ACCESS-MANAGEMENT",
+            "Data subjects": "Staff; Guests; Prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure device compliance managementPA-AZURE-DEVICE-COMPLIANCE",
+            "Data subjects": "Staff; Guests; Service providers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          }
+        ],
+        "firstRow": {
+          "x": 261,
+          "y": 491.484375,
+          "width": 1146,
+          "height": 75,
+          "right": 1407,
+          "bottom": 566.484375
+        },
+        "firstRowCells": [
+          {
+            "label": "Processing activity",
+            "bounds": {
+              "x": 261,
+              "y": 491.484375,
+              "width": 276.71875,
+              "height": 75,
+              "right": 537.71875,
+              "bottom": 566.484375
+            },
+            "fullWidth": true,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Data subjects",
+            "bounds": {
+              "x": 537.71875,
+              "y": 491.484375,
+              "width": 266.28125,
+              "height": 75,
+              "right": 804,
+              "bottom": 566.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Lawful basis",
+            "bounds": {
+              "x": 804,
+              "y": 491.484375,
+              "width": 140.09375,
+              "height": 75,
+              "right": 944.09375,
+              "bottom": 566.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Next review",
+            "bounds": {
+              "x": 944.09375,
+              "y": 491.484375,
+              "width": 103.375,
+              "height": 75,
+              "right": 1047.46875,
+              "bottom": 566.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Owner",
+            "bounds": {
+              "x": 1047.46875,
+              "y": 491.484375,
+              "width": 80.890625,
+              "height": 75,
+              "right": 1128.359375,
+              "bottom": 566.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Status",
+            "bounds": {
+              "x": 1128.359375,
+              "y": 491.484375,
+              "width": 137.375,
+              "height": 75,
+              "right": 1265.734375,
+              "bottom": 566.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          }
+        ],
+        "firstIdentity": {
+          "x": 275,
+          "y": 509.734375,
+          "width": 248.71875,
+          "height": 18,
+          "right": 523.71875,
+          "bottom": 527.734375
+        },
+        "expectedFirstName": "Customer account opening",
+        "firstUseful": {
+          "x": 275,
+          "y": 509.734375,
+          "width": 248.71875,
+          "height": 18,
+          "right": 523.71875,
+          "bottom": 527.734375
+        },
+        "firstUsefulVisible": true,
+        "metrics": [],
+        "metricColumns": null,
+        "primary": null,
+        "aside": null,
+        "placement": null,
+        "primaryHeadings": [],
+        "coverageText": "",
+        "text": "Processing activitiesMeridian Trust Bank Nigeria · Lawful basis, data subjects and review datesSearch processing activitiesActivity statusAll activity statuses⌄ All activity statusesNot startedIn progressComplete7 shownProcessing activityData subjectsLawful basisNext reviewOwnerStatusRow actionCustomer account openingPA-CUSTOMER-ACCOUNT-OPENINGCustomers; Prospective customersContract22 Jan 2027AssignedIn progressView detailsLoan application assessmentPA-LOAN-APPLICATIONCustomers; prospective customersNot recorded23 Dec 2026AssignedIn progressView detailsCustomer service channel monitoringPA-CUSTOMER-SERVICE-CHANNELCustomersLegitimate interests17 Sept 2026AssignedIn progressView detailsPayments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONSCustomers; Cardholders; Service providersContract31 Mar 2026AssignedIn progressView detailsSecurity monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEWStaff; Contractors; CustomersLegitimate interests23 Nov 2026AssignedIn progressView detailsAzure user access managementPA-AZURE-USER-ACCESS-MANAGEMENTStaff; Guests; Prospective customersNot recorded31 Jan 2026AssignedIn progressView detailsAzure device compliance managementPA-AZURE-DEVICE-COMPLIANCEStaff; Guests; Service providersLegitimate interests31 Jan 2026AssignedIn progressView details",
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "documentWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "observation": {
+        "reads": [
+          {
+            "path": "/api/v1/ropa/processing-activities",
+            "query": "?tenant_id=bank-demo",
+            "status": 200,
+            "records": [
+              {
+                "id": "ropa-activity-customer-account-opening",
+                "name": "Customer account opening",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-loan-application",
+                "name": "Loan application assessment",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-customer-service-channel",
+                "name": "Customer service channel monitoring",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-payments-treasury-operations",
+                "name": "Payments and treasury operations",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-security-monitoring-control-review",
+                "name": "Security monitoring and control review",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-user-access-management",
+                "name": "Azure user access management",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-device-compliance",
+                "name": "Azure device compliance management",
+                "status": "OPEN"
+              }
+            ]
+          }
+        ],
+        "commands": []
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "errors": [],
+      "imageBytes": 103439,
+      "imageSHA256": "6cabd40e172b5bf4fa66dd6423dcf500ca1d6bb610cc385381605324b139b710"
+    },
+    {
+      "name": "270-privacy-register-layout-dark-1280",
+      "state": "privacy-register-layout-dark-1280",
+      "privacyView": "register",
+      "privacyCheck": "layout",
+      "route": "#ropa",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "touch": false,
+      "fixture": "privacy-v2-current",
+      "privacyMatrix": true,
+      "buildDigest": "13f023b37a751154a45fd3a68549df1b81bf39dfac5f84bfe74ba7e9b9ef3c22",
+      "evidenceInputDigest": "6c01a935ba2cb010c3db25e34de8d3c935973f4580f3866b3c25561e14f4e60e",
+      "privacyLayout": {
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "kind": "register",
+        "route": "#ropa",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 988,
+          "height": 125,
+          "right": 1248,
+          "bottom": 217
+        },
+        "headingText": "Privacy & data",
+        "headingCount": 1,
+        "localTabs": [
+          "Overview",
+          "ROPA"
+        ],
+        "selectedTab": "ROPA",
+        "menu": {
+          "x": 260,
+          "y": 217,
+          "width": 988,
+          "height": 48,
+          "right": 1248,
+          "bottom": 265
+        },
+        "selectedBounds": {
+          "x": 339.84375,
+          "y": 217,
+          "width": 44,
+          "height": 47,
+          "right": 383.84375,
+          "bottom": 264
+        },
+        "selectedVisible": true,
+        "selectedPanelID": "react-aria8996634253-_r_e_-tabpanel-register",
+        "visiblePanelIDs": [
+          "react-aria8996634253-_r_e_-tabpanel-register"
+        ],
+        "primaryCurrent": [
+          "Privacy"
+        ],
+        "controls": {
+          "x": 260,
+          "y": 350.984375,
+          "width": 988,
+          "height": 73,
+          "right": 1248,
+          "bottom": 423.984375
+        },
+        "table": {
+          "x": 261,
+          "y": 442.984375,
+          "width": 986,
+          "height": 645,
+          "right": 1247,
+          "bottom": 1087.984375
+        },
+        "tablePresentation": "table",
+        "headers": [
+          "Processing activity",
+          "Data subjects",
+          "Lawful basis",
+          "Next review",
+          "Owner",
+          "Status",
+          "Row action"
+        ],
+        "recordNames": [
+          "Customer account opening",
+          "Loan application assessment",
+          "Customer service channel monitoring",
+          "Payments and treasury operations",
+          "Security monitoring and control review",
+          "Azure user access management",
+          "Azure device compliance management"
+        ],
+        "recordValues": [
+          {
+            "Processing activity": "Customer account openingPA-CUSTOMER-ACCOUNT-OPENING",
+            "Data subjects": "Customers; Prospective customers",
+            "Lawful basis": "Contract",
+            "Next review": "22 Jan 2027",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Loan application assessmentPA-LOAN-APPLICATION",
+            "Data subjects": "Customers; prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "23 Dec 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Customer service channel monitoringPA-CUSTOMER-SERVICE-CHANNEL",
+            "Data subjects": "Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "17 Sept 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Payments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONS",
+            "Data subjects": "Customers; Cardholders; Service providers",
+            "Lawful basis": "Contract",
+            "Next review": "31 Mar 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Security monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEW",
+            "Data subjects": "Staff; Contractors; Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "23 Nov 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure user access managementPA-AZURE-USER-ACCESS-MANAGEMENT",
+            "Data subjects": "Staff; Guests; Prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure device compliance managementPA-AZURE-DEVICE-COMPLIANCE",
+            "Data subjects": "Staff; Guests; Service providers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          }
+        ],
+        "firstRow": {
+          "x": 261,
+          "y": 509.484375,
+          "width": 986,
+          "height": 75,
+          "right": 1247,
+          "bottom": 584.484375
+        },
+        "firstRowCells": [
+          {
+            "label": "Processing activity",
+            "bounds": {
+              "x": 261,
+              "y": 509.484375,
+              "width": 233.265625,
+              "height": 75,
+              "right": 494.265625,
+              "bottom": 584.484375
+            },
+            "fullWidth": true,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Data subjects",
+            "bounds": {
+              "x": 494.265625,
+              "y": 509.484375,
+              "width": 204.96875,
+              "height": 75,
+              "right": 699.234375,
+              "bottom": 584.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Lawful basis",
+            "bounds": {
+              "x": 699.234375,
+              "y": 509.484375,
+              "width": 117.6875,
+              "height": 75,
+              "right": 816.921875,
+              "bottom": 584.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Next review",
+            "bounds": {
+              "x": 816.921875,
+              "y": 509.484375,
+              "width": 87.84375,
+              "height": 75,
+              "right": 904.765625,
+              "bottom": 584.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Owner",
+            "bounds": {
+              "x": 904.765625,
+              "y": 509.484375,
+              "width": 76.03125,
+              "height": 75,
+              "right": 980.796875,
+              "bottom": 584.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Status",
+            "bounds": {
+              "x": 980.796875,
+              "y": 509.484375,
+              "width": 124.9375,
+              "height": 75,
+              "right": 1105.734375,
+              "bottom": 584.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          }
+        ],
+        "firstIdentity": {
+          "x": 275,
+          "y": 527.734375,
+          "width": 205.265625,
+          "height": 18,
+          "right": 480.265625,
+          "bottom": 545.734375
+        },
+        "expectedFirstName": "Customer account opening",
+        "firstUseful": {
+          "x": 275,
+          "y": 527.734375,
+          "width": 205.265625,
+          "height": 18,
+          "right": 480.265625,
+          "bottom": 545.734375
+        },
+        "firstUsefulVisible": true,
+        "metrics": [],
+        "metricColumns": null,
+        "primary": null,
+        "aside": null,
+        "placement": null,
+        "primaryHeadings": [],
+        "coverageText": "",
+        "text": "Processing activitiesMeridian Trust Bank Nigeria · Lawful basis, data subjects and review datesSearch processing activitiesActivity statusAll activity statuses⌄ All activity statusesNot startedIn progressComplete7 shownProcessing activityData subjectsLawful basisNext reviewOwnerStatusRow actionCustomer account openingPA-CUSTOMER-ACCOUNT-OPENINGCustomers; Prospective customersContract22 Jan 2027AssignedIn progressView detailsLoan application assessmentPA-LOAN-APPLICATIONCustomers; prospective customersNot recorded23 Dec 2026AssignedIn progressView detailsCustomer service channel monitoringPA-CUSTOMER-SERVICE-CHANNELCustomersLegitimate interests17 Sept 2026AssignedIn progressView detailsPayments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONSCustomers; Cardholders; Service providersContract31 Mar 2026AssignedIn progressView detailsSecurity monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEWStaff; Contractors; CustomersLegitimate interests23 Nov 2026AssignedIn progressView detailsAzure user access managementPA-AZURE-USER-ACCESS-MANAGEMENTStaff; Guests; Prospective customersNot recorded31 Jan 2026AssignedIn progressView detailsAzure device compliance managementPA-AZURE-DEVICE-COMPLIANCEStaff; Guests; Service providersLegitimate interests31 Jan 2026AssignedIn progressView details",
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "documentWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "observation": {
+        "reads": [
+          {
+            "path": "/api/v1/ropa/processing-activities",
+            "query": "?tenant_id=bank-demo",
+            "status": 200,
+            "records": [
+              {
+                "id": "ropa-activity-customer-account-opening",
+                "name": "Customer account opening",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-loan-application",
+                "name": "Loan application assessment",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-customer-service-channel",
+                "name": "Customer service channel monitoring",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-payments-treasury-operations",
+                "name": "Payments and treasury operations",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-security-monitoring-control-review",
+                "name": "Security monitoring and control review",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-user-access-management",
+                "name": "Azure user access management",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-device-compliance",
+                "name": "Azure device compliance management",
+                "status": "OPEN"
+              }
+            ]
+          }
+        ],
+        "commands": []
+      },
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "errors": [],
+      "imageBytes": 93265,
+      "imageSHA256": "216a5d99e4d32fb1c8b1bf8672439453f6696ebb0dfd9f8fa925c28ddc312801"
+    },
+    {
+      "name": "270-privacy-register-layout-dark-1024",
+      "state": "privacy-register-layout-dark-1024",
+      "privacyView": "register",
+      "privacyCheck": "layout",
+      "route": "#ropa",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "touch": true,
+      "fixture": "privacy-v2-current",
+      "privacyMatrix": true,
+      "buildDigest": "13f023b37a751154a45fd3a68549df1b81bf39dfac5f84bfe74ba7e9b9ef3c22",
+      "evidenceInputDigest": "6c01a935ba2cb010c3db25e34de8d3c935973f4580f3866b3c25561e14f4e60e",
+      "privacyLayout": {
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "kind": "register",
+        "route": "#ropa",
+        "heading": {
+          "x": 112.953125,
+          "y": 124,
+          "width": 870.09375,
+          "height": 125,
+          "right": 983.046875,
+          "bottom": 249
+        },
+        "headingText": "Privacy & data",
+        "headingCount": 1,
+        "localTabs": [
+          "Overview",
+          "ROPA"
+        ],
+        "selectedTab": "ROPA",
+        "menu": {
+          "x": 112.953125,
+          "y": 249,
+          "width": 870.09375,
+          "height": 48,
+          "right": 983.046875,
+          "bottom": 297
+        },
+        "selectedBounds": {
+          "x": 192.796875,
+          "y": 249,
+          "width": 44,
+          "height": 47,
+          "right": 236.796875,
+          "bottom": 296
+        },
+        "selectedVisible": true,
+        "selectedPanelID": "react-aria4762654326-_r_e_-tabpanel-register",
+        "visiblePanelIDs": [
+          "react-aria4762654326-_r_e_-tabpanel-register"
+        ],
+        "primaryCurrent": [
+          "Privacy"
+        ],
+        "controls": {
+          "x": 112.953125,
+          "y": 382.984375,
+          "width": 870.09375,
+          "height": 73,
+          "right": 983.046875,
+          "bottom": 455.984375
+        },
+        "table": {
+          "x": 113.953125,
+          "y": 474.984375,
+          "width": 868.09375,
+          "height": 714,
+          "right": 982.046875,
+          "bottom": 1188.984375
+        },
+        "tablePresentation": "table",
+        "headers": [
+          "Processing activity",
+          "Data subjects",
+          "Lawful basis",
+          "Next review",
+          "Owner",
+          "Status",
+          "Row action"
+        ],
+        "recordNames": [
+          "Customer account opening",
+          "Loan application assessment",
+          "Customer service channel monitoring",
+          "Payments and treasury operations",
+          "Security monitoring and control review",
+          "Azure user access management",
+          "Azure device compliance management"
+        ],
+        "recordValues": [
+          {
+            "Processing activity": "Customer account openingPA-CUSTOMER-ACCOUNT-OPENING",
+            "Data subjects": "Customers; Prospective customers",
+            "Lawful basis": "Contract",
+            "Next review": "22 Jan 2027",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Loan application assessmentPA-LOAN-APPLICATION",
+            "Data subjects": "Customers; prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "23 Dec 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Customer service channel monitoringPA-CUSTOMER-SERVICE-CHANNEL",
+            "Data subjects": "Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "17 Sept 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Payments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONS",
+            "Data subjects": "Customers; Cardholders; Service providers",
+            "Lawful basis": "Contract",
+            "Next review": "31 Mar 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Security monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEW",
+            "Data subjects": "Staff; Contractors; Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "23 Nov 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure user access managementPA-AZURE-USER-ACCESS-MANAGEMENT",
+            "Data subjects": "Staff; Guests; Prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure device compliance managementPA-AZURE-DEVICE-COMPLIANCE",
+            "Data subjects": "Staff; Guests; Service providers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          }
+        ],
+        "firstRow": {
+          "x": 113.953125,
+          "y": 541.484375,
+          "width": 868.09375,
+          "height": 86,
+          "right": 982.046875,
+          "bottom": 627.484375
+        },
+        "firstRowCells": [
+          {
+            "label": "Processing activity",
+            "bounds": {
+              "x": 113.953125,
+              "y": 541.484375,
+              "width": 201.515625,
+              "height": 86,
+              "right": 315.46875,
+              "bottom": 627.484375
+            },
+            "fullWidth": true,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Data subjects",
+            "bounds": {
+              "x": 315.46875,
+              "y": 541.484375,
+              "width": 151.328125,
+              "height": 86,
+              "right": 466.796875,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Lawful basis",
+            "bounds": {
+              "x": 466.796875,
+              "y": 541.484375,
+              "width": 101.140625,
+              "height": 86,
+              "right": 567.9375,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Next review",
+            "bounds": {
+              "x": 567.9375,
+              "y": 541.484375,
+              "width": 76.828125,
+              "height": 86,
+              "right": 644.765625,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Owner",
+            "bounds": {
+              "x": 644.765625,
+              "y": 541.484375,
+              "width": 76.03125,
+              "height": 86,
+              "right": 720.796875,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Status",
+            "bounds": {
+              "x": 720.796875,
+              "y": 541.484375,
+              "width": 119.984375,
+              "height": 86,
+              "right": 840.78125,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "none",
+            "columns": 1,
+            "valuesContained": true
+          }
+        ],
+        "firstIdentity": {
+          "x": 127.953125,
+          "y": 556.984375,
+          "width": 173.515625,
+          "height": 18,
+          "right": 301.46875,
+          "bottom": 574.984375
+        },
+        "expectedFirstName": "Customer account opening",
+        "firstUseful": {
+          "x": 127.953125,
+          "y": 556.984375,
+          "width": 173.515625,
+          "height": 18,
+          "right": 301.46875,
+          "bottom": 574.984375
+        },
+        "firstUsefulVisible": true,
+        "metrics": [],
+        "metricColumns": null,
+        "primary": null,
+        "aside": null,
+        "placement": null,
+        "primaryHeadings": [],
+        "coverageText": "",
+        "text": "Processing activitiesMeridian Trust Bank Nigeria · Lawful basis, data subjects and review datesSearch processing activitiesActivity statusAll activity statuses⌄ All activity statusesNot startedIn progressComplete7 shownProcessing activityData subjectsLawful basisNext reviewOwnerStatusRow actionCustomer account openingPA-CUSTOMER-ACCOUNT-OPENINGCustomers; Prospective customersContract22 Jan 2027AssignedIn progressView detailsLoan application assessmentPA-LOAN-APPLICATIONCustomers; prospective customersNot recorded23 Dec 2026AssignedIn progressView detailsCustomer service channel monitoringPA-CUSTOMER-SERVICE-CHANNELCustomersLegitimate interests17 Sept 2026AssignedIn progressView detailsPayments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONSCustomers; Cardholders; Service providersContract31 Mar 2026AssignedIn progressView detailsSecurity monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEWStaff; Contractors; CustomersLegitimate interests23 Nov 2026AssignedIn progressView detailsAzure user access managementPA-AZURE-USER-ACCESS-MANAGEMENTStaff; Guests; Prospective customersNot recorded31 Jan 2026AssignedIn progressView detailsAzure device compliance managementPA-AZURE-DEVICE-COMPLIANCEStaff; Guests; Service providersLegitimate interests31 Jan 2026AssignedIn progressView details",
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "documentWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "observation": {
+        "reads": [
+          {
+            "path": "/api/v1/ropa/processing-activities",
+            "query": "?tenant_id=bank-demo",
+            "status": 200,
+            "records": [
+              {
+                "id": "ropa-activity-customer-account-opening",
+                "name": "Customer account opening",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-loan-application",
+                "name": "Loan application assessment",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-customer-service-channel",
+                "name": "Customer service channel monitoring",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-payments-treasury-operations",
+                "name": "Payments and treasury operations",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-security-monitoring-control-review",
+                "name": "Security monitoring and control review",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-user-access-management",
+                "name": "Azure user access management",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-device-compliance",
+                "name": "Azure device compliance management",
+                "status": "OPEN"
+              }
+            ]
+          }
+        ],
+        "commands": []
+      },
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "errors": [],
+      "imageBytes": 70410,
+      "imageSHA256": "318b7b2026a6cfe3bccc8329123fe81c0b285368b76128a14f9c8bfa5288c6a5"
+    },
+    {
+      "name": "270-privacy-register-layout-dark-768",
+      "state": "privacy-register-layout-dark-768",
+      "privacyView": "register",
+      "privacyCheck": "layout",
+      "route": "#ropa",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "touch": true,
+      "fixture": "privacy-v2-current",
+      "privacyMatrix": true,
+      "buildDigest": "13f023b37a751154a45fd3a68549df1b81bf39dfac5f84bfe74ba7e9b9ef3c22",
+      "evidenceInputDigest": "6c01a935ba2cb010c3db25e34de8d3c935973f4580f3866b3c25561e14f4e60e",
+      "privacyLayout": {
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "kind": "register",
+        "route": "#ropa",
+        "heading": {
+          "x": 80,
+          "y": 88,
+          "width": 680,
+          "height": 125,
+          "right": 760,
+          "bottom": 213
+        },
+        "headingText": "Privacy & data",
+        "headingCount": 1,
+        "localTabs": [
+          "Overview",
+          "ROPA"
+        ],
+        "selectedTab": "ROPA",
+        "menu": {
+          "x": 80,
+          "y": 213,
+          "width": 680,
+          "height": 48,
+          "right": 760,
+          "bottom": 261
+        },
+        "selectedBounds": {
+          "x": 159.84375,
+          "y": 213,
+          "width": 44,
+          "height": 47,
+          "right": 203.84375,
+          "bottom": 260
+        },
+        "selectedVisible": true,
+        "selectedPanelID": "react-aria6137183322-_r_e_-tabpanel-register",
+        "visiblePanelIDs": [
+          "react-aria6137183322-_r_e_-tabpanel-register"
+        ],
+        "primaryCurrent": [
+          "Privacy"
+        ],
+        "controls": {
+          "x": 80,
+          "y": 346.984375,
+          "width": 680,
+          "height": 103,
+          "right": 760,
+          "bottom": 449.984375
+        },
+        "table": {
+          "x": 80,
+          "y": 467.984375,
+          "width": 680,
+          "height": 2091.5,
+          "right": 760,
+          "bottom": 2559.484375
+        },
+        "tablePresentation": "block",
+        "headers": [
+          "Processing activity",
+          "Data subjects",
+          "Lawful basis",
+          "Next review",
+          "Owner",
+          "Status",
+          "Row action"
+        ],
+        "recordNames": [
+          "Customer account opening",
+          "Loan application assessment",
+          "Customer service channel monitoring",
+          "Payments and treasury operations",
+          "Security monitoring and control review",
+          "Azure user access management",
+          "Azure device compliance management"
+        ],
+        "recordValues": [
+          {
+            "Processing activity": "Customer account openingPA-CUSTOMER-ACCOUNT-OPENING",
+            "Data subjects": "Customers; Prospective customers",
+            "Lawful basis": "Contract",
+            "Next review": "22 Jan 2027",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Loan application assessmentPA-LOAN-APPLICATION",
+            "Data subjects": "Customers; prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "23 Dec 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Customer service channel monitoringPA-CUSTOMER-SERVICE-CHANNEL",
+            "Data subjects": "Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "17 Sept 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Payments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONS",
+            "Data subjects": "Customers; Cardholders; Service providers",
+            "Lawful basis": "Contract",
+            "Next review": "31 Mar 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Security monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEW",
+            "Data subjects": "Staff; Contractors; Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "23 Nov 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure user access managementPA-AZURE-USER-ACCESS-MANAGEMENT",
+            "Data subjects": "Staff; Guests; Prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure device compliance managementPA-AZURE-DEVICE-COMPLIANCE",
+            "Data subjects": "Staff; Guests; Service providers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          }
+        ],
+        "firstRow": {
+          "x": 80,
+          "y": 467.984375,
+          "width": 680,
+          "height": 288.5,
+          "right": 760,
+          "bottom": 756.484375
+        },
+        "firstRowCells": [
+          {
+            "label": "Processing activity",
+            "bounds": {
+              "x": 97,
+              "y": 484.984375,
+              "width": 646,
+              "height": 64.5,
+              "right": 743,
+              "bottom": 549.484375
+            },
+            "fullWidth": true,
+            "labelContent": "Processing activity",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Data subjects",
+            "bounds": {
+              "x": 97,
+              "y": 557.484375,
+              "width": 646,
+              "height": 18,
+              "right": 743,
+              "bottom": 575.484375
+            },
+            "fullWidth": false,
+            "labelContent": "Data subjects",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Lawful basis",
+            "bounds": {
+              "x": 97,
+              "y": 583.484375,
+              "width": 646,
+              "height": 18,
+              "right": 743,
+              "bottom": 601.484375
+            },
+            "fullWidth": false,
+            "labelContent": "Lawful basis",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Next review",
+            "bounds": {
+              "x": 97,
+              "y": 609.484375,
+              "width": 646,
+              "height": 18,
+              "right": 743,
+              "bottom": 627.484375
+            },
+            "fullWidth": false,
+            "labelContent": "Next review",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Owner",
+            "bounds": {
+              "x": 97,
+              "y": 635.484375,
+              "width": 646,
+              "height": 18,
+              "right": 743,
+              "bottom": 653.484375
+            },
+            "fullWidth": false,
+            "labelContent": "Owner",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Status",
+            "bounds": {
+              "x": 97,
+              "y": 661.484375,
+              "width": 646,
+              "height": 26,
+              "right": 743,
+              "bottom": 687.484375
+            },
+            "fullWidth": false,
+            "labelContent": "Status",
+            "columns": 2,
+            "valuesContained": true
+          }
+        ],
+        "firstIdentity": {
+          "x": 97,
+          "y": 510.984375,
+          "width": 646,
+          "height": 18,
+          "right": 743,
+          "bottom": 528.984375
+        },
+        "expectedFirstName": "Customer account opening",
+        "firstUseful": {
+          "x": 97,
+          "y": 510.984375,
+          "width": 646,
+          "height": 18,
+          "right": 743,
+          "bottom": 528.984375
+        },
+        "firstUsefulVisible": true,
+        "metrics": [],
+        "metricColumns": null,
+        "primary": null,
+        "aside": null,
+        "placement": null,
+        "primaryHeadings": [],
+        "coverageText": "",
+        "text": "Processing activitiesMeridian Trust Bank Nigeria · Lawful basis, data subjects and review datesSearch processing activitiesActivity statusAll activity statuses⌄ All activity statusesNot startedIn progressComplete7 shownProcessing activityData subjectsLawful basisNext reviewOwnerStatusRow actionCustomer account openingPA-CUSTOMER-ACCOUNT-OPENINGCustomers; Prospective customersContract22 Jan 2027AssignedIn progressView detailsLoan application assessmentPA-LOAN-APPLICATIONCustomers; prospective customersNot recorded23 Dec 2026AssignedIn progressView detailsCustomer service channel monitoringPA-CUSTOMER-SERVICE-CHANNELCustomersLegitimate interests17 Sept 2026AssignedIn progressView detailsPayments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONSCustomers; Cardholders; Service providersContract31 Mar 2026AssignedIn progressView detailsSecurity monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEWStaff; Contractors; CustomersLegitimate interests23 Nov 2026AssignedIn progressView detailsAzure user access managementPA-AZURE-USER-ACCESS-MANAGEMENTStaff; Guests; Prospective customersNot recorded31 Jan 2026AssignedIn progressView detailsAzure device compliance managementPA-AZURE-DEVICE-COMPLIANCEStaff; Guests; Service providersLegitimate interests31 Jan 2026AssignedIn progressView details",
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "documentWidth": 768,
+        "scrollWidth": 768
+      },
+      "observation": {
+        "reads": [
+          {
+            "path": "/api/v1/ropa/processing-activities",
+            "query": "?tenant_id=bank-demo",
+            "status": 200,
+            "records": [
+              {
+                "id": "ropa-activity-customer-account-opening",
+                "name": "Customer account opening",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-loan-application",
+                "name": "Loan application assessment",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-customer-service-channel",
+                "name": "Customer service channel monitoring",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-payments-treasury-operations",
+                "name": "Payments and treasury operations",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-security-monitoring-control-review",
+                "name": "Security monitoring and control review",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-user-access-management",
+                "name": "Azure user access management",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-device-compliance",
+                "name": "Azure device compliance management",
+                "status": "OPEN"
+              }
+            ]
+          }
+        ],
+        "commands": []
+      },
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "errors": [],
+      "imageBytes": 58748,
+      "imageSHA256": "f4b226d8d1df2ea470cd6fff5031d9ca8f616672a22e82904cc8149a629558fa"
+    },
+    {
+      "name": "270-privacy-register-layout-dark-390",
+      "state": "privacy-register-layout-dark-390",
+      "privacyView": "register",
+      "privacyCheck": "layout",
+      "route": "#ropa",
+      "theme": "dark",
+      "density": "comfortable",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "fixture": "privacy-v2-current",
+      "privacyMatrix": true,
+      "buildDigest": "13f023b37a751154a45fd3a68549df1b81bf39dfac5f84bfe74ba7e9b9ef3c22",
+      "evidenceInputDigest": "6c01a935ba2cb010c3db25e34de8d3c935973f4580f3866b3c25561e14f4e60e",
+      "privacyLayout": {
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "kind": "register",
+        "route": "#ropa",
+        "heading": {
+          "x": 64,
+          "y": 88,
+          "width": 318,
+          "height": 136.9375,
+          "right": 382,
+          "bottom": 224.9375
+        },
+        "headingText": "Privacy & data",
+        "headingCount": 1,
+        "localTabs": [
+          "Overview",
+          "ROPA"
+        ],
+        "selectedTab": "ROPA",
+        "menu": {
+          "x": 64,
+          "y": 224.9375,
+          "width": 318,
+          "height": 48,
+          "right": 382,
+          "bottom": 272.9375
+        },
+        "selectedBounds": {
+          "x": 143.84375,
+          "y": 224.9375,
+          "width": 44,
+          "height": 47,
+          "right": 187.84375,
+          "bottom": 271.9375
+        },
+        "selectedVisible": true,
+        "selectedPanelID": "react-aria7869677084-_r_e_-tabpanel-register",
+        "visiblePanelIDs": [
+          "react-aria7869677084-_r_e_-tabpanel-register"
+        ],
+        "primaryCurrent": [
+          "Privacy"
+        ],
+        "controls": {
+          "x": 64,
+          "y": 373.515625,
+          "width": 318,
+          "height": 155,
+          "right": 382,
+          "bottom": 528.515625
+        },
+        "table": {
+          "x": 64,
+          "y": 542.515625,
+          "width": 318,
+          "height": 2163.5,
+          "right": 382,
+          "bottom": 2706.015625
+        },
+        "tablePresentation": "block",
+        "headers": [
+          "Processing activity",
+          "Data subjects",
+          "Lawful basis",
+          "Next review",
+          "Owner",
+          "Status",
+          "Row action"
+        ],
+        "recordNames": [
+          "Customer account opening",
+          "Loan application assessment",
+          "Customer service channel monitoring",
+          "Payments and treasury operations",
+          "Security monitoring and control review",
+          "Azure user access management",
+          "Azure device compliance management"
+        ],
+        "recordValues": [
+          {
+            "Processing activity": "Customer account openingPA-CUSTOMER-ACCOUNT-OPENING",
+            "Data subjects": "Customers; Prospective customers",
+            "Lawful basis": "Contract",
+            "Next review": "22 Jan 2027",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Loan application assessmentPA-LOAN-APPLICATION",
+            "Data subjects": "Customers; prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "23 Dec 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Customer service channel monitoringPA-CUSTOMER-SERVICE-CHANNEL",
+            "Data subjects": "Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "17 Sept 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Payments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONS",
+            "Data subjects": "Customers; Cardholders; Service providers",
+            "Lawful basis": "Contract",
+            "Next review": "31 Mar 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Security monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEW",
+            "Data subjects": "Staff; Contractors; Customers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "23 Nov 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure user access managementPA-AZURE-USER-ACCESS-MANAGEMENT",
+            "Data subjects": "Staff; Guests; Prospective customers",
+            "Lawful basis": "Not recorded",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          },
+          {
+            "Processing activity": "Azure device compliance managementPA-AZURE-DEVICE-COMPLIANCE",
+            "Data subjects": "Staff; Guests; Service providers",
+            "Lawful basis": "Legitimate interests",
+            "Next review": "31 Jan 2026",
+            "Owner": "Assigned",
+            "Status": "In progress"
+          }
+        ],
+        "firstRow": {
+          "x": 64,
+          "y": 542.515625,
+          "width": 318,
+          "height": 306.5,
+          "right": 382,
+          "bottom": 849.015625
+        },
+        "firstRowCells": [
+          {
+            "label": "Processing activity",
+            "bounds": {
+              "x": 81,
+              "y": 559.515625,
+              "width": 284,
+              "height": 64.5,
+              "right": 365,
+              "bottom": 624.015625
+            },
+            "fullWidth": true,
+            "labelContent": "Processing activity",
+            "columns": 1,
+            "valuesContained": true
+          },
+          {
+            "label": "Data subjects",
+            "bounds": {
+              "x": 81,
+              "y": 632.015625,
+              "width": 284,
+              "height": 36,
+              "right": 365,
+              "bottom": 668.015625
+            },
+            "fullWidth": false,
+            "labelContent": "Data subjects",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Lawful basis",
+            "bounds": {
+              "x": 81,
+              "y": 676.015625,
+              "width": 284,
+              "height": 18,
+              "right": 365,
+              "bottom": 694.015625
+            },
+            "fullWidth": false,
+            "labelContent": "Lawful basis",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Next review",
+            "bounds": {
+              "x": 81,
+              "y": 702.015625,
+              "width": 284,
+              "height": 18,
+              "right": 365,
+              "bottom": 720.015625
+            },
+            "fullWidth": false,
+            "labelContent": "Next review",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Owner",
+            "bounds": {
+              "x": 81,
+              "y": 728.015625,
+              "width": 284,
+              "height": 18,
+              "right": 365,
+              "bottom": 746.015625
+            },
+            "fullWidth": false,
+            "labelContent": "Owner",
+            "columns": 2,
+            "valuesContained": true
+          },
+          {
+            "label": "Status",
+            "bounds": {
+              "x": 81,
+              "y": 754.015625,
+              "width": 284,
+              "height": 26,
+              "right": 365,
+              "bottom": 780.015625
+            },
+            "fullWidth": false,
+            "labelContent": "Status",
+            "columns": 2,
+            "valuesContained": true
+          }
+        ],
+        "firstIdentity": {
+          "x": 81,
+          "y": 585.515625,
+          "width": 284,
+          "height": 18,
+          "right": 365,
+          "bottom": 603.515625
+        },
+        "expectedFirstName": "Customer account opening",
+        "firstUseful": {
+          "x": 81,
+          "y": 585.515625,
+          "width": 284,
+          "height": 18,
+          "right": 365,
+          "bottom": 603.515625
+        },
+        "firstUsefulVisible": true,
+        "metrics": [],
+        "metricColumns": null,
+        "primary": null,
+        "aside": null,
+        "placement": null,
+        "primaryHeadings": [],
+        "coverageText": "",
+        "text": "Processing activitiesMeridian Trust Bank Nigeria · Lawful basis, data subjects and review datesSearch processing activitiesActivity statusAll activity statuses⌄ All activity statusesNot startedIn progressComplete7 shownProcessing activityData subjectsLawful basisNext reviewOwnerStatusRow actionCustomer account openingPA-CUSTOMER-ACCOUNT-OPENINGCustomers; Prospective customersContract22 Jan 2027AssignedIn progressView detailsLoan application assessmentPA-LOAN-APPLICATIONCustomers; prospective customersNot recorded23 Dec 2026AssignedIn progressView detailsCustomer service channel monitoringPA-CUSTOMER-SERVICE-CHANNELCustomersLegitimate interests17 Sept 2026AssignedIn progressView detailsPayments and treasury operationsPA-PAYMENTS-TREASURY-OPERATIONSCustomers; Cardholders; Service providersContract31 Mar 2026AssignedIn progressView detailsSecurity monitoring and control reviewPA-SECURITY-MONITORING-CONTROL-REVIEWStaff; Contractors; CustomersLegitimate interests23 Nov 2026AssignedIn progressView detailsAzure user access managementPA-AZURE-USER-ACCESS-MANAGEMENTStaff; Guests; Prospective customersNot recorded31 Jan 2026AssignedIn progressView detailsAzure device compliance managementPA-AZURE-DEVICE-COMPLIANCEStaff; Guests; Service providersLegitimate interests31 Jan 2026AssignedIn progressView details",
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "documentWidth": 390,
+        "scrollWidth": 390
+      },
+      "observation": {
+        "reads": [
+          {
+            "path": "/api/v1/ropa/processing-activities",
+            "query": "?tenant_id=bank-demo",
+            "status": 200,
+            "records": [
+              {
+                "id": "ropa-activity-customer-account-opening",
+                "name": "Customer account opening",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-loan-application",
+                "name": "Loan application assessment",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-customer-service-channel",
+                "name": "Customer service channel monitoring",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-payments-treasury-operations",
+                "name": "Payments and treasury operations",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-security-monitoring-control-review",
+                "name": "Security monitoring and control review",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-user-access-management",
+                "name": "Azure user access management",
+                "status": "OPEN"
+              },
+              {
+                "id": "ropa-activity-azure-device-compliance",
+                "name": "Azure device compliance management",
+                "status": "OPEN"
+              }
+            ]
+          }
+        ],
+        "commands": []
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "errors": [],
+      "imageBytes": 48289,
+      "imageSHA256": "7e608158136aa51f65ef246ce13ade854b988d9b5a31492ef3a5532ebb265e52"
+    }
+  ],
+  "failure": null,
+  "runtimeBuild": {
+    "revision": null,
+    "digest": "13f023b37a751154a45fd3a68549df1b81bf39dfac5f84bfe74ba7e9b9ef3c22",
+    "assets": {
+      "assets/api-1AgCOMiW.js": {
+        "bytes": 5424,
+        "sha256": "5b32ba5c27ab881c737d669b982b5d42bc7d4636cbb261092be08028176142e4"
+      },
+      "assets/api-1AgCOMiW.js.map": {
+        "bytes": 25340,
+        "sha256": "c8ede7fc16156db5381fa4a4944f41062d09e2f2e07dea4ad141208437fb35a3"
+      },
+      "assets/App-BPwbD9Ih.css": {
+        "bytes": 71290,
+        "sha256": "f66b8842696135ae6e2c43c7df0b3dd7640e649189eece870fb971f50aa5854b"
+      },
+      "assets/App-K1tZ-5jg.js": {
+        "bytes": 440793,
+        "sha256": "285842a3b43bd0762b11a94334b089d9fc8bbb7bf8257ac873ad03b8ae16ea47"
+      },
+      "assets/App-K1tZ-5jg.js.map": {
+        "bytes": 1077175,
+        "sha256": "17ad4cdd1bdb3445827c0e61cfd7190bd84fed026d1ae186079156bce64f2737"
+      },
+      "assets/assessmentFieldResults-CYtGdiIt.css": {
+        "bytes": 7259,
+        "sha256": "17ccf27cecf770d311d438cb0258a61867b014a1bbafded4f1dbd64c2f5e3326"
+      },
+      "assets/assessmentFieldResults-JN5KNzXT.js": {
+        "bytes": 9772,
+        "sha256": "3f27c7ff8105ff0be4ddae479738841bb100af106344489d39d2203d28aa6397"
+      },
+      "assets/assessmentFieldResults-JN5KNzXT.js.map": {
+        "bytes": 30467,
+        "sha256": "8b1f04611dfddddf0ea0e63753d6f44b2d17216374f430249fab757db956e42a"
+      },
+      "assets/BankJourneysWorkspace-B-hOApFc.css": {
+        "bytes": 5226,
+        "sha256": "5a6c4e8191ac65ffb8e8ff6428df793449c4cd6686df65990fe46d23771359bd"
+      },
+      "assets/BankJourneysWorkspace-DBEbtTaq.js": {
+        "bytes": 13326,
+        "sha256": "7ad4018092899f682b5bc8dcc2da27213e1d02c8f15e242847741190d461ffd9"
+      },
+      "assets/BankJourneysWorkspace-DBEbtTaq.js.map": {
+        "bytes": 36735,
+        "sha256": "737b31e6684e381adb9a3298bd3e0920da89e4c372c227cf554163238a791340"
+      },
+      "assets/CommunicationsView-BWTnmBOU.js": {
+        "bytes": 266823,
+        "sha256": "ffc8eac59537716b1d4858156da5eef8ee2bfc946e1137c9a24b75ae4ffe4b73"
+      },
+      "assets/CommunicationsView-BWTnmBOU.js.map": {
+        "bytes": 758578,
+        "sha256": "50750f07173a14234e97d85b2f6b37b1f408de8d91fd1af081b47c71c1531ce5"
+      },
+      "assets/ConfigureWorkspace-C9yF3_Gy.js": {
+        "bytes": 232229,
+        "sha256": "e07a9af07bc6fca7f330fbcf92a24ca98952e67fa4b84194db1091b126b373c9"
+      },
+      "assets/ConfigureWorkspace-C9yF3_Gy.js.map": {
+        "bytes": 627871,
+        "sha256": "71b6cbfb511277a79dcc2b62a3b3dcb39cee9a47a33bdee927beeb0c10d3e1c9"
+      },
+      "assets/ConfigureWorkspace-Dg9AodwG.css": {
+        "bytes": 73705,
+        "sha256": "d48a86c34b7fab5749681eec61b65abb2eb2c696df879228658dbd638a39d0fb"
+      },
+      "assets/controlCatalogApi-Ce1062jj.js": {
+        "bytes": 506,
+        "sha256": "8ffa2afaf3a8b5d6a03a13c23413da5e06b59eb51890f0b0dd9b2c096418dc55"
+      },
+      "assets/controlCatalogApi-Ce1062jj.js.map": {
+        "bytes": 2359,
+        "sha256": "a82c97ceb044f8d7cf33c8297b1ef96a442a08c36647cf3d926a4bd726c8eacf"
+      },
+      "assets/DistributionComposer-C9YDyu9K.js": {
+        "bytes": 17731,
+        "sha256": "e25afa5fd888d95676aca372c28476800659eab8ab17fcbebd212146f18e9855"
+      },
+      "assets/DistributionComposer-C9YDyu9K.js.map": {
+        "bytes": 58762,
+        "sha256": "aee6885213057aa23bc6ba4678c396efd62bb28291a4bb6bcce3efd603ccefbb"
+      },
+      "assets/DistributionComposer-DLeZxbLt.css": {
+        "bytes": 9375,
+        "sha256": "350b092b7f33a1a03f35e3d8610fb2acdaaa71fcb48dcaf6e67293c13c62132d"
+      },
+      "assets/EmployeeProfileWorkspace-DqA30PFx.js": {
+        "bytes": 3946,
+        "sha256": "40901dd50590665c2ae0c2471c24904219e0aaab864397cb0c579187a313f8f9"
+      },
+      "assets/EmployeeProfileWorkspace-DqA30PFx.js.map": {
+        "bytes": 8399,
+        "sha256": "35b04888489f74490052e43994fcf548676e313e8058ce2401f989261f7913cf"
+      },
+      "assets/EmptyState-BhTs_6Db.js": {
+        "bytes": 439,
+        "sha256": "e99e69dbd688eafc222bbd91fc8810ef0be2a495dfd642f5b370da99defdc23c"
+      },
+      "assets/EmptyState-BhTs_6Db.js.map": {
+        "bytes": 1224,
+        "sha256": "6d69ba2e80133d71bff080f8fc360667ff3307c3320825d4b2c4dc4dcfb391ff"
+      },
+      "assets/FocusedSheet-BR3anp65.js": {
+        "bytes": 35,
+        "sha256": "1215e9d48e56ad3d535f5ff0f70ec85ffc150a9f253086ad64eaee288598349a"
+      },
+      "assets/FocusedSheet-DrnLjgsp.js": {
+        "bytes": 100422,
+        "sha256": "7849d4e15b79dc68e0710ffb37ccfc218a5e8978d645cc1db8e6d55fb9ca5ac5"
+      },
+      "assets/FocusedSheet-DrnLjgsp.js.map": {
+        "bytes": 663374,
+        "sha256": "9cb5f4be5d5193779e5847130acabe3b133c418975ca791c1863c5e392b992c4"
+      },
+      "assets/form-policies-d4RnLy_e.css": {
+        "bytes": 5595,
+        "sha256": "30fc937bb7cdad9f93b941605f7931a7e36fb1b4583b656f0c245e43fd45acd2"
+      },
+      "assets/form-policies-GOOU7z4A.js": {
+        "bytes": 12815,
+        "sha256": "50d480d13503ae91c207e4ca678d74d3a6f512da1958e1ed79ecdb4d30e32fbd"
+      },
+      "assets/form-policies-GOOU7z4A.js.map": {
+        "bytes": 28800,
+        "sha256": "95e459628aee0aa6446bfa596178d3232d4382fcced830aa02ec76b97612037e"
+      },
+      "assets/FormBuilder-a6KC5cNo.js": {
+        "bytes": 84302,
+        "sha256": "13c6f785168e1d8af96fa31814c5aee717959d1abd9db6ebb8679e1396af9ec8"
+      },
+      "assets/FormBuilder-a6KC5cNo.js.map": {
+        "bytes": 237931,
+        "sha256": "8b7f106863bfe1379ec8bfdc53e59baf94b03ddd53876974944fd2c6fa8ca7fe"
+      },
+      "assets/FormBuilder-DkNz5EQ_.css": {
+        "bytes": 24472,
+        "sha256": "2e40c6420c62dcfccc8df334f5444799c067d6230bc645e8607e1efacc60b3a1"
+      },
+      "assets/FormBuilder-DT9ZsWZW.js": {
+        "bytes": 71,
+        "sha256": "da745687e77dc82a09855f4984a1507f1b3d10fab1ebd88e36f67a39d2d76b65"
+      },
+      "assets/formPoliciesApi-CW2ZHZyP.js": {
+        "bytes": 1541,
+        "sha256": "892a5303cf6cee2f07499ff56b0ce543a4ca85006029f545a46477fcf9093cce"
+      },
+      "assets/formPoliciesApi-CW2ZHZyP.js.map": {
+        "bytes": 9079,
+        "sha256": "f90aad27a83b1464ff951a8009ecd1b307ba66b6c505259d94ffdae66cc322fc"
+      },
+      "assets/FormPoliciesView-C2Rb9WxU.js": {
+        "bytes": 15763,
+        "sha256": "e9421a3b858c94b2ce015e2d0091b43a6fcaf613574acaba2579459e0c7454af"
+      },
+      "assets/FormPoliciesView-C2Rb9WxU.js.map": {
+        "bytes": 37505,
+        "sha256": "1cfee65a0e6a6dead4edd239ce3b6f9c21b35f1aaa43dcc7b38ed7788e0bfc62"
+      },
+      "assets/FormPreview-CvbhFbBW.js": {
+        "bytes": 29583,
+        "sha256": "7b522d3db878192d64eacd0e8b83ab0bd0b6055fc93c153e02b3f0888067a98b"
+      },
+      "assets/FormPreview-CvbhFbBW.js.map": {
+        "bytes": 78861,
+        "sha256": "7d9fe72b54e0585aae371bdb83204595c12f236f4b6b29402e21f9413f61a635"
+      },
+      "assets/FormProposalReview-DphbVkvJ.js": {
+        "bytes": 15937,
+        "sha256": "65b2972ce619abbd0016d471f98e909a8c95d75d4281d12fc16a92242299e9ac"
+      },
+      "assets/FormProposalReview-DphbVkvJ.js.map": {
+        "bytes": 41356,
+        "sha256": "fa30bf94eeffc331ac50da29495f2731b0431f123a41c713153af3ee40736960"
+      },
+      "assets/forms-foundation-CINn4wyp.css": {
+        "bytes": 49494,
+        "sha256": "ab82ca4d68089ebd1a8d9d62746cb6d191b3fd673d3de9ac62af0673fbc8f282"
+      },
+      "assets/formsApi-Bu51RPL0.js": {
+        "bytes": 3079,
+        "sha256": "f836b23a8b5dcce759ffe6c2e3b1c155160ea15b3759a79ef36ee2ff0757b0dd"
+      },
+      "assets/formsApi-Bu51RPL0.js.map": {
+        "bytes": 10246,
+        "sha256": "d892a359d7ea0885acaf785e0d89cf96e65bb2c8cda070d8b535934d7d51376d"
+      },
+      "assets/FormsWorkspace-tf5GLctV.js": {
+        "bytes": 65191,
+        "sha256": "d5cec8109c051e4f05436ea9ca4a8decc1fc74045f01d50546f89d0b3329ced7"
+      },
+      "assets/FormsWorkspace-tf5GLctV.js.map": {
+        "bytes": 185545,
+        "sha256": "c393cbac46a0258cb0b0c2bd10333753cbde7b6cf1b82cd2c392d89a92791d97"
+      },
+      "assets/groupOversightApi-CM8Hxwyf.js": {
+        "bytes": 190,
+        "sha256": "c417d1bcd3726fca2518410ce0517105ac967efbedfdb10b7d7916d9f0d31553"
+      },
+      "assets/groupOversightApi-CM8Hxwyf.js.map": {
+        "bytes": 1919,
+        "sha256": "7dc742dcfb073d57769f62c8ab4a5e641dcd911bf9d22708da4a86a042c3f36f"
+      },
+      "assets/GroupOversightWorkspace-AAn3HKzf.js": {
+        "bytes": 95,
+        "sha256": "7af6efcf8226473e988a653c5f255ee233bee4642fe88584cb9c3ef31c79ebd1"
+      },
+      "assets/GroupOversightWorkspace-FAWTwerR.css": {
+        "bytes": 1428,
+        "sha256": "b2b713d0e3bc731517f47626bee66dd6212a19d37bd364a988593bde4d53e242"
+      },
+      "assets/GroupOversightWorkspace-ucrQhB3Y.js": {
+        "bytes": 16878,
+        "sha256": "cc89622401c5e56262d2f7128ad1eb3b33bb627afd957fbbdd7900d29f72ed85"
+      },
+      "assets/GroupOversightWorkspace-ucrQhB3Y.js.map": {
+        "bytes": 50663,
+        "sha256": "eac4ea81e33c721656983a9a696c4acb2ce43f13e1ed48ea74a7b0499991ef3f"
+      },
+      "assets/homeMetricPresentation-DRPLOH6L.js": {
+        "bytes": 1127,
+        "sha256": "7bedd8148b1e9f464074877ca81b91f17074f9eb039fc69e491cb87b719e84bc"
+      },
+      "assets/homeMetricPresentation-DRPLOH6L.js.map": {
+        "bytes": 3469,
+        "sha256": "c886c1e9c549672aae157ac2f5f1829165ed7a0e5101d8248de0ee2ca590a9ca"
+      },
+      "assets/http-NFAQrmHm.js": {
+        "bytes": 2481,
+        "sha256": "628b0ffe1e2a6e36f44bd8c29bb19e46defc50e45c188a5ebf5fed9ef01b4052"
+      },
+      "assets/http-NFAQrmHm.js.map": {
+        "bytes": 7756,
+        "sha256": "583be2e4145336a7769897ba9387a2f1006c210df155734c3269ac48d0753bcb"
+      },
+      "assets/identityAccessApi-COeRCgsk.js": {
+        "bytes": 4652,
+        "sha256": "6b217441507ead880c31359d7966f1092597ff369a0f78edb814dadf7180cbec"
+      },
+      "assets/identityAccessApi-COeRCgsk.js.map": {
+        "bytes": 25238,
+        "sha256": "d1cd81bdc38cd9b273c00f6b676a605f0f3ea5fcadd7ef219e02d90659998371"
+      },
+      "assets/index-BEQrWS-k.css": {
+        "bytes": 182219,
+        "sha256": "d151f1838bf895eefc6610054b0498584b182588fd3a5e2e3acf0f516c61b15b"
+      },
+      "assets/index-C8lPOKY-.js": {
+        "bytes": 480298,
+        "sha256": "7f3ba7c3f864457f5a48709e21bb18dcb4ba7d2dbd0b57d27ab18f73b2d3c64e"
+      },
+      "assets/index-C8lPOKY-.js.map": {
+        "bytes": 1507358,
+        "sha256": "4ad97af866b4a7d66c421f152c1d2c9ea092660918ee595100c6e3989e60a543"
+      },
+      "assets/indicatorApi-D0EDXQnA.js": {
+        "bytes": 520,
+        "sha256": "7c17543016aac54a922c736d68b7c64ccf95d8f67d144759fd7b12b420ab3227"
+      },
+      "assets/indicatorApi-D0EDXQnA.js.map": {
+        "bytes": 1607,
+        "sha256": "6dddabc5f0581b0efb2708f1f78767e4123c3e1fc5a8bbb24e26ccd30e78bc03"
+      },
+      "assets/IndicatorDetail-B-icei3X.js": {
+        "bytes": 9722,
+        "sha256": "8ce7af13d97ef7bf81daef20d1ecbadd361def1cbce5621c6f9a21c8ffcb2842"
+      },
+      "assets/IndicatorDetail-B-icei3X.js.map": {
+        "bytes": 25582,
+        "sha256": "ca3a8a2503b983f9d4f70f73a64f425af7b0de30f2409b8463dd086eea475c48"
+      },
+      "assets/indicatorPresentation-CikXSk_C.js": {
+        "bytes": 4060,
+        "sha256": "d1635c9c6e6903eba8d8caa31b97ce9794c5f3d66827194d2b69d117356c456d"
+      },
+      "assets/indicatorPresentation-CikXSk_C.js.map": {
+        "bytes": 13097,
+        "sha256": "9dd0b3e011f574712a52380e6dde842e036ab65c89419e40ecd09b2f986fca07"
+      },
+      "assets/indicatorPresentation-CjxE_j0H.css": {
+        "bytes": 3102,
+        "sha256": "f15ce54963dbd82218dc2e13b7d565e601a2ade8b4220d79058ef94c88cde973"
+      },
+      "assets/InsightsWorkspace-D_ZDHbrX.js": {
+        "bytes": 11814,
+        "sha256": "14cc3d01b1abe0b461449a08fc425a1e5171098e72a6178797924dcf4381ae54"
+      },
+      "assets/InsightsWorkspace-D_ZDHbrX.js.map": {
+        "bytes": 38099,
+        "sha256": "b1630e3a83ca0cf3b954360a6471c5b3ba53c08e47886e90a2b9a62cf281cfb2"
+      },
+      "assets/InsightsWorkspace-Ddu4RP1E.css": {
+        "bytes": 5863,
+        "sha256": "efefab0edb13512d07a740b299eff949e777593820519123606ddb5de0497ca9"
+      },
+      "assets/jsx-runtime-BKllkxft.js": {
+        "bytes": 8457,
+        "sha256": "d570da413d217278b5e77a876b290849a78fccff86b5136bb55d83463eac3c5c"
+      },
+      "assets/jsx-runtime-BKllkxft.js.map": {
+        "bytes": 28999,
+        "sha256": "c8f64bf2ae05b2b05fa590e9fb39f89646a3fc136874f7d9846ea00c94e137c9"
+      },
+      "assets/lossApi-B_TcBYnM.js": {
+        "bytes": 1218,
+        "sha256": "88755028d2985d4fa607730c42a75535070744c5ccda9119e5a388c703055879"
+      },
+      "assets/lossApi-B_TcBYnM.js.map": {
+        "bytes": 4306,
+        "sha256": "d15b59f7c0538ab1f6cb51c3b6585c8014d8c099978a0e8b87ae38009f592844"
+      },
+      "assets/LossesWorkspace-CfOZfW8N.css": {
+        "bytes": 6591,
+        "sha256": "ad89e0dd679a1d05cf1c74362e83840ef9298d2f73c603a83cc59fb6a21d9972"
+      },
+      "assets/LossesWorkspace-CfrwplY9.js": {
+        "bytes": 23339,
+        "sha256": "de8309dc7935139eb0704574c4ca01c004249a3524d705a9085ecb73068fb2c0"
+      },
+      "assets/LossesWorkspace-CfrwplY9.js.map": {
+        "bytes": 66643,
+        "sha256": "248e8fce7eae218b5b705474f3d5ad9038a5d29134e088fbd46637ab1e94ea89"
+      },
+      "assets/lossOverviewPresentation-3X01BhiZ.js": {
+        "bytes": 3948,
+        "sha256": "83237f9038c876949e9cce286264e7816cdf38966ee2802ca9d89cba82b38733"
+      },
+      "assets/lossOverviewPresentation-3X01BhiZ.js.map": {
+        "bytes": 19698,
+        "sha256": "89b8608fddf5747ea33ddbbd4645bf4dc386184863788843eb8d5d6a01c32ea2"
+      },
+      "assets/lossPresentation-DWiNJvkI.js": {
+        "bytes": 2743,
+        "sha256": "94dd80ad903db4fbb5ded3e3c30a29e431523bc728a6859cddd02513576591da"
+      },
+      "assets/lossPresentation-DWiNJvkI.js.map": {
+        "bytes": 9159,
+        "sha256": "1408e1e5451559c012fe7744d7dccfa48a2c6bd06ec989f2d155702d6506ccdf"
+      },
+      "assets/MetricMemberDrill-DfxQybh_.js": {
+        "bytes": 2894,
+        "sha256": "4276ab6079f9b67d8ae93ddfcb86114f3f208044901f20f9307d0f20ca652606"
+      },
+      "assets/MetricMemberDrill-DfxQybh_.js.map": {
+        "bytes": 7470,
+        "sha256": "8c0653cb40a0cead34c9206850753652c33020a3260223dea1ee83d2a361eed1"
+      },
+      "assets/monitoringApi-CUTBhtfp.js": {
+        "bytes": 3061,
+        "sha256": "4ba00d9674940b39c834aec7bafb6d05b412717183db6a78403a4c6a2d3fbbc8"
+      },
+      "assets/monitoringApi-CUTBhtfp.js.map": {
+        "bytes": 9549,
+        "sha256": "9627f58e49484c51a5d0a8c90cbccec5f661d48cf1b41e1fe35d11160b4dcc2e"
+      },
+      "assets/NavigationIcon-Cw28lXWO.js": {
+        "bytes": 3372,
+        "sha256": "1ecfa7f3b854438575d1b465610ebef73a21e9ab1dba4e7872fded00aef1574d"
+      },
+      "assets/NavigationIcon-Cw28lXWO.js.map": {
+        "bytes": 6905,
+        "sha256": "dee749a9c90a4a483f2b891207ff33d96e529802f091248d704346b5297f0ce0"
+      },
+      "assets/NotificationCenter-DfU5xilo.js": {
+        "bytes": 1258,
+        "sha256": "1f996cdf327d59758e8aadd70858dd593c92f3b60ed78df3a0ce4cd89523f48a"
+      },
+      "assets/NotificationCenter-DfU5xilo.js.map": {
+        "bytes": 2703,
+        "sha256": "de1f415ba670ebd387333e0eb8cd75f2374255f5dc0d0d741f7aee1b220acd5d"
+      },
+      "assets/NotificationCenter-y8gwOkyW.css": {
+        "bytes": 1555,
+        "sha256": "4854f3fa648a4e3fcd28745658ec95e3acb35cb490f1e7b820c2d535adce65b5"
+      },
+      "assets/NotificationDeliveryHistory-JD5e8eDC.js": {
+        "bytes": 2756,
+        "sha256": "4c5f0fe93aad99cd77b0c19027714ef2027b5f1f6fd9412da26889bf6dbc77ef"
+      },
+      "assets/NotificationDeliveryHistory-JD5e8eDC.js.map": {
+        "bytes": 8509,
+        "sha256": "d6cd32436713dcddf09cd4fe625ee8869cc178607fcd8c728c8be78674e4a2c7"
+      },
+      "assets/NotificationsWorkspace-BAmZg4MJ.css": {
+        "bytes": 14887,
+        "sha256": "e988de36e966535d55a0d8b6677e22792ce5e22015eee29227a194d036817d83"
+      },
+      "assets/NotificationsWorkspace-Dsannpjb.js": {
+        "bytes": 26099,
+        "sha256": "70304d6adf69b92c9ed9fc81604838ef37a8bb550ceb0acd3d5f10b0f6c64215"
+      },
+      "assets/NotificationsWorkspace-Dsannpjb.js.map": {
+        "bytes": 64090,
+        "sha256": "38875ebea8d8a0243303d063ecb73608d007894d3071f604f4f707acd59f2a3c"
+      },
+      "assets/OrganizationLossSummary-CGk7DvEb.js": {
+        "bytes": 13311,
+        "sha256": "aab38e58a6f0ce68a6f30bf6248fc27630fcbe90201afa258f5efb5590eb6b47"
+      },
+      "assets/OrganizationLossSummary-CGk7DvEb.js.map": {
+        "bytes": 42472,
+        "sha256": "b24c4ca1af72f318554f7bfcea514a8059006a60fda97b5cb8d93773ee073431"
+      },
+      "assets/oversight-B7GD29gG.css": {
+        "bytes": 13482,
+        "sha256": "2584bffc3a1cba9861263f45ba9b0a0f7ed08ac5f849fb1ca1d21fba9d047292"
+      },
+      "assets/oversight-DvCGS1OZ.js": {
+        "bytes": 4804,
+        "sha256": "a70f38ed2f5c83f225a983d09463961841d425bfb820933dc52ccc9b4d9e3fe9"
+      },
+      "assets/oversight-DvCGS1OZ.js.map": {
+        "bytes": 13169,
+        "sha256": "d01f07fedceab8c75080ead7c5a223b48dc92d03ef3aceb40f794720f3106418"
+      },
+      "assets/OversightPeriodPicker-CbG5IySp.js": {
+        "bytes": 2951,
+        "sha256": "780959079c95f4e5acde63820b0a7964a38a17da131b980fd351b190f72bf4e0"
+      },
+      "assets/OversightPeriodPicker-CbG5IySp.js.map": {
+        "bytes": 7715,
+        "sha256": "a60612aff127d399c8038c21d2af2c3625bd6319d6f677341e0305e98404228a"
+      },
+      "assets/OversightWorkspace-BQUH_OMc.js": {
+        "bytes": 22683,
+        "sha256": "a3b0012b25d730317da3c8f58f4a6f12d45a76fada45ef7c5170f6dea26daf38"
+      },
+      "assets/OversightWorkspace-BQUH_OMc.js.map": {
+        "bytes": 65498,
+        "sha256": "16a6b5a03553589fe51e57d3edeb30eafd5b85edcc33efdb5e0504cf22af46e3"
+      },
+      "assets/OversightWorkspace-C_ZbUrHx.js": {
+        "bytes": 85,
+        "sha256": "cce1ad1b569ba17e3ce5fa1d66df2a105b29c68a42b6b3262d192074b4933859"
+      },
+      "assets/preload-helper-Czpn1I53.js": {
+        "bytes": 1196,
+        "sha256": "aba87f2a53e45ecdc9113fc30387d16e449d1676428cf5f82dd624c1df97d152"
+      },
+      "assets/RCSAWorkspace-BBbJ8vcX.css": {
+        "bytes": 7921,
+        "sha256": "a9c017e87c917a08d0c14117e9c7f83049d84f4cd126a513d73cdefb818af265"
+      },
+      "assets/RCSAWorkspace-Cz6UtdLX.js": {
+        "bytes": 15865,
+        "sha256": "91100d61c99c82bc9f54ecdc30f18c5b98a828ca59360e392d175638948d40d1"
+      },
+      "assets/RCSAWorkspace-Cz6UtdLX.js.map": {
+        "bytes": 39802,
+        "sha256": "59a9e673ee0cc404d65e3e4c69b1905c338d84221bdba6ffb70b051dde8756f4"
+      },
+      "assets/reportingApi-CaL63rGk.js": {
+        "bytes": 2582,
+        "sha256": "0c7088105a766f10adf64bd55df8538fecb980c9f4e7345a3c359380743fce01"
+      },
+      "assets/reportingApi-CaL63rGk.js.map": {
+        "bytes": 13109,
+        "sha256": "1063f8ae2588323fec214fd3e29c669599564a764770891c34faebf0f3518198"
+      },
+      "assets/reportingPeriod-ChMy94oa.js": {
+        "bytes": 833,
+        "sha256": "500d55e6ef0648551211513ec03c2d27bdef5de9f2db8c31aa607ce570d5adc6"
+      },
+      "assets/reportingPeriod-ChMy94oa.js.map": {
+        "bytes": 3124,
+        "sha256": "97beb683b60a1ab1ccd3fc5ef106f5f3c56ba3567f1e5929f0c8359d6ee2818b"
+      },
+      "assets/ReportsExplore-DWws9bfr.css": {
+        "bytes": 4179,
+        "sha256": "314d400e41cb06e16ceadbd6b24f360735762edb622e3be41d52fe045841cd85"
+      },
+      "assets/ReportsExplore-owsG0_KO.js": {
+        "bytes": 14795,
+        "sha256": "f7668c727b798ae4635747bf93707c7540fc0c5e677f38356a8edff389ac4d6c"
+      },
+      "assets/ReportsExplore-owsG0_KO.js.map": {
+        "bytes": 43715,
+        "sha256": "02bbe19f4a56d69cf27ad9c1680471c1eb30abef652bb4c208e57c06c5441ea8"
+      },
+      "assets/ReportsWorkspace-BE7QasEr.css": {
+        "bytes": 18729,
+        "sha256": "5f19f164d10680e24761be28f0c87c2aebead00448cc67c52ed22825cbcc03dc"
+      },
+      "assets/ReportsWorkspace-C15udA1r.js": {
+        "bytes": 50501,
+        "sha256": "41bfa3fbf38dde2dd5a8e925f3b49f704065ef88af4cb91e4ccaaf40f43833f4"
+      },
+      "assets/ReportsWorkspace-C15udA1r.js.map": {
+        "bytes": 127037,
+        "sha256": "a45b1e3a5d6fbda8012fd90e20ac5f5dee38b1e994832a71ad2fc584aaa6660d"
+      },
+      "assets/ResponseAssessment-DYFP7xBk.css": {
+        "bytes": 9312,
+        "sha256": "5c7d80d3beacc486aaa186cf58269b2818e23da389f14d02f35413813a2b486e"
+      },
+      "assets/ResponseAssessment-NijooziG.js": {
+        "bytes": 40662,
+        "sha256": "122aa388f1a28c35a2b0c78506ab920eea724dc67ce3707e161f0e9e3938ed40"
+      },
+      "assets/ResponseAssessment-NijooziG.js.map": {
+        "bytes": 108952,
+        "sha256": "478e18479292cad9d8528462ad56551a821213945c62cdd4b0cfc4635d1488e2"
+      },
+      "assets/ResponseBrowser-C-MuDWdY.js": {
+        "bytes": 8904,
+        "sha256": "9c74045c20f132a60125182e4db7f96d84662a167f4ce67d0d25dc771cc25ddf"
+      },
+      "assets/ResponseBrowser-C-MuDWdY.js.map": {
+        "bytes": 23675,
+        "sha256": "7c47273bc47e0112563a9cff2e789eb894eef7e13b306117c81d276ee2f85edf"
+      },
+      "assets/RisksWorkspace-D7axRUhA.js": {
+        "bytes": 30814,
+        "sha256": "0f1cd058b892f54ff8a6086e8dbb308df371d1fff0d766be9e7d84210d46f80d"
+      },
+      "assets/RisksWorkspace-D7axRUhA.js.map": {
+        "bytes": 86799,
+        "sha256": "73a6284ee8c23c14e368800fdd98382fcaa9414e2c5d9ea0cbb43a908c0779f4"
+      },
+      "assets/RisksWorkspace-DairWCjP.css": {
+        "bytes": 5899,
+        "sha256": "46f63dd3756f317b52ded15048e498d2dc4ff2cc5fe60f35d13515b1ccd5a5af"
+      },
+      "assets/ropa-BZkz5VZm.css": {
+        "bytes": 12275,
+        "sha256": "130ea769039d0972d6675a803271bfa52c847f509ed1fd63236803f7873a9587"
+      },
+      "assets/ropa-v7LSp0VW.js": {
+        "bytes": 1542,
+        "sha256": "f2c7ddc9dd59d8713f3f1c9eec1d83b79242f167f9224717f94ce3f07dad6019"
+      },
+      "assets/ropa-v7LSp0VW.js.map": {
+        "bytes": 5540,
+        "sha256": "d394ef15f66c5a496da53e5a0275909bfc3efc0bb8ba98d1419532a71644ced7"
+      },
+      "assets/RopaActivityPage-43xxoHjp.js": {
+        "bytes": 13176,
+        "sha256": "a759c4d9734aec1df0df443f45db9d3ec609ef63938a115c9c88d1e7a4f02b62"
+      },
+      "assets/RopaActivityPage-43xxoHjp.js.map": {
+        "bytes": 35222,
+        "sha256": "1bf1c15ef3c714be3dc82b17a7ce0762cfddd66d13db642edbe8b24e6eee5fed"
+      },
+      "assets/RopaActivityPage-Cuy0NHoh.css": {
+        "bytes": 2126,
+        "sha256": "3778cf3eb9b83a47be52bb4f14d83a2ac08896503871211029635c1b8532b89e"
+      },
+      "assets/RopaRegisterPage-B-mJp67b.css": {
+        "bytes": 5534,
+        "sha256": "1e291651a89e60b840eedc818debf6de459c4a95bbf2948841a42e5e3896c14d"
+      },
+      "assets/RopaRegisterPage-n5jjDZMa.js": {
+        "bytes": 14852,
+        "sha256": "82fbc3b31927e601470a35414ec2801f8b5ef5ecb4f6ffc40d61006746e0d162"
+      },
+      "assets/RopaRegisterPage-n5jjDZMa.js.map": {
+        "bytes": 36616,
+        "sha256": "65d31e85015a442f8315e25e765e4bc992b8db7749b61d2cc3220b4c5cfe826d"
+      },
+      "assets/SentFormDetail-7LJ8F0ON.js": {
+        "bytes": 14019,
+        "sha256": "b6646efbc180f7ad5e106ac9fcd6e5387368e068accfbf169a11ba445945d522"
+      },
+      "assets/SentFormDetail-7LJ8F0ON.js.map": {
+        "bytes": 35077,
+        "sha256": "f78dce22130a763755efadd3d3383e67069710d71e704743dad34c15ce48323c"
+      },
+      "assets/SentFormDetail-DFR_kdL0.css": {
+        "bytes": 488,
+        "sha256": "baafc90a6bda2d4168d24faa8c890bda0cc63112ea7955f0e698abb05360c84a"
+      },
+      "assets/SessionGate-BgvzBWG1.css": {
+        "bytes": 56281,
+        "sha256": "7024e79e5d4162009c2a1846517cf1c4f9dd22b6c0d43f0d38b348be2dfa0771"
+      },
+      "assets/SessionGate-DqljaXK4.js": {
+        "bytes": 166979,
+        "sha256": "4bc9ef1448bbde197046d9b5741364a8c05695b395f4a8f8753a94d8455f3e57"
+      },
+      "assets/SessionGate-DqljaXK4.js.map": {
+        "bytes": 449603,
+        "sha256": "6a0b6b3de3c2195e971793a670e5781c7c66eabc5985859980655360371f7787"
+      },
+      "assets/staticDemoFixtures-BJo7eiOJ.json": {
+        "bytes": 23044,
+        "sha256": "a7e0d3e1cc827d5f944f106bf9d00adec80b846a2bc470968192ade84b99c8e7"
+      },
+      "assets/staticDemoWorkflowRuntime-CCKpbhZb.js": {
+        "bytes": 41611,
+        "sha256": "ea14d9dd642d241f2beb589cbf82f42817c0efe9c4160d1a1848c83db4ef3bc5"
+      },
+      "assets/systemActivityApi-Z_nwoiGu.js": {
+        "bytes": 1185,
+        "sha256": "3f50c58a3e3ff62d6366f016a019df97fb227881051fbe9d5a14ceb906a84ffa"
+      },
+      "assets/systemActivityApi-Z_nwoiGu.js.map": {
+        "bytes": 3693,
+        "sha256": "5ae3d4103a9ba12a4f5c98f92dd65888fe458a1769c1a0c1c4444c1043beaf66"
+      },
+      "assets/ui-BqQkgK9q.css": {
+        "bytes": 1624,
+        "sha256": "acca22c7531c9ed94232ba19bae9aa9127777aa55ed3462d71669eb4f9ce0050"
+      },
+      "assets/ui-DY334qq8.js": {
+        "bytes": 122840,
+        "sha256": "0a136e1098102ad54cf884b8ac2ca8f4dda695ec89f1541a9586ed1f98f0cca6"
+      },
+      "assets/ui-DY334qq8.js.map": {
+        "bytes": 627449,
+        "sha256": "83fcf9b197a032196917ccf26fcc2abc0da94c299c9a3205858b1fd642b1ffbb"
+      },
+      "assets/UIComponentGallery-JNc89l5o.js": {
+        "bytes": 20863,
+        "sha256": "cce4297bcc674896df0fafa5dbd5d63f72ad1ffd022f975550aea32043720e84"
+      },
+      "assets/UIComponentGallery-JNc89l5o.js.map": {
+        "bytes": 41045,
+        "sha256": "2a922a09988c0af26002f76a9f5f2a1e5778d76ad1f3626a008f1b2f633706f4"
+      },
+      "assets/UIComponentGallery-NkyqwFG5.css": {
+        "bytes": 1850,
+        "sha256": "bc0f566888bf2fa229402a3a9ed4eb04e54130896050a17e3421d6acb04e7558"
+      },
+      "assets/useRiskLossMetrics-U-M2bDtE.js": {
+        "bytes": 3242,
+        "sha256": "829a1d2daf87df6d2fb747a1bb87d92e6ad2c23ddbd1fcf3546365b3a5dc5f46"
+      },
+      "assets/useRiskLossMetrics-U-M2bDtE.js.map": {
+        "bytes": 10949,
+        "sha256": "d31cfb466e3aac2335a81f137ba6c9207905813bc887ee773d687a80e259e8c8"
+      },
+      "assets/VendorComplianceOverview-CP3ir3oK.js": {
+        "bytes": 14638,
+        "sha256": "ec2f5b515f9b42a6ce9dcd53391c325f987a328833b5cb018e641daea1450390"
+      },
+      "assets/VendorComplianceOverview-CP3ir3oK.js.map": {
+        "bytes": 38303,
+        "sha256": "d99b71f8aa7c4998bbd815e45dabf9ce6c0ac3bc4e1f45fc130f16e2bc32e8d4"
+      },
+      "assets/VendorComplianceOverview-DBsLWXEL.css": {
+        "bytes": 3004,
+        "sha256": "1abb61830a311c923ce2925bbee828d9a7ddb86384dd21d4655c0963c06ff116"
+      },
+      "assets/vendorFormsApi-DBEyKbo7.js": {
+        "bytes": 598,
+        "sha256": "797205efb31c8b6b245b7d83cff834bf2710d0c6fa954c0aa7442dafef1a801c"
+      },
+      "assets/vendorFormsApi-DBEyKbo7.js.map": {
+        "bytes": 4291,
+        "sha256": "d7d23dbcc85a4bcef4fe40d4291f0625b36ac272b9ae543671f34662e91525a4"
+      },
+      "assets/VendorsWorkspace-C9VxQNwU.css": {
+        "bytes": 55717,
+        "sha256": "9e4c4450abe7d9c87101c99612949af5ae10185bed7459e8d8e0e4feb47e6fad"
+      },
+      "assets/VendorsWorkspace-CfhjRwFX.js": {
+        "bytes": 179700,
+        "sha256": "4ba3fb2e1272c580e80cc08b222140ca41e2885e814031b50ced611653b4cd6d"
+      },
+      "assets/VendorsWorkspace-CfhjRwFX.js.map": {
+        "bytes": 481409,
+        "sha256": "8323a59506c8025592944f1498643c372397581b20714c66f72711edb28d1c24"
+      },
+      "assets/VendorWorkPanel-CU0uMlLg.css": {
+        "bytes": 4790,
+        "sha256": "26816dc7cfe250585f803eb70f78b478c1961dcd33ab24214ea13c45c75613d8"
+      },
+      "assets/VendorWorkPanel-DqRV5C4e.js": {
+        "bytes": 30940,
+        "sha256": "304e7d2dd8445d7c2ebe4a2ee0aa3249b6fcd908ddfbcc0feeb7479ab7b3e2f7"
+      },
+      "assets/VendorWorkPanel-DqRV5C4e.js.map": {
+        "bytes": 81447,
+        "sha256": "bb5ffeaa50489945174fd247ed6894b15bc6043a1fe4f986e43524df2fcb563c"
+      },
+      "assets/WorkItemIcon-kUXpzmct.js": {
+        "bytes": 1338,
+        "sha256": "7054836cce24f37280c5decc5a418257edf25211a8ba7e93bc999609bd175f87"
+      },
+      "assets/WorkItemIcon-kUXpzmct.js.map": {
+        "bytes": 2783,
+        "sha256": "18af85ae36e69df3d19fc5b77caeda5dc5a038e9a75b8b79460ae5559946b88a"
+      },
+      "assets/WorkspaceErrorBoundary-D6Uj8R6Z.js": {
+        "bytes": 783,
+        "sha256": "3b33a594b6a935593f5a12f59451dd89eef7f9b98e9c129184f9d57a8e192e94"
+      },
+      "assets/WorkspaceErrorBoundary-D6Uj8R6Z.js.map": {
+        "bytes": 1782,
+        "sha256": "7decf212c43518619ffaaf287d9cbce78984e289e7059d62a5072d89e2081a03"
+      },
+      "index.html": {
+        "bytes": 4572,
+        "sha256": "f51a1238dd5f6227c1b00c5f456580c8383259daa626637eecd6940c31204e5d"
+      }
+    }
+  },
+  "privacyEvidenceInputs": {
+    "files": {
+      "scripts/capture-privacy-evidence.mjs": {
+        "bytes": 8593,
+        "sha256": "5c264404fb5f2208bf5b8b49fe2532751987a1ad04f777919d0a7177737e1ccd"
+      },
+      "scripts/privacy-evidence.mjs": {
+        "bytes": 18961,
+        "sha256": "e642b154ef37df0efc0f81885f7dd3187b462cdcc6f6062a83e83991b7148461"
+      },
+      "scripts/privacy-evidence-scenarios.mjs": {
+        "bytes": 2866,
+        "sha256": "c4671e992934d270a2faf16fe84635f7dbf8994549e2849b77bb1658f7c78253"
+      },
+      "scripts/privacy-evidence-contract.mjs": {
+        "bytes": 17852,
+        "sha256": "fd604a2e20a6f86f3ef13776a06ec8a2aede3b5e8a0b66b64e626702c0e07e04"
+      }
+    },
+    "digest": "6c01a935ba2cb010c3db25e34de8d3c935973f4580f3866b3c25561e14f4e60e",
+    "revision": null
+  },
+  "privacyBrowser": {
+    "version": "151.0.7922.34",
+    "node": "v24.22.1",
+    "locale": "en-NG",
+    "timezone": "Africa/Lagos",
+    "reducedMotion": "reduce"
+  }
+}

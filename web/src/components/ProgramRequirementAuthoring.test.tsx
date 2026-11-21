@@ -4,6 +4,7 @@ import type { ProgramAggregate } from "../types";
 import { addProgramRequirement, createProgram, loadProgramSetupCandidates } from "../continuityCommands";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
 import { ProgramRequirementsPanel } from "./ProgramRequirementsPanel";
+import { determineProgramApplicability } from "../programOperationsApi";
 
 vi.mock("../continuityCommands", () => ({ addProgramRequirement: vi.fn(), createProgram: vi.fn(), loadProgramSetupCandidates: vi.fn() }));
 vi.mock("../programOperationsApi", () => ({ loadProgramOperations: vi.fn().mockResolvedValue({ operations: [] }), addProgramRequirement: vi.fn(), supersedeProgramRequirement: vi.fn(), determineProgramApplicability: vi.fn() }));
@@ -55,6 +56,62 @@ it("starts required meaning fields empty and preserves an existing sector-specif
   expect((screen.getByLabelText("Who must act?", { exact: false }) as HTMLInputElement).value).toBe("");
   for (const label of ["Who must act?", "What must they do?", "What does it apply to?"]) expect((screen.getByLabelText(label, { exact: false }) as HTMLInputElement).required).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  fireEvent.click(screen.getByRole("button", { name: "Replace requirement" }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit requirement" }));
+  expect(document.activeElement).toBe(screen.getByLabelText("Requirement title"));
+  expect(screen.queryByRole("button", { name: "Add requirement" })).toBeNull();
+  expect(screen.getByText("Saving creates a new requirement version.")).toBeTruthy();
   expect((screen.getByLabelText("Who must act?", { exact: false }) as HTMLInputElement).value).toBe("The bank");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Edit requirement" }));
+});
+
+it("asks for a reason next to applicability only when the decision needs one", async () => {
+  const requirement = { id: "existing", code: "EX", title: "Review access", statement: "Review privileged access.", status: "APPROVED" };
+  render(<ProgramRequirementsPanel aggregate={{ ...aggregate, requirements: [requirement] }} operations={[
+    { command: "program.applicability.decide", label: "Decide", responsibility: "AUTHORIZER", can_act: true, reason: "" },
+  ]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+  fireEvent.click(screen.getByRole("button", { name: "Record applicability" }));
+  expect(screen.queryByLabelText("Why is this not applicable?")).toBeNull();
+  expect(screen.queryByLabelText("Reason for decision")).toBeNull();
+  const select = screen.getByLabelText("Does this apply?");
+  fireEvent.change(select, { target: { value: "NOT_APPLICABLE" } });
+  const reason = screen.getByLabelText("Why is this not applicable?") as HTMLTextAreaElement;
+  expect(reason.required).toBe(true);
+  fireEvent.change(reason, { target: { value: "The service has no privileged accounts." } });
+  fireEvent.change(select, { target: { value: "APPLICABLE" } });
+  expect(screen.queryByLabelText("Why is this not applicable?")).toBeNull();
+  fireEvent.change(select, { target: { value: "NOT_APPLICABLE" } });
+  expect((screen.getByLabelText("Why is this not applicable?") as HTMLTextAreaElement).value).toBe("");
+  fireEvent.change(select, { target: { value: "PARTIALLY_APPLICABLE" } });
+  expect((screen.getByLabelText("Reason for decision") as HTMLTextAreaElement).required).toBe(true);
+});
+
+it("saves an explicit applicable decision without inventing a reason", async () => {
+  const requirement = { id: "existing", code: "EX", title: "Review access", statement: "Review privileged access.", status: "APPROVED" };
+  vi.mocked(determineProgramApplicability).mockResolvedValue(aggregate);
+  render(<ProgramRequirementsPanel aggregate={{ ...aggregate, requirements: [requirement] }} operations={[
+    { command: "program.applicability.decide", label: "Decide", responsibility: "AUTHORIZER", can_act: true, reason: "" },
+  ]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+  fireEvent.click(screen.getByRole("button", { name: "Record applicability" }));
+  const save = screen.getByRole("button", { name: "Save applicability decision" }) as HTMLButtonElement;
+  expect(save.disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText("Does this apply?"), { target: { value: "APPLICABLE" } });
+  expect(save.disabled).toBe(false);
+  fireEvent.click(save);
+  await waitFor(() => expect(determineProgramApplicability).toHaveBeenCalledWith("delivery", 1, expect.objectContaining({ status: "APPLICABLE", rationale: "" })));
+});
+
+it("saves the reason with a not-applicable decision", async () => {
+  const requirement = { id: "existing", code: "EX", title: "Review access", statement: "Review privileged access.", status: "APPROVED" };
+  vi.mocked(determineProgramApplicability).mockResolvedValue(aggregate);
+  render(<ProgramRequirementsPanel aggregate={{ ...aggregate, requirements: [requirement] }} operations={[
+    { command: "program.applicability.decide", label: "Decide", responsibility: "AUTHORIZER", can_act: true, reason: "" },
+  ]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+  fireEvent.click(screen.getByRole("button", { name: "Record applicability" }));
+  fireEvent.change(screen.getByLabelText("Does this apply?"), { target: { value: "NOT_APPLICABLE" } });
+  const save = screen.getByRole("button", { name: "Save applicability decision" }) as HTMLButtonElement;
+  expect(save.disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText("Why is this not applicable?"), { target: { value: "The service has no privileged accounts." } });
+  fireEvent.click(save);
+  await waitFor(() => expect(determineProgramApplicability).toHaveBeenCalledWith("delivery", 1, expect.objectContaining({ status: "NOT_APPLICABLE", rationale: "The service has no privileged accounts." })));
 });

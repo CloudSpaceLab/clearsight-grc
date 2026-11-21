@@ -286,7 +286,7 @@ func buildSupersessionPreview(snapshot supersessionSnapshot, target Distribution
 			decision.Reason = "provenance_sensitive_field"
 		case !activeTO[snapshot.Workspace.FieldProvenance[fieldID].RecipientID]:
 			decision.Reason = "contributor_not_carried"
-		case !validAccessAssurance(snapshot.Workspace.FieldProvenance[fieldID].Assurance):
+		case !validWorkspaceAssurance(snapshot.Workspace.FieldProvenance[fieldID].Assurance):
 			decision.Reason = "assurance_unavailable"
 		default:
 			requestField := source

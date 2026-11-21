@@ -1,0 +1,5 @@
+# Document preview validation — 21 November 2026
+
+Reviewer: Codex agent `/root/ci_migration`. The protected document endpoint returns the stored artifact's normalized media type and size. The browser compares the downloaded Blob to the selected inventory metadata before displaying it; when size metadata is absent it still verifies the media type. Mismatches show a retry state. This is a post-download check: it does not limit the bytes downloaded or calculate a client-side digest.
+
+The `v210-domain-evidence.mjs` sample-data run passed horizontal-overflow checks at 1440, 1280, 1024, 768 and 390 pixels. The 1440 and 390 pixel previews were inspected. The prior comparable renders are in `../2026-11-21-document-provenance/`; the new renders retain the same layout. Component tests exercise mismatched type, truncated data, missing size metadata, retry and normalized MIME type. These synthetic fixtures do not verify a real backend, PDF viewer behavior, dark theme, keyboard access or full screen acceptance.

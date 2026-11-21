@@ -1,0 +1,105 @@
+{
+  "suite": "V2.12 scoped analytics",
+  "runtime": "Actual application sources with a minimal DOM shell",
+  "browserLayoutValidated": false,
+  "results": [
+    {
+      "name": "Explicit branch, department and unit routes resolve exact canonical descendant populations",
+      "status": "PASS"
+    },
+    {
+      "name": "Invalid organizational locations fail closed and never broaden to whole organization",
+      "status": "PASS"
+    },
+    {
+      "name": "Partial whole-organization access offers explicit accessible subtrees without silently slicing aggregates",
+      "status": "PASS"
+    },
+    {
+      "name": "A descendant denial prevents broader cohorts and global contextual sources despite a root allow",
+      "status": "PASS"
+    },
+    {
+      "name": "A union of branch grants is not exact-root authority for global records",
+      "status": "PASS"
+    },
+    {
+      "name": "Bank-wide assurance remains broader context when a local department is selected",
+      "status": "PASS"
+    },
+    {
+      "name": "Multi-target supplier programs include only targets relevant to the selected local cohort",
+      "status": "PASS"
+    },
+    {
+      "name": "Branch-only KRI collection is not reported as missing department or unit responses",
+      "status": "PASS"
+    },
+    {
+      "name": "Report and source links preserve organization, period, KRI cycle, loss basis and currency",
+      "status": "PASS"
+    },
+    {
+      "name": "The canonical organizational selector updates stale URL context instead of being undone by render",
+      "status": "PASS"
+    },
+    {
+      "name": "Loss filter transitions make the inherited scope and resolved defaults portable in the URL",
+      "status": "PASS"
+    },
+    {
+      "name": "Saved loss views restore exact scope, explicit dates, currency and grouping after navigation changes",
+      "status": "PASS"
+    },
+    {
+      "name": "Saved response views retain the respondent and review-state filters",
+      "status": "PASS"
+    },
+    {
+      "name": "Saved views recheck access and hierarchy before changing navigation state",
+      "status": "PASS"
+    },
+    {
+      "name": "Report CSV exports include portable scope, currency, date and cycle metadata",
+      "status": "PASS"
+    },
+    {
+      "name": "Current permissions guard raw data, selected-event exports and printing after a rendered view",
+      "status": "PASS"
+    },
+    {
+      "name": "New captured reports remain byte-stable and older packs gain no live scope annex",
+      "status": "PASS"
+    },
+    {
+      "name": "Captured contextual boundaries and current child denies govern pack access independently of navigation scope",
+      "status": "PASS"
+    },
+    {
+      "name": "Read-only reporting grants cannot create, edit or publish a draft and the builder exposes no editable fields",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy draft inputs are stopped in capture phase after author access is revoked",
+      "status": "PASS"
+    },
+    {
+      "name": "Report authors require a separate submission grant and publishing preserves the captured source",
+      "status": "PASS"
+    },
+    {
+      "name": "Report-only observers cannot create operational follow-up actions",
+      "status": "PASS"
+    },
+    {
+      "name": "Report controls and all perspectives render actual registered routes without invalid data",
+      "status": "PASS"
+    },
+    {
+      "name": "Invalid loss filters remain editable error views and unsupported period/cycle URLs fail closed",
+      "status": "PASS"
+    }
+  ],
+  "passed": 24,
+  "failed": 0
+}

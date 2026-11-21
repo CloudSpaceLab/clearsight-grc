@@ -6,9 +6,75 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+func importReadRouteSQL() string {
+	route := authority.PostgresReadRouteSQL("di", "id", "DOCUMENT_IMPORT", "DOCUMENT.IMPORT.READ", "PERFORMER", 3, 4)
+	// A request may wait for a pool connection after its evaluation time was
+	// captured. Never use an authorization time older than this statement.
+	return strings.ReplaceAll(route, "$4", "GREATEST($4::timestamptz, statement_timestamp())")
+}
+
+// Imported material requires an explicitly configured, current read route.
+// Filtering is performed before LIMIT; a caller cannot authorize a broad page
+// by hiding entries in the browser.
+func (r *PostgresRepository) ListForActor(ctx context.Context, tenant, entity, principal string, limit int, at, expiresAt time.Time) ([]DocumentSummary, error) {
+	var actorID pgtype.UUID
+	if actorID.Scan(principal) != nil || !actorID.Valid {
+		return nil, ErrNotFound
+	}
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT di.id::text,t.slug,COALESCE(di.legal_entity_id::text,''),di.file_name,di.media_type,di.purpose,di.source_type,
+		       di.size_bytes,di.sha256,di.artifact_status,di.extraction_status,di.extraction_method,di.analysis_status,
+		       di.sections_total,di.sections_omitted,di.proposals_total,di.proposals_omitted,
+		       COALESCE((SELECT count(*)::int FROM jsonb_array_elements(di.proposals) p WHERE p->>'status'='PENDING_REVIEW'),0),
+		       GREATEST(jsonb_array_length(di.proposals)-COALESCE((SELECT count(*)::int FROM jsonb_array_elements(di.proposals) p WHERE p->>'status'='PENDING_REVIEW'),0),0),
+		       di.content_truncated,di.processed_at,di.created_at,di.updated_at,di.version
+		FROM document_imports di JOIN tenants t ON t.id=di.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND di.legal_entity_id::text=$2 AND $6::timestamptz > GREATEST($4::timestamptz, statement_timestamp()) AND `+importReadRouteSQL()+`
+		ORDER BY di.created_at DESC,di.id DESC LIMIT $5`, tenant, entity, actorID, at, limit, expiresAt)
+	if err != nil {
+		return nil, fmt.Errorf("list authorized document imports: %w", err)
+	}
+	defer rows.Close()
+	values := make([]DocumentSummary, 0, limit)
+	for rows.Next() {
+		value, scanErr := scanSummary(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return values, nil
+}
+
+func (r *PostgresRepository) GetForActor(ctx context.Context, tenant, entity, principal, id string, at, expiresAt time.Time) (Document, error) {
+	var documentID, actorID pgtype.UUID
+	if documentID.Scan(id) != nil || !documentID.Valid || actorID.Scan(principal) != nil || !actorID.Valid {
+		return Document{}, ErrNotFound
+	}
+	row := r.pool.QueryRow(ctx, documentSelect+` WHERE (t.id::text=$1 OR t.slug=$1) AND di.legal_entity_id::text=$2 AND di.id=$5 AND $6::timestamptz > GREATEST($4::timestamptz, statement_timestamp()) AND `+importReadRouteSQL(), tenant, entity, actorID, at, documentID, expiresAt)
+	value, err := scanDocument(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Document{}, ErrNotFound
+	}
+	if err != nil {
+		return Document{}, fmt.Errorf("load authorized document import: %w", err)
+	}
+	return value, nil
+}
 
 func (r *PostgresRepository) ListScoped(ctx context.Context, tenant, legalEntityID string, limit int) ([]DocumentSummary, error) {
 	if limit <= 0 || limit > 100 {

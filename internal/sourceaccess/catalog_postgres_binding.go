@@ -25,7 +25,7 @@ func (r *PostgresCatalogRepository) CreateBindingRevision(ctx context.Context, v
 	if err != nil {
 		return BindingRevision{}, ErrCatalogInvalid
 	}
-	keyFields, err := json.Marshal(value.KeyFields)
+	keyFields, err := json.Marshal(append([]string{}, value.KeyFields...))
 	if err != nil {
 		return BindingRevision{}, ErrCatalogInvalid
 	}
@@ -107,13 +107,20 @@ func (r *PostgresCatalogRepository) BindingRevision(ctx context.Context, tenantI
 	if version < 1 {
 		return BindingRevision{}, ErrCatalogInvalid
 	}
-	return scanBindingRevision(r.pool.QueryRow(ctx, `
-		SELECT `+bindingRevisionColumns+`
+	query := `
+		SELECT ` + bindingRevisionColumns + `
 		  FROM source_bindings sb
 		  JOIN tenants t ON t.id=sb.tenant_id
 		 WHERE (t.id::text=$1 OR t.slug=$1)
 		   AND sb.binding_id=$2::uuid
-		   AND sb.version=$3`, tenantID, bindingID, version))
+		   AND sb.version=$3`
+	if tx, ok := CatalogProofTransaction(ctx); ok {
+		if tx == nil {
+			return BindingRevision{}, ErrCatalogStorage
+		}
+		return scanBindingRevision(tx.QueryRow(ctx, query+` FOR SHARE OF sb`, tenantID, bindingID, version))
+	}
+	return scanBindingRevision(r.pool.QueryRow(ctx, query, tenantID, bindingID, version))
 }
 
 func (r *PostgresCatalogRepository) CurrentBinding(ctx context.Context, tenantID, bindingID string) (BindingRevision, error) {

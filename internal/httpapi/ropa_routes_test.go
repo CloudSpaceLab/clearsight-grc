@@ -9,12 +9,57 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/ropa"
 )
+
+func TestRopaReadsRequireGlobalPrivacyPermission(t *testing.T) {
+	repository := ropa.NewMemoryRepository()
+	service := ropa.NewService(repository, ropa.NewMemorySummaryRepository())
+	activity, err := service.CreateActivity(context.Background(), ropa.CreateActivityInput{TenantID: "bank", LegalEntityID: "entity-a", Code: "PA-PRIVATE", Name: "Sensitive activity", Controller: "Bank", ActorID: "seed"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseActor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reader", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}
+	departmentActor := baseActor
+	departmentActor.DepartmentGrants = []identity.DepartmentGrant{{Path: []string{"BANK", "PRIVACY"}, PermissionCodes: []string{"PRIVACY_READ"}}}
+	for _, test := range []struct {
+		name    string
+		actor   identity.Actor
+		allowed bool
+	}{
+		{"no permission", baseActor, false},
+		{"oversight is not privacy", withPrivacyTestPermissions(baseActor, []string{"OVERSIGHT_READ"}), false},
+		{"department grant is not global", departmentActor, false},
+		{"global privacy", withPrivacyTestPermissions(baseActor, []string{"PRIVACY_READ"}), true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			h := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: staticIdentityAuthenticator{actor: test.actor}, Ropa: service, RopaEventsReader: repository})
+			for _, path := range []string{"/api/v1/ropa/dashboard?tenant_id=bank", "/api/v1/ropa/processing-activities?tenant_id=bank", "/api/v1/ropa/processing-activities/" + activity.ID + "?tenant_id=bank", "/api/v1/ropa/processing-activities/" + activity.ID + "/history?tenant_id=bank"} {
+				rec := httptest.NewRecorder()
+				h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+				if !test.allowed && rec.Code != http.StatusForbidden {
+					t.Fatalf("%s status=%d body=%s", path, rec.Code, rec.Body.String())
+				}
+				if test.allowed && (rec.Code == http.StatusForbidden || rec.Code == http.StatusUnauthorized) {
+					t.Fatalf("%s status=%d body=%s", path, rec.Code, rec.Body.String())
+				}
+				if !test.allowed && strings.Contains(rec.Body.String(), "Sensitive activity") {
+					t.Fatalf("activity leaked: %s", rec.Body.String())
+				}
+			}
+		})
+	}
+}
+
+func withPrivacyTestPermissions(actor identity.Actor, permissions []string) identity.Actor {
+	actor.PermissionCodes = permissions
+	return actor
+}
 
 func TestRopaRoutesAreRegisteredInProductionCatalog(t *testing.T) {
 	registered := make(map[string]routeSpec)
@@ -32,6 +77,29 @@ func TestRopaRoutesAreRegisteredInProductionCatalog(t *testing.T) {
 	} {
 		if _, ok := registered[key]; !ok {
 			t.Errorf("ROPA route %s must be in productionRoutes()", key)
+		}
+	}
+}
+
+func TestRopaMaterialResponsesRequireGlobalPrivacyPermission(t *testing.T) {
+	for _, route := range (&API{}).productionRoutes() {
+		if route.Class != routeMaterialCommand || !strings.HasPrefix(route.Path, "/api/v1/ropa/") {
+			continue
+		}
+		if route.Permission != identity.PermissionPrivacyRead {
+			t.Errorf("%s %s permits disclosure without privacy permission", route.Method, route.Path)
+			continue
+		}
+		for _, actor := range []identity.Actor{{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "person", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}, {TenantID: "bank", LegalEntityID: "entity", PrincipalID: "person", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour), DepartmentGrants: []identity.DepartmentGrant{{Path: []string{"BANK", "PRIVACY"}, PermissionCodes: []string{identity.PermissionPrivacyRead}}}}} {
+			called := false
+			h := (&API{}).routeAccess(route, func(http.ResponseWriter, *http.Request) { called = true })
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`))
+			req = req.WithContext(identity.WithActor(req.Context(), actor))
+			w := httptest.NewRecorder()
+			h(w, req)
+			if w.Code != http.StatusForbidden || called {
+				t.Errorf("%s: status=%d called=%v", route.Path, w.Code, called)
+			}
 		}
 	}
 }
@@ -168,7 +236,7 @@ func ropaHTTPTestAPI(t *testing.T) (http.Handler, *ropa.MemoryRepository, *ropa.
 	return New(Dependencies{
 		Logger:           slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Mode:             "test-memory",
-		Identity:         identity.NewDevelopmentAuthenticator("bank", "verified-actor", "entity-a"),
+		Identity:         staticIdentityAuthenticator{actor: identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "verified-actor", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour), PermissionCodes: []string{identity.PermissionPrivacyRead}}},
 		CommandGuard:     guard,
 		Ropa:             service,
 		RopaEventsReader: repository,

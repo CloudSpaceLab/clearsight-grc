@@ -1,0 +1,5 @@
+# Indicator precision evidence
+
+On 21 November 2026, the v2.15 evidence build was rendered in headless Chrome at 1440, 768 and 390 pixels with reduced motion. The sample indicator fixture was modified in the browser to return the recorded strings `9.87e1` and `9.95e1`, a precision of two and a percent unit. The rendered observation was `98.70%`, the limit was `≥ 99.50%`, and the stale result remained **Unknown**. Automated checks found no document-level horizontal overflow at these widths. The 1440- and 390-pixel screenshots were visually inspected; their text and the stale state were legible.
+
+The prior view displayed the scientific strings directly. No product copy or status logic changed. This evidence uses synthetic values and an evidence-only browser response; it does not establish live data, authorization, dark-theme quality, all responsive widths or whole-screen acceptance. The exact precision and bounded-exponent regressions are covered by `web/src/components/indicators/IndicatorValue.test.tsx`.

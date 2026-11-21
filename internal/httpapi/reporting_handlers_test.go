@@ -73,6 +73,16 @@ func (a *reportingHTTPAuthority) callCount(responsibility authority.Responsibili
 	return a.calls[responsibility]
 }
 
+type reportingTestAuthenticator struct{ base identity.Authenticator }
+
+func (a reportingTestAuthenticator) Authenticate(r *http.Request) (identity.Actor, bool, error) {
+	actor, ok, err := a.base.Authenticate(r)
+	if ok && err == nil && r.Header.Get("X-Test-Privacy-Revoked") != "true" {
+		actor.PermissionCodes = append(actor.PermissionCodes, identity.PermissionPrivacyRead)
+	}
+	return actor, ok, err
+}
+
 func reportingHTTPFixture(t *testing.T) (http.Handler, *reporting.Service, *reporting.MemoryRepository, evidence.ObjectStore, *reportingHTTPAuthority) {
 	t.Helper()
 	repository := reporting.NewMemoryRepository()
@@ -90,7 +100,7 @@ func reportingHTTPFixture(t *testing.T) (http.Handler, *reporting.Service, *repo
 	}
 	handler := New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
-		Identity:     identity.NewDevelopmentAuthenticator(reportingTenantID, reportingMakerID, reportingEntityID, "GRC_ADMIN"),
+		Identity:     reportingTestAuthenticator{base: identity.NewDevelopmentAuthenticator(reportingTenantID, reportingMakerID, reportingEntityID, "GRC_ADMIN")},
 		CommandGuard: guard, Reporting: service,
 	})
 	return handler, service, repository, objects, authorityChecker
@@ -342,7 +352,7 @@ func installReadyHTTPReport(t *testing.T, service *reporting.Service, repository
 	actor := func(principal string) context.Context {
 		return identity.WithActor(context.Background(), identity.Actor{
 			TenantID: reportingTenantID, LegalEntityID: reportingEntityID, PrincipalID: principal,
-			Kind: "PERSON", IssuedAt: now.Add(-time.Hour), ExpiresAt: now.Add(time.Hour),
+			Kind: "PERSON", IssuedAt: now.Add(-time.Hour), ExpiresAt: now.Add(time.Hour), PermissionCodes: []string{identity.PermissionPrivacyRead},
 		})
 	}
 	definition, err := service.Propose(actor(reportingMakerID), reporting.ProposeInput{
@@ -411,4 +421,86 @@ func installReadyHTTPReport(t *testing.T, service *reporting.Service, repository
 
 func reportingScope() reporting.ReportScope {
 	return reporting.ReportScope{TenantID: reportingTenantID, LegalEntityID: reportingEntityID}
+}
+
+func TestPrivacyReportForbiddenErrorIsHTTP403(t *testing.T) {
+	rec := httptest.NewRecorder()
+	writeReportError(rec, reporting.ErrPrivacyReadForbidden)
+	if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "report_privacy_forbidden") {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// Metadata is conservatively restricted until repository queries enforce dataset scope.
+func TestReportMetadataRequiresGlobalPrivacyPermission(t *testing.T) {
+	base := identity.Actor{TenantID: reportingTenantID, LegalEntityID: reportingEntityID, PrincipalID: reportingMakerID, Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}
+	department := base
+	department.DepartmentGrants = []identity.DepartmentGrant{{Path: []string{"BANK", "PRIVACY"}, PermissionCodes: []string{identity.PermissionPrivacyRead}}}
+	for _, tc := range []struct {
+		name    string
+		actor   identity.Actor
+		allowed bool
+	}{
+		{"none", base, false},
+		{"download only", withPrivacyTestPermissions(base, []string{identity.PermissionReportDownload}), false},
+		{"department only", department, false},
+		{"global privacy", withPrivacyTestPermissions(base, []string{identity.PermissionPrivacyRead}), true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: staticIdentityAuthenticator{actor: tc.actor}})
+			for _, path := range []string{"/api/v1/reports/owners?dataset=PROCESSING_ACTIVITIES", "/api/v1/reports/definitions", "/api/v1/reports/definitions/one", "/api/v1/reports/definitions/one/history", "/api/v1/reports/runs", "/api/v1/reports/runs/one"} {
+				rec := httptest.NewRecorder()
+				h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+				if !tc.allowed && rec.Code != http.StatusForbidden {
+					t.Errorf("%s status=%d: %s", path, rec.Code, rec.Body.String())
+				}
+				if tc.allowed && (rec.Code == http.StatusForbidden || rec.Code == http.StatusUnauthorized) {
+					t.Errorf("%s status=%d: %s", path, rec.Code, rec.Body.String())
+				}
+			}
+		})
+	}
+}
+
+func TestPrivacyReportDownloadDeniesRequesterAfterRevocation(t *testing.T) {
+	handler, service, repository, objects, _ := reportingHTTPFixture(t)
+	run, _ := installReadyHTTPReport(t, service, repository, objects, time.Now().UTC())
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", nil)
+	request.Header.Set("X-ClearSight-Demo-Principal", reportingPerformerID)
+	request.Header.Set("X-Test-Privacy-Revoked", "true")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), "report_privacy_forbidden") {
+		t.Fatalf("revoked download = %d: %s", response.Code, response.Body.String())
+	}
+	if len(repository.Downloads()) != 0 {
+		t.Fatal("revoked requester downloaded report")
+	}
+}
+
+func TestReportDefinitionCommandsRequireGlobalPrivacyPermission(t *testing.T) {
+	count := 0
+	for _, route := range (&API{}).productionRoutes() {
+		if route.Class != routeMaterialCommand || !strings.HasPrefix(route.Path, "/api/v1/reports/definitions") {
+			continue
+		}
+		count++
+		if route.Permission != identity.PermissionPrivacyRead {
+			t.Errorf("%s %s permits report metadata disclosure without privacy permission", route.Method, route.Path)
+			continue
+		}
+		actor := identity.Actor{TenantID: reportingTenantID, LegalEntityID: reportingEntityID, PrincipalID: reportingMakerID, Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}
+		called := false
+		handler := (&API{}).routeAccess(route, func(http.ResponseWriter, *http.Request) { called = true })
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`))
+		req = req.WithContext(identity.WithActor(req.Context(), actor))
+		out := httptest.NewRecorder()
+		handler(out, req)
+		if out.Code != http.StatusForbidden || called {
+			t.Errorf("%s: status=%d called=%v", route.Path, out.Code, called)
+		}
+	}
+	if count != 6 {
+		t.Fatalf("definition commands=%d, want 6", count)
+	}
 }

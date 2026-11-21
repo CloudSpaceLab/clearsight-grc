@@ -216,7 +216,7 @@ describe("Program record workspace", () => {
     back.focus();
     fireEvent.click(screen.getByRole("button", { name: "Reload Program data" }));
     await waitFor(() => expect(loadProgram).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.queryByText("Checking who can act on this Program.")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("Checking Program assignments…")).toBeNull());
     expect(document.activeElement).toBe(back);
   });
 
@@ -493,6 +493,9 @@ describe("Program record workspace", () => {
 	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
 
 	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
+	expect(screen.getByText("Program assignments unavailable.")).toBeTruthy();
+	expect(screen.getByText("Changes are disabled until assignments are confirmed.")).toBeTruthy();
+	expect(screen.queryByText(/Details and recorded owners remain visible/)).toBeNull();
 	expect(screen.queryByText(/program-owner-internal|safeguard-owner-internal|source-internal|reviewer-internal/)).toBeNull();
 	expect(screen.getAllByText("Recorded Program owner unavailable").length).toBeGreaterThan(0);
 	fireEvent.click(screen.getByRole("tab", { name: "Requirements" }));
@@ -521,7 +524,7 @@ describe("Program record workspace", () => {
 	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
 	expect(screen.getAllByText("Former Data Protection Officer").length).toBeGreaterThan(0);
 	expect(screen.getByText("Chief Risk Officer")).toBeTruthy();
-	expect(screen.getByText("Some assignee names could not be loaded.")).toBeTruthy();
+	expect(screen.getByText("Some assignee names unavailable.")).toBeTruthy();
 	expect(screen.queryByText("Recorded approval authority unavailable")).toBeNull();
 	expect(screen.queryByText("retired-owner-id")).toBeNull();
 	expect(screen.queryByRole("button", { name: /Edit Program details|Change Program owner|Approve Program activation|Change Program status/ })).toBeNull();
@@ -854,7 +857,7 @@ describe("Program record workspace", () => {
 	fireEvent.click(await screen.findByRole("button", { name: "Add requirement" }));
 	fireEvent.change(screen.getByLabelText("Requirement code"), { target: { value: "CAR-02" } });
 	fireEvent.change(screen.getByLabelText("Requirement title"), { target: { value: "Keep filing evidence" } });
-	fireEvent.change(screen.getByLabelText("Requirement statement"), { target: { value: "The bank must keep its filing receipt." } });
+	fireEvent.change(screen.getByLabelText("Requirement text"), { target: { value: "The bank must keep its filing receipt." } });
 	fireEvent.change(screen.getByLabelText("Official source and section"), { target: { value: "GAID 2025, section 7.3" } });
 	fireEvent.change(screen.getByLabelText("Who must act?", { exact: false }), { target: { value: "The bank" } });
 	fireEvent.change(screen.getByLabelText("Obligation strength"), { target: { value: "MUST" } });
@@ -863,18 +866,17 @@ describe("Program record workspace", () => {
 	fireEvent.click(screen.getByRole("button", { name: "Save requirement" }));
 	await waitFor(() => expect(addProgramRequirement).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ code: "CAR-02", sourceAnchor: "GAID 2025, section 7.3" })));
 
-	fireEvent.click(screen.getByRole("button", { name: "Replace requirement" }));
-	fireEvent.change(screen.getByLabelText("Replacement statement"), { target: { value: "The bank must file through a licensed DPCO." } });
+	fireEvent.click(screen.getByRole("button", { name: "Edit requirement" }));
+	fireEvent.change(screen.getByLabelText("Requirement text"), { target: { value: "The bank must file through a licensed DPCO." } });
 	fireEvent.change(screen.getByLabelText("Replacement source and section"), { target: { value: "GAID 2025, section 7.2" } });
 	fireEvent.change(screen.getByLabelText("Reason for replacing this requirement"), { target: { value: "The regulator changed the filing channel." } });
-	fireEvent.click(screen.getByRole("button", { name: "Save replacement requirement" }));
+	fireEvent.click(screen.getByRole("button", { name: "Save new version" }));
 	await waitFor(() => expect(supersedeProgramRequirement).toHaveBeenCalledWith("program-1", "requirement-1", 4, expect.objectContaining({ statement: "The bank must file through a licensed DPCO.", rationale: "The regulator changed the filing channel." })));
 
 	fireEvent.click(screen.getByRole("button", { name: "Record applicability" }));
 	fireEvent.change(screen.getByLabelText("Does this apply?"), { target: { value: "APPLICABLE" } });
-	fireEvent.change(screen.getByLabelText("Applicability rationale"), { target: { value: "The licensed entity files this return." } });
 	fireEvent.click(screen.getByRole("button", { name: "Save applicability decision" }));
-	await waitFor(() => expect(determineProgramApplicability).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ requirementID: "requirement-1", status: "APPLICABLE", rationale: "The licensed entity files this return." })));
+	await waitFor(() => expect(determineProgramApplicability).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ requirementID: "requirement-1", status: "APPLICABLE", rationale: "" })));
   });
 
   it("keeps unavailable owner actions read-only and names the responsible person", async () => {

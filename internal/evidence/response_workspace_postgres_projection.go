@@ -16,6 +16,7 @@ import (
 type postgresWorkspaceState struct {
 	View                ResponseWorkspaceView
 	DistributionVersion int64
+	RecipientID         string
 }
 
 type postgresWorkspaceEditPatch struct {
@@ -24,6 +25,8 @@ type postgresWorkspaceEditPatch struct {
 	PresentationMode          formcontract.PresentationMode `json:"presentation_mode"`
 	SessionID                 string                        `json:"session_id,omitempty"`
 	RouteID                   string                        `json:"route_id,omitempty"`
+	Origin                    string                        `json:"origin,omitempty"`
+	PrincipalID               string                        `json:"principal_id,omitempty"`
 	Assurance                 AccessAssurance               `json:"assurance"`
 	CarriedFromDistributionID string                        `json:"carried_from_distribution_id,omitempty"`
 }
@@ -68,12 +71,18 @@ func loadPostgresWorkspaceState(ctx context.Context, tx pgx.Tx, session Distribu
 		return postgresWorkspaceState{}, ErrWorkspaceUnavailable
 	}
 
+	return projectPostgresWorkspace(ctx, tx, workspace, request, session.TenantID, session.LegalEntityID, session.DistributionID, distributionVersion)
+}
+
+// projectPostgresWorkspace rebuilds the shared workspace only after the
+// caller has independently authorized and loaded its exact scoped row.
+func projectPostgresWorkspace(ctx context.Context, tx pgx.Tx, workspace ResponseWorkspace, request Request, tenantID, legalEntityID, distributionID string, distributionVersion int64) (postgresWorkspaceState, error) {
 	view := workspaceDefaultView(workspace, request)
 	rows, err := tx.Query(ctx, `
 		SELECT e.recipient_id::text,e.request_id::text,e.base_version,e.result_version,e.patch,e.created_at
 		FROM capture_response_workspace_edits e
 		WHERE e.tenant_id=$1::uuid AND e.legal_entity_id=$2::uuid AND e.distribution_id=$3::uuid AND e.workspace_id=$4::uuid
-		ORDER BY e.result_version,e.id`, session.TenantID, session.LegalEntityID, session.DistributionID, workspace.ID)
+		ORDER BY e.result_version,e.id`, tenantID, legalEntityID, distributionID, workspace.ID)
 	if err != nil {
 		return postgresWorkspaceState{}, ErrWorkspaceUnavailable
 	}
@@ -87,7 +96,7 @@ func loadPostgresWorkspaceState(ctx context.Context, tx pgx.Tx, session Distribu
 			return postgresWorkspaceState{}, ErrWorkspaceUnavailable
 		}
 		var patch postgresWorkspaceEditPatch
-		if err := json.Unmarshal(patchJSON, &patch); err != nil || patch.FieldID == "" || resultVersion != baseVersion+1 || !validPersistedWorkspaceEditOrigin(patch) || !validAccessAssurance(patch.Assurance) {
+		if err := json.Unmarshal(patchJSON, &patch); err != nil || patch.FieldID == "" || resultVersion != baseVersion+1 || !validPersistedWorkspaceEditOrigin(patch) || !validWorkspaceAssurance(patch.Assurance) {
 			return postgresWorkspaceState{}, fmt.Errorf("%w: invalid persisted workspace edit", ErrWorkspaceUnavailable)
 		}
 		applyWorkspaceEdit(view.Answers, FieldEdit{FieldID: patch.FieldID, Value: patch.Value})
@@ -102,7 +111,7 @@ func loadPostgresWorkspaceState(ctx context.Context, tx pgx.Tx, session Distribu
 		return postgresWorkspaceState{}, ErrWorkspaceUnavailable
 	}
 
-	revision, err := loadCurrentPostgresResponseRevision(ctx, tx, session.TenantID, workspace.ID)
+	revision, err := loadCurrentPostgresResponseRevision(ctx, tx, tenantID, workspace.ID)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return postgresWorkspaceState{}, ErrWorkspaceUnavailable
 	}

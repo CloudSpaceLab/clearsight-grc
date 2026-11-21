@@ -1,0 +1,39 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "conditionalReason": true,
+      "focusRestored": true,
+      "linkProposal": true
+    },
+    {
+      "width": 1280,
+      "overflow": false,
+      "conditionalReason": true,
+      "focusRestored": true,
+      "linkProposal": true
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "conditionalReason": true,
+      "focusRestored": true,
+      "linkProposal": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "conditionalReason": true,
+      "focusRestored": true,
+      "linkProposal": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "conditionalReason": true,
+      "focusRestored": true,
+      "linkProposal": true
+    }
+  ]
+}

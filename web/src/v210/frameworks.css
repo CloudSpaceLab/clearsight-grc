@@ -1,0 +1,31 @@
+.v-framework-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.v-framework-filters label { display: grid; gap: 6px; color: #536c90; font-size: 12px; font-weight: 700; }
+.v-framework-filters input { min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-framework-filters button, .v-framework-more { min-height: 44px; padding: 0 16px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-framework-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); gap: 18px; align-items: start; }
+.v-framework-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.v-framework-list button { display: grid; gap: 8px; width: 100%; min-height: 100px; padding: 20px; border: 1px solid #dce7f5; border-radius: 14px; background: #fff; color: #18335e; text-align: left; cursor: pointer; }
+.v-framework-list button[aria-pressed="true"] { border-color: #246cf0; box-shadow: 0 0 0 1px #246cf0; }
+.v-framework-list span, .v-framework-list small { color: #627b9f; }
+.v-framework-more { margin-top: 14px; }
+.v-framework-detail dl { display: grid; gap: 12px; margin: 20px 0; }
+.v-framework-detail dl div { display: flex; justify-content: space-between; gap: 12px; }
+.v-framework-detail dt { color: #627b9f; }
+.v-framework-detail dd { min-width: 0; margin: 0; text-align: right; overflow-wrap: anywhere; }
+.v-framework-detail a { color: #246cf0; }
+.v-framework-propose { margin-top: 16px; }
+.v-framework-clauses { margin-top: 20px; border-top: 1px solid #e5edf7; }
+.v-framework-clauses h3 { margin: 20px 0 12px; font-size: 15px; }
+.v-framework-clauses ul { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.v-framework-clauses strong, .v-framework-clauses small { display: block; overflow-wrap: anywhere; }
+.v-framework-clauses small { margin-top: 4px; color: #627b9f; }
+.v-framework-clauses p { color: #627b9f; font-size: 13px; }
+.v-framework-clauses button { min-height: 44px; margin-top: 12px; padding: 0 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-framework-adoption { margin-top: 18px; }
+.v-framework-adoption-fields { min-width: 0; margin: 0; padding: 0; border: 0; }
+.v-framework-adoption label { display: grid; gap: 6px; margin: 12px 0; color: #536c90; font-size: 12px; font-weight: 700; }
+.v-framework-adoption input, .v-framework-adoption select, .v-framework-adoption textarea { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-framework-adoption textarea { min-height: 80px; }
+.v-framework-adoption button { min-height: 44px; margin: 6px 8px 0 0; padding: 0 12px; border: 1px solid #dce7f5; border-radius: 8px; }
+.v-framework-adoption button.v-primary { border-color: #246cf0; }
+@media (max-width: 760px) { .v-framework-layout { grid-template-columns: minmax(0, 1fr); } .v-framework-filters label { flex: 1 1 100%; } }

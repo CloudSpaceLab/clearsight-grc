@@ -55,6 +55,27 @@ try {
       if (!detail) await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
       const riskLossLayout = await measureRiskLossLayout(page, capture);
       if (!baseline && !detail) assertRiskLossLayout(riskLossLayout, capture);
+      if (!baseline && capture.riskLossView === "losses" && capture.riskLossCheck === "layout" && capture.viewport.width === 390) {
+        const heading = await page.locator(".loss-register__heading").evaluate((node) => {
+          const title = node.querySelector("h2")?.getBoundingClientRect(), action = node.querySelector("button")?.getBoundingClientRect();
+          return title && action ? { title: { right: title.right, bottom: title.bottom }, action: { x: action.x, y: action.y, width: action.width, height: action.height } } : null;
+        });
+        if (!heading || heading.action.y >= heading.title.bottom || heading.action.x < heading.title.right || heading.action.width < 44 || heading.action.height < 44) {
+          throw new Error(`${capture.name}: Loss ledger heading and action must share the phone row without overlap`);
+        }
+      }
+      if (!baseline && capture.riskLossView === "rcsa" && capture.riskLossCheck === "layout" && capture.viewport.width === 390) {
+        const probe = await page.locator(".rcsa-register__heading").evaluate((node) => {
+          const scope = node.querySelector("p"), filter = node.querySelector(".rcsa-register__filter");
+          const original = scope.textContent;
+          scope.textContent = "Assessment cycles for InternationalOperationsAndRegulatoryOversightDepartmentWithAnExceptionallyLongName.";
+          const result = { overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+            scopeRight: scope.getBoundingClientRect().right, filterLeft: filter.getBoundingClientRect().left };
+          scope.textContent = original;
+          return result;
+        });
+        if (probe.overflow || probe.scopeRight > probe.filterLeft + 1) throw new Error(`${capture.name}: Long entity name overlaps the RCSA status filter or overflows`);
+      }
       if (detail) assertRiskLossDetail(detail, capture);
       const metrics = await page.evaluate(() => ({ clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth, clientHeight: document.documentElement.clientHeight, scrollHeight: document.documentElement.scrollHeight }));
       if (!baseline && metrics.scrollWidth > metrics.clientWidth + 1) throw new Error(`${capture.name}: horizontal overflow`);

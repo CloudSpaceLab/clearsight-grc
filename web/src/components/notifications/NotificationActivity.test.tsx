@@ -86,7 +86,7 @@ it("queries one entity and renders dated actor, record and outcome facts without
   const context = within(screen.getByRole("complementary", { name: "Activity context" }));
   expect(context.getByText("Selected scope")).toBeTruthy();
   expect(context.getByText("Clear Bank Nigeria")).toBeTruthy();
-  expect(context.getByText(/Record versions are not recorded in this history/)).toBeTruthy();
+  expect(context.getByText(/Activity events omit record versions/)).toBeTruthy();
   const records = container.querySelectorAll(".notification-activity__record");
   expect(records).toHaveLength(2);
   for (const record of records) {

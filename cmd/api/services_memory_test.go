@@ -109,7 +109,7 @@ func TestMemoryCompositionInstallsReportingDemoOnlyInDemoMode(t *testing.T) {
 			now := time.Now().UTC()
 			ctx := identity.WithActor(t.Context(), identity.Actor{
 				TenantID: reporting.DemoTenant, LegalEntityID: reporting.DemoLegalEntity,
-				PrincipalID: "role-cro", Kind: "PERSON", IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour),
+				PrincipalID: "role-cro", Kind: "PERSON", IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour), PermissionCodes: []string{identity.PermissionPrivacyRead},
 			})
 			scope := reporting.ReportScope{TenantID: reporting.DemoTenant, LegalEntityID: reporting.DemoLegalEntity}
 			definitions, err := services.Reporting.ListDefinitions(ctx, scope, true)

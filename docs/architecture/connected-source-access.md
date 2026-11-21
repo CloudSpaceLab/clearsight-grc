@@ -29,6 +29,8 @@ Only one revision of a resource may be current. Current codes are unique within 
 
 The repository supports revision creation, exact-version reads, current-version reads and bounded revision-history lists. Permissioned `CONFIG_READ` / `CONFIG_WRITE` routes expose server-owned draft creation, immutable schema inspection, bounded preview and where-used discovery. Lifecycle activation and maker-checker transitions remain a later governance tranche rather than implicit catalog mutation.
 
+The PostgreSQL catalog checks the existing Evidence Source row directly. The in-memory catalog uses the exact tenant/source lookup on the same Evidence repository for newly created sources; explicitly supplied non-production fixtures may still be seeded at construction. Source creation has no separate catalog-registration write after commit, so a later registration failure cannot turn a committed creation into an error response. Connection, view, inspection and binding creation remain separate operations and can leave drafts if a later operation fails.
+
 ## Evidence Source endpoint migration
 
 `evidence_sources.endpoint` is removed by migration `000030_source_access_catalog`.
@@ -75,6 +77,10 @@ A View is a named logical resource exposed through one exact Connection revision
 - lifecycle and effective period.
 
 Native field names are retained. ClearSight does not require a bank-wide canonical schema before a source can be used. Current Views require an inspected schema fingerprint.
+
+REST/JSON views may explicitly set `singleton: true` when a fixed endpoint returns one root JSON object. This mode rejects arrays, record pointers, lookup, pagination and continuation; its binding permits only a keyless PAGE operation. It still uses the ordinary bounded HTTPS adapter, schema fingerprint, exact binding revision, tenant scope and execution receipts. Ordinary record views continue to require stable keys. This contract does not activate a draft or turn a source observation into an assessment.
+
+A singleton may additionally declare `result_type` as `BOOLEAN` or `NUMBER`. It then accepts only a required `result` of that type and optional `message` text of at most 1,000 characters. Numbers must be finite; null, missing or incorrect results and unexpected fields fail the read. The schema explicitly includes the optional message even when absent during inspection. No result is interpreted as a compliance decision. Existing singleton views without `result_type` retain their native schema behavior.
 
 ## Binding revision
 

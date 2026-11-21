@@ -1,0 +1,52 @@
+{
+  "suite": "board-reports-v2.8-actual-source",
+  "validation": "Node vm with minimal DOM stubs; no browser layout claim",
+  "checks": [
+    {
+      "name": "Current, prior and concentration loss read models reconcile to the source ledger",
+      "status": "PASS"
+    },
+    {
+      "name": "Actual report renderers cover every perspective and source drill-down without runtime errors",
+      "status": "PASS"
+    },
+    {
+      "name": "Monetary values retain integer-kobo conversion and booleans are exception counts",
+      "status": "PASS"
+    },
+    {
+      "name": "KRI history excludes incompatible definitions and holds the exact reporting cohort",
+      "status": "PASS"
+    },
+    {
+      "name": "Boolean polarity, context classification, conditional applicability and policy changes break comparability",
+      "status": "PASS"
+    },
+    {
+      "name": "Approved N/A is excluded from applicable coverage and the full indicator register stays grouped",
+      "status": "PASS"
+    },
+    {
+      "name": "Selected scope and loss occurrence periods remain independent of KRI and risk state",
+      "status": "PASS"
+    },
+    {
+      "name": "Board draft requires coverage acknowledgement, valid dates and captured source references",
+      "status": "PASS"
+    },
+    {
+      "name": "Publishing freezes the complete board snapshot and render output survives subsequent changes",
+      "status": "PASS"
+    },
+    {
+      "name": "Assigning a report exception creates a normal scoped source-linked task and rejects duplication",
+      "status": "PASS"
+    },
+    {
+      "name": "Briefing CSV exports source keys, owners, due dates and stated management questions",
+      "status": "PASS"
+    }
+  ],
+  "passed": 11,
+  "failed": 0
+}
