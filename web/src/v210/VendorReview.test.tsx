@@ -16,6 +16,17 @@ vi.mock("./VendorActivation", () => ({ VendorActivation: () => null }));
 const relationship = { vendor: { legal_name: "Atlas Ltd" }, relationship: { id: "rel-1", version: 3, service_name: "Hosting", status: "PROPOSED", criticality: "IMPORTANT", privacy_role: "PROCESSOR" } } as any;
 beforeEach(() => { vi.clearAllMocks(); forms.loadFormTemplatePage.mockResolvedValue({ items: [{ template: { id: "form-1", name: "Security", code: "F-01" }, active_version: 2, active_status: "ACTIVE" }] }); authority.checkVendorAuthority.mockResolvedValue(true); });
 
+it("opens Documents for the selected vendor and returns to its assessment", async () => {
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: null });
+  assessment.loadVendorAssessment.mockResolvedValue({ assessment: { id: "assess-1", relationship_id: "rel-1", version: 1, status: "SUBMITTED", review_kind: "ONBOARDING" }, answers: [], documents: [], matters: [], coverage: {} });
+  render(<VendorReview relationship={relationship} assessmentId="assess-1" onBack={() => {}}/>);
+  const link = await screen.findByRole("link", { name: "View vendor documents" });
+  const [path, query] = link.getAttribute("href")!.split("?");
+  expect(path).toBe("#/documents");
+  expect(new URLSearchParams(query).get("relationship_id")).toBe("rel-1");
+  expect(new URLSearchParams(query).get("return_to")).toBe("#/vendors/rel-1/assessments/assess-1");
+});
+
 it("prevents assessment actions while linking a document", async () => {
   const current = { id: "assess-1", relationship_id: "rel-1", version: 7, status: "SUBMITTED", review_kind: "ONBOARDING", current_request_id: "req-1" };
   assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: current });

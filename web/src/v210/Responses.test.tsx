@@ -20,6 +20,25 @@ beforeEach(() => {
   review.recordResponseReview.mockResolvedValue(reviewReceipt);
 });
 
+it("opens Documents scoped to this response revision", async () => {
+  render(<Responses id="revision-1"/>);
+  const link = await screen.findByRole("link", { name: "View response documents" });
+  expect(link.getAttribute("href")).toBe("#/documents?response_revision_id=revision-1");
+});
+
+it("retains the response distribution in the Documents return link", async () => {
+  const previous = window.location.hash;
+  window.history.replaceState(null, "", "#/forms/responses/revision-1?distribution_id=distribution-1");
+  responses.loadCompletedResponse.mockResolvedValue({ response: { ...summary, distribution_id: "distribution-1" }, revision: { id: "revision-1", current: true, revision: 2 }, answers: [], documents: [] });
+  try {
+    render(<Responses id="revision-1"/>);
+    const link = await screen.findByRole("link", { name: "View response documents" });
+    const query = new URLSearchParams(link.getAttribute("href")!.split("?")[1]);
+    expect(query.get("response_revision_id")).toBe("revision-1");
+    expect(query.get("return_to")).toBe("#/forms/responses/revision-1?distribution_id=distribution-1");
+  } finally { window.history.replaceState(null, "", previous || "#/forms/responses"); }
+});
+
 it("discovers historical responses and identifies the recorded submitter", async () => {
   render(<Responses/>);
   expect(screen.getByPlaceholderText("Form title")).toBeTruthy();

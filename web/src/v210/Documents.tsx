@@ -12,7 +12,7 @@ const views = [
   { id: "REVIEW_HISTORY", label: "Assessment review history" },
 ] as const;
 type View = typeof views[number]["id"];
-type DocumentRoute = { view: View; search: string; fileKind: FileKind | ""; layout: "list" | "grid"; formId: string };
+type DocumentRoute = { view: View; search: string; fileKind: FileKind | ""; layout: "list" | "grid"; formId: string; relationshipId: string; responseId: string; returnTo: string; invalidScope: boolean };
 const searchTooLong = (value: string) => new TextEncoder().encode(value.trim()).length > 200;
 const searchLengthError = "Search is too long. Shorten the document name.";
 
@@ -20,12 +20,22 @@ function readDocumentRoute(): DocumentRoute {
   const params = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
   const requestedView = params.get("view");
   const requestedKind = params.get("kind");
+  const relationships = params.getAll("relationship_id"), responses = params.getAll("response_revision_id");
+  const validID = (value: string) => /^[A-Za-z0-9_-]{1,200}$/.test(value);
+  const invalidScope = relationships.length > 1 || responses.length > 1 || (relationships.length > 0 && responses.length > 0) || (relationships.length === 1 && !validID(relationships[0]!)) || (responses.length === 1 && !validID(responses[0]!));
+  const relationshipId = relationships[0] ?? "", responseId = responses[0] ?? "";
+  const requestedReturn = params.getAll("return_to");
+  const vendorBase = `#/vendors/${encodeURIComponent(relationshipId)}`;
+  const responseBase = `#/forms/responses/${encodeURIComponent(responseId)}`;
+  const responseReturn = requestedReturn.length === 1 && requestedReturn[0]!.startsWith(`${responseBase}?distribution_id=`) && validID(requestedReturn[0]!.slice(`${responseBase}?distribution_id=`.length)) ? requestedReturn[0]! : responseBase;
+  const returnTo = relationshipId && requestedReturn.length === 1 && (requestedReturn[0] === vendorBase || (requestedReturn[0]!.startsWith(`${vendorBase}/assessments/`) && validID(requestedReturn[0]!.slice(`${vendorBase}/assessments/`.length)))) ? requestedReturn[0]! : responseId ? responseReturn : relationshipId ? vendorBase : "";
   return {
     view: views.some((item) => item.id === requestedView) ? requestedView as View : "ALL",
     search: params.get("q") ?? "",
     fileKind: ["PDF", "IMAGE", "WORD", "SPREADSHEET", "OTHER"].includes(requestedKind ?? "") ? requestedKind as FileKind : "",
     layout: params.get("layout") === "grid" ? "grid" : "list",
     formId: (params.get("form") ?? "").slice(0, 200),
+    relationshipId, responseId, returnTo, invalidScope,
   };
 }
 
@@ -37,11 +47,15 @@ function rememberDocumentRoute(change: Partial<DocumentRoute>) {
   if (route.fileKind) params.set("kind", route.fileKind);
   if (route.layout !== "list") params.set("layout", route.layout);
   if (route.formId) params.set("form", route.formId);
+  if (route.relationshipId) params.set("relationship_id", route.relationshipId);
+  if (route.responseId) params.set("response_revision_id", route.responseId);
+  if (route.returnTo) params.set("return_to", route.returnTo);
   window.history.replaceState(window.history.state, "", `#/documents${params.size ? `?${params}` : ""}`);
 }
 
 export function Documents() {
   const [initialRoute] = useState(readDocumentRoute);
+  const [recordScope, setRecordScope] = useState(() => ({ relationshipId: initialRoute.relationshipId, responseId: initialRoute.responseId, returnTo: initialRoute.returnTo, invalid: initialRoute.invalidScope }));
   const [view, setView] = useState<View>(initialRoute.view);
   const [layout, setLayout] = useState<"list" | "grid">(initialRoute.layout);
   const [draft, setDraft] = useState(initialRoute.search);
@@ -57,6 +71,9 @@ export function Documents() {
   const [items, setItems] = useState<DocumentOccurrence[]>([]);
   const [cursor, setCursor] = useState<string>();
   const [state, setState] = useState<"loading" | "ready" | "error" | "invalid">("loading");
+  const scopeKey = JSON.stringify([recordScope.relationshipId, recordScope.responseId]);
+  const [loadedScopeKey, setLoadedScopeKey] = useState("");
+  const visibleState = state === "ready" && loadedScopeKey !== scopeKey ? "loading" : state;
   const [moreBusy, setMoreBusy] = useState(false);
   const [moreError, setMoreError] = useState(false);
   const [downloadBusy, setDownloadBusy] = useState("");
@@ -64,7 +81,8 @@ export function Documents() {
   const [attempt, setAttempt] = useState(0);
   const generation = useRef(0);
   const moreLock = useRef<number | null>(null);
-  const query: DocumentQuery = { query: search || undefined, file_kind: fileKind || undefined, form_template_id: formScope?.id, view: view === "ALL" ? undefined : view, current_only: view === "ALL" || view === "REVIEW_HISTORY" ? false : undefined, limit: 25 };
+  const query: DocumentQuery = { query: search || undefined, file_kind: fileKind || undefined, form_template_id: formScope?.id, relationship_id: recordScope.relationshipId || undefined, response_revision_id: recordScope.responseId || undefined, view: view === "ALL" ? undefined : view, current_only: view === "ALL" || view === "REVIEW_HISTORY" ? false : undefined, limit: 25 };
+  const matchesScope = (page: { items: DocumentOccurrence[] }) => Array.isArray(page.items) && page.items.every((item) => (!recordScope.relationshipId || item.relationship_id === recordScope.relationshipId) && (!recordScope.responseId || item.response_revision_id === recordScope.responseId));
 
   useEffect(() => { if (focusScope.current && formScope) { focusScope.current = false; scopeButton.current?.focus(); } }, [formScope]);
 
@@ -73,6 +91,7 @@ export function Documents() {
       if (!window.location.hash.match(/^#\/?documents(?:\?|$)/)) return;
       const route = readDocumentRoute();
       setView(route.view); setDraft(route.search); setSearch(route.search); setFileKind(route.fileKind); setLayout(route.layout); setFormScope(route.formId ? { id: route.formId, name: "Selected form" } : undefined);
+      setRecordScope({ relationshipId: route.relationshipId, responseId: route.responseId, returnTo: route.returnTo, invalid: route.invalidScope });
       setSearchError(searchTooLong(route.search) ? searchLengthError : "");
     };
     window.addEventListener("popstate", restore);
@@ -84,19 +103,19 @@ export function Documents() {
     const controller = new AbortController();
     const token = ++generation.current;
     moreLock.current = null;
-    if (searchTooLong(search)) { setState("invalid"); setItems([]); setSelected(undefined); setCursor(undefined); return () => { controller.abort(); generation.current++; }; }
+    if (recordScope.invalid || searchTooLong(search)) { setState("invalid"); setItems([]); setSelected(undefined); setCursor(undefined); return () => { controller.abort(); generation.current++; }; }
     setState("loading"); setItems([]); setSelected(undefined); setCursor(undefined); setMoreError(false); setMoreBusy(false);
     loadDocuments(query, controller.signal).then((page) => {
-      if (generation.current === token) { setItems(page.items); setCursor(page.next_cursor); setState("ready"); setFormScope((current) => { const match = current && page.items.find((item) => item.form_template_id === current.id && item.form_title); return match ? { ...current!, name: match.form_title } : current; }); }
+      if (generation.current === token) { if (!matchesScope(page)) { setState("error"); return; } setItems(page.items); setCursor(page.next_cursor); setLoadedScopeKey(scopeKey); setState("ready"); setFormScope((current) => { const match = current && page.items.find((item) => item.form_template_id === current.id && item.form_title); return match ? { ...current!, name: match.form_title } : current; }); }
     }).catch(() => { if (generation.current === token && !controller.signal.aborted) setState("error"); });
     return () => { controller.abort(); generation.current++; };
-  }, [view, search, fileKind, formScope?.id, attempt]);
+  }, [view, search, fileKind, formScope?.id, recordScope.relationshipId, recordScope.responseId, recordScope.invalid, attempt]);
 
   async function more() {
     if (!cursor || moreBusy || moreLock.current !== null) return;
     const token = generation.current;
     moreLock.current = token; setMoreBusy(true); setMoreError(false);
-    try { const page = await loadDocuments({ ...query, cursor }); if (generation.current === token) { if (page.next_cursor === cursor) { setMoreError(true); return; } setItems((previous) => [...previous, ...page.items]); setCursor(page.next_cursor); } }
+    try { const page = await loadDocuments({ ...query, cursor }); if (generation.current === token) { if (!matchesScope(page)) { setItems([]); setSelected(undefined); setCursor(undefined); setState("error"); return; } if (page.next_cursor === cursor) { setMoreError(true); return; } setItems((previous) => [...previous, ...page.items]); setCursor(page.next_cursor); } }
     catch (error) {
       if (generation.current === token) {
         if (["unauthorized", "forbidden"].includes(apiErrorKind(error))) {
@@ -136,15 +155,18 @@ export function Documents() {
     setDraft(""); setSearch(""); setFileKind(""); setView("ALL"); rememberDocumentRoute({ search: "", fileKind: "", view: "ALL", formId: file.form_template_id });
     setFormScope({ id: file.form_template_id, name: file.form_title || "Name unavailable" }); setSelected(undefined);
   }
+  if (recordScope.invalid) return <section className="v-documents"><h1>Documents</h1><p role="alert">Document scope unavailable. Check the link.</p></section>;
   return <section className="v-documents"><header className="v-page-heading"><div><p className="v-eyebrow">Documents</p><h1>Documents</h1></div></header>
+    {recordScope.returnTo && <p><a href={recordScope.returnTo}>← {recordScope.relationshipId ? "Vendor" : "Response"}</a></p>}
+    {(recordScope.relationshipId || recordScope.responseId) && <p>{recordScope.relationshipId ? "Vendor documents" : "Response documents"}</p>}
     <nav className="v-local-nav" aria-label="Document views">{views.map((option) => <button type="button" key={option.id} aria-current={view === option.id ? "page" : undefined} onClick={() => { setView(option.id); rememberDocumentRoute({ view: option.id }); }}>{option.label}</button>)}</nav>
     <div className="v-documents-filters"><form className="v-program-search" onSubmit={submit}><label htmlFor="v-document-search">Find a document</label><div><input id="v-document-search" value={draft} maxLength={200} aria-invalid={Boolean(searchError)} aria-describedby={searchError ? "v-document-search-error" : undefined} onChange={(event) => { setDraft(event.target.value); setSearchError(""); }} placeholder="Document name"/><button>Search</button></div></form><label className="v-document-kind">File type<select value={fileKind} onChange={(event) => { const value = event.target.value as FileKind | ""; setFileKind(value); rememberDocumentRoute({ fileKind: value }); }}><option value="">All types</option><option value="PDF">PDF</option><option value="IMAGE">Images</option><option value="WORD">Word documents</option><option value="SPREADSHEET">Spreadsheets</option><option value="OTHER">Other</option></select></label></div>
     {searchError && <p id="v-document-search-error" role="alert">{searchError}</p>}
     {formScope && <div className="v-document-scope"><span>Form: {formScope.name}</span><button ref={scopeButton} type="button" onClick={() => { setFormScope(undefined); rememberDocumentRoute({ formId: "" }); }}>Clear form filter</button></div>}
-    {state === "loading" && <p role="status">Loading documents…</p>}
+    {visibleState === "loading" && <p role="status">Loading documents…</p>}
     {state === "error" && <div className="v-panel"><p role="alert">Documents unavailable.</p><button onClick={() => setAttempt(attempt + 1)}>Try again</button></div>}
     {downloadError && <p role="alert">{downloadError}</p>}
-    {state === "ready" && <div className={`v-documents-content${selected ? " has-selection" : ""}`}><section className="v-panel v-document-list" aria-label={views.find((item) => item.id === view)?.label}>
+    {visibleState === "ready" && <div className={`v-documents-content${selected ? " has-selection" : ""}`}><section className="v-panel v-document-list" aria-label={views.find((item) => item.id === view)?.label}>
       <div className="v-document-toolbar"><h2>{views.find((item) => item.id === view)?.label}</h2><div className="v-document-layout" role="group" aria-label="Document layout"><button type="button" aria-pressed={layout === "list"} onClick={() => { setLayout("list"); rememberDocumentRoute({ layout: "list" }); }}>List view</button><button type="button" aria-pressed={layout === "grid"} onClick={() => { setLayout("grid"); rememberDocumentRoute({ layout: "grid" }); }}>Grid view</button></div></div>
       {items.length === 0 ? <p>No documents match this view.</p> : <ul className={`v-attention v-document-items is-${layout}`}>{items.map((file) => <li key={file.id} className={selected?.id === file.id ? "is-selected" : undefined}><div><span className="v-document-file-kind" aria-hidden="true">{file.file_kind === "PDF" ? "PDF" : file.file_kind === "IMAGE" ? "IMG" : file.file_kind === "WORD" ? "DOC" : file.file_kind === "SPREADSHEET" ? "XLS" : "FILE"}</span><button type="button" className="v-document-name" aria-label={`Open ${file.file_name}`} aria-pressed={selected?.id === file.id} onClick={(event) => openDocument(file, event.currentTarget)}>{file.file_name}</button><small>{file.form_title} · {file.current ? "Latest submission" : "Earlier submission"}</small><small>Submitted {formatDate(file.submitted_at)}{file.expires_on ? ` · Expires ${formatDate(file.expires_on)}` : ""}</small>{file.artifact_status === "STORED_UNSCANNED" && file.demo_unscanned_allowed && <small>Demo file. No antivirus scan was performed.</small>}</div><div className="v-document-row-actions"><button type="button" aria-label={`View details ${file.file_name}`} onClick={(event) => openDocument(file, event.currentTarget)}>Details</button>{canDownload(file) ? <button type="button" disabled={Boolean(downloadBusy)} onClick={() => void download(file)}>{downloadBusy === file.id ? "Downloading…" : "Download"}</button> : <span className="v-status">File unavailable</span>}</div></li>)}</ul>}
       {moreError && <p role="alert">More documents unavailable.</p>}{cursor && <button disabled={moreBusy} onClick={() => void more()}>{moreBusy ? "Loading…" : "Load more"}</button>}

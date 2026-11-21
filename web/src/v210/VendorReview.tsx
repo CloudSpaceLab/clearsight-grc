@@ -10,6 +10,7 @@ import { VendorDocuments } from "./VendorDocuments";
 import { VendorActivation } from "./VendorActivation";
 import { VendorFindings } from "./VendorFindings";
 import { VendorCollection } from "./VendorCollection";
+import { scopedDocumentsHref } from "./documentReturn";
 import "./vendor-review.css";
 
 type LoadState = "loading" | "ready" | "error";
@@ -85,7 +86,8 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
     } catch { setUncertain(true); } finally { setupLock.current = false; setBusy(false); }
   }
 
-  return <section className="v-vendor-review"><fieldset className="v-vendor-review-content" disabled={collectionPending} onClickCapture={(event) => { if (collectionPending) { event.preventDefault(); event.stopPropagation(); } }} onSubmitCapture={(event) => { if (collectionPending) { event.preventDefault(); event.stopPropagation(); } }}><button className="v-back v-back-button" onClick={onBack}>← {backLabel}</button><header className="v-page-heading"><div><p className="v-eyebrow">Vendor relationship</p><h1>{relationship.vendor.legal_name}</h1><p>{relationship.relationship.service_name}</p></div><span className="v-status">{label(relationship.relationship.status)}</span></header>
+  const documentHref = scopedDocumentsHref("vendor", relationship.relationship.id, assessmentId);
+  return <section className="v-vendor-review"><fieldset className="v-vendor-review-content" disabled={collectionPending} onClickCapture={(event) => { if (collectionPending) { event.preventDefault(); event.stopPropagation(); } }} onSubmitCapture={(event) => { if (collectionPending) { event.preventDefault(); event.stopPropagation(); } }}><button className="v-back v-back-button" onClick={onBack}>← {backLabel}</button><header className="v-page-heading"><div><p className="v-eyebrow">Vendor relationship</p><h1>{relationship.vendor.legal_name}</h1><p>{relationship.relationship.service_name}</p>{documentHref && <a href={documentHref}>View vendor documents</a>}</div><span className="v-status">{label(relationship.relationship.status)}</span></header>
     <nav className="v-local-nav" aria-label="Vendor sections"><span aria-current="page">Due diligence</span></nav>
     {state === "loading" && <p role="status">Loading assessment…</p>}
     {state === "error" && <div className="v-panel"><p role="alert">Assessment unavailable.</p><button onClick={reload}>Try again</button></div>}

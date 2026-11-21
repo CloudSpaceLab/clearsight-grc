@@ -9,6 +9,79 @@ vi.mock("../http", () => http);
 
 beforeEach(() => { vi.clearAllMocks(); window.history.replaceState(null, "", "#/documents"); documents.documentContentURL.mockReturnValue("/protected/document"); });
 
+it.each([
+  ["relationship_id", "relationship-1", "Vendor"],
+  ["response_revision_id", "response-1", "Response"],
+])("keeps the exact %s scope when filtering and loading another page", async (key, id, label) => {
+  window.history.replaceState(null, "", `#/documents?${key}=${id}`);
+  const file = { id: "1", file_name: "Scoped.pdf", form_title: "Review", current: true, artifact_status: "AVAILABLE", [key]: id };
+  documents.loadDocuments.mockResolvedValueOnce({ items: [file], next_cursor: "next" }).mockResolvedValueOnce({ items: [], next_cursor: undefined }).mockResolvedValue({ items: [] });
+  render(<Documents/>);
+  expect(await screen.findByText(`${label} documents`)).toBeTruthy();
+  expect(documents.loadDocuments).toHaveBeenCalledWith(expect.objectContaining({ [key]: id }), expect.any(AbortSignal));
+  fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+  await vi.waitFor(() => expect(documents.loadDocuments).toHaveBeenCalledWith(expect.objectContaining({ [key]: id, cursor: "next" })));
+  fireEvent.change(screen.getByLabelText("File type"), { target: { value: "PDF" } });
+  await vi.waitFor(() => expect(documents.loadDocuments).toHaveBeenLastCalledWith(expect.objectContaining({ [key]: id, file_kind: "PDF" }), expect.any(AbortSignal)));
+  expect(window.location.hash).toContain(`${key}=${id}`);
+});
+
+it.each(["relationship_id=one&relationship_id=two", "response_revision_id=", "relationship_id=one&response_revision_id=two"])("rejects invalid document scope %s without loading all documents", async (query) => {
+  window.history.replaceState(null, "", `#/documents?${query}`);
+  render(<Documents/>);
+  expect(await screen.findByRole("alert")).toBeTruthy();
+  expect(documents.loadDocuments).not.toHaveBeenCalled();
+});
+
+it("clears scoped documents when a later page contains a different relationship", async () => {
+  window.history.replaceState(null, "", "#/documents?relationship_id=relationship-1");
+  const file = { id: "1", file_name: "Scoped.pdf", form_title: "Review", current: true, artifact_status: "AVAILABLE", relationship_id: "relationship-1" };
+  documents.loadDocuments.mockResolvedValueOnce({ items: [file], next_cursor: "next" }).mockResolvedValueOnce({ items: [{ ...file, id: "2", relationship_id: "relationship-2" }] });
+  render(<Documents/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Open Scoped.pdf" }));
+  fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+  expect(await screen.findByText("Documents unavailable.")).toBeTruthy();
+  expect(screen.queryByText("Scoped.pdf")).toBeNull();
+});
+
+it("rejects a mismatched response page and does not show its contents", async () => {
+  window.history.replaceState(null, "", "#/documents?response_revision_id=revision-1");
+  documents.loadDocuments.mockResolvedValue({ items: [{ id: "1", file_name: "Other.pdf", response_revision_id: "revision-2" }] });
+  render(<Documents/>);
+  expect(await screen.findByText("Documents unavailable.")).toBeTruthy();
+  expect(screen.queryByText("Other.pdf")).toBeNull();
+});
+
+it("allows only the matching vendor assessment as a return destination", async () => {
+  documents.loadDocuments.mockResolvedValue({ items: [] });
+  window.history.replaceState(null, "", `#/documents?relationship_id=rel-1&return_to=${encodeURIComponent("#/vendors/rel-2/assessments/assess-1")}`);
+  render(<Documents/>);
+  expect((await screen.findByRole("link", { name: "← Vendor" })).getAttribute("href")).toBe("#/vendors/rel-1");
+  const valid = "#/vendors/rel-1/assessments/assess-1";
+  window.history.replaceState(null, "", `#/documents?relationship_id=rel-1&return_to=${encodeURIComponent(valid)}`);
+  fireEvent(window, new PopStateEvent("popstate"));
+  await vi.waitFor(() => expect(screen.getByRole("link", { name: "← Vendor" }).getAttribute("href")).toBe(valid));
+});
+
+it("preserves the response distribution when returning to a scoped response", async () => {
+  const destination = "#/forms/responses/revision-1?distribution_id=distribution-1";
+  window.history.replaceState(null, "", `#/documents?response_revision_id=revision-1&return_to=${encodeURIComponent(destination)}`);
+  documents.loadDocuments.mockResolvedValue({ items: [] });
+  render(<Documents/>);
+  expect((await screen.findByRole("link", { name: "← Response" })).getAttribute("href")).toBe(destination);
+});
+
+it("hides a previous vendor's documents immediately when the scope changes", async () => {
+  window.history.replaceState(null, "", "#/documents?relationship_id=rel-1");
+  documents.loadDocuments.mockResolvedValueOnce({ items: [{ id: "1", file_name: "First.pdf", form_title: "Review", relationship_id: "rel-1", current: true, artifact_status: "AVAILABLE" }] }).mockReturnValueOnce(new Promise(() => {}));
+  render(<Documents/>);
+  expect(await screen.findByRole("button", { name: "Open First.pdf" })).toBeTruthy();
+  window.history.replaceState(null, "", "#/documents?relationship_id=rel-2");
+  fireEvent(window, new PopStateEvent("popstate"));
+  expect(screen.queryByText("First.pdf")).toBeNull();
+  await vi.waitFor(() => expect(documents.loadDocuments).toHaveBeenLastCalledWith(expect.objectContaining({ relationship_id: "rel-2" }), expect.any(AbortSignal)));
+});
+
 it("clears the document list and selected detail when access is revoked during pagination", async () => {
   documents.loadDocuments.mockResolvedValueOnce({ items: [{ id: "1", file_name: "Report.pdf", form_title: "Review", current: true, submitted_at: "2026-11-20", artifact_status: "AVAILABLE" }], next_cursor: "next" }).mockRejectedValueOnce(new Error("forbidden"));
   http.apiErrorKind.mockReturnValueOnce("forbidden");

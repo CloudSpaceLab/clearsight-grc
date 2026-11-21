@@ -1,0 +1,23 @@
+{
+  "fixture": "SYNTHETIC_NOT_BACKEND_AUTHORIZATION",
+  "results": [
+    {
+      "width": 1440,
+      "vendorScope": true,
+      "responseScope": true,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "vendorScope": true,
+      "responseScope": true,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "vendorScope": true,
+      "responseScope": true,
+      "overflow": false
+    }
+  ]
+}

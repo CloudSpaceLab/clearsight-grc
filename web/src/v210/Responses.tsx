@@ -4,7 +4,7 @@ import { loadResponseReviews, recordResponseReview, type ResponseReviewDecision,
 import type { CaptureAnswerValue } from "../types";
 import { documentContentURL, loadDocuments } from "../submittedDocumentApi";
 import { apiErrorKind } from "../http";
-import { documentReturnDestination } from "./documentReturn";
+import { documentReturnDestination, scopedDocumentsHref } from "./documentReturn";
 import "./responses.css";
 
 export function Responses({ id }: { id?: string }) {
@@ -98,10 +98,12 @@ function ResponseDetail({ id }: { id: string }) {
   const commentTooLong = new TextEncoder().encode(comment.trim()).length > 4000;
   const returnToDocuments = documentReturnDestination();
   const previousHref = revision.supersedes_revision_id ? previousResponseHref(revision.supersedes_revision_id, response.distribution_id) : undefined;
+  const documentHref = scopedDocumentsHref("response", id, undefined, response.distribution_id || undefined);
   return <section className="v-responses"><a className="v-back" href={returnToDocuments ?? "#/forms/responses"}>{returnToDocuments ? "← Documents" : "← Responses"}</a><header className="v-page-heading"><div><p className="v-eyebrow">Response · Version {response.revision}</p><h1>{response.title}</h1></div><span className="v-status">{isCurrent ? "Current response" : "Earlier response"}</span></header>
     <div className="v-response-meta"><span>Submitted by <strong>{submitter(response)}</strong></span>{response.submission_recipient?.label && <span><span>Access recipient</span> <strong>{response.submission_recipient.label}</strong></span>}<span>Submitted <strong>{timestampLabel(response.completed_at)}</strong></span><span>Form version <strong>{response.form_template_version}</strong></span></div>
     {response.submission_recipient?.label && <p>Access recipient does not confirm who submitted the response.</p>}
     {revision.supersedes_revision_id && <p>{previousHref ? <a href={previousHref}>Previous response</a> : "Earlier response unavailable."}</p>}
+    {documentHref && <p><a href={documentHref}>View response documents</a></p>}
     <section className="v-panel v-response-answers"><h2>Answers</h2>{!answers ? <p role="alert">Answers unavailable. Reload before reviewing.</p> : answers.length === 0 ? <p>No answers recorded.</p> : <dl>{answers.map(({ field_id, label, type, value }) => <div key={field_id}><dt>{label}</dt><dd>{answerLabel(type, value)}{value?.document && <span className="v-answer-document">{value.document.document_type && <span>Type: {value.document.document_type}</span>}{value.document.reference && <span>Reference: {value.document.reference}</span>}{value.document.issued_by && <span>Issued by: {value.document.issued_by}</span>}{value.document.issued_on && <span>Issued: {dateLabel(value.document.issued_on)}</span>}{value.document.expires_on && <span>Expires: {dateLabel(value.document.expires_on)}</span>}</span>}</dd></div>)}</dl>}</section>
     <section className="v-panel v-response-documents"><h2>Documents</h2>{!documents ? <p role="alert">Documents unavailable. Reload before reviewing.</p> : documents.length === 0 && !documentsNext ? <p>No documents submitted.</p> : <ul>{documents.map((document) => <li key={document.id}><span>{document.file_name}</span>{document.artifact_status === "AVAILABLE" || (document.artifact_status === "STORED_UNSCANNED" && document.demo_unscanned_allowed) ? <a href={documentContentURL(document, true)}>Download</a> : <small>File unavailable</small>}</li>)}</ul>}{documentsNext && <><p>More documents must be loaded before review.</p>{documentsError && <p role="alert">Additional documents unavailable.</p>}<button disabled={documentsBusy} onClick={() => void moreDocuments()}>{documentsBusy ? "Loading…" : "Load more documents"}</button></>}</section>
     <section className="v-panel v-response-review"><h2>Review</h2>{!review ? <><p role="alert">Review unavailable.</p><button onClick={() => setAttempt(attempt + 1)}>Reload response</button></> : <>

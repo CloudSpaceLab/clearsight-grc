@@ -16,3 +16,15 @@ export function preserveDocumentReturn(target: string): string {
   const destination = documentReturnDestination();
   return destination ? `${target}?${new URLSearchParams({ return_to: destination })}` : target;
 }
+
+export function scopedDocumentsHref(kind: "vendor" | "response", id: string, assessmentId?: string, distributionId?: string): string | undefined {
+  const valid = (value: string) => /^[A-Za-z0-9_-]{1,200}$/.test(value);
+  if (!valid(id) || (assessmentId !== undefined && !valid(assessmentId)) || (distributionId !== undefined && !valid(distributionId))) return undefined;
+  const params = new URLSearchParams();
+  if (kind === "response") { params.set("response_revision_id", id); if (distributionId) params.set("return_to", `#/forms/responses/${encodeURIComponent(id)}?distribution_id=${encodeURIComponent(distributionId)}`); }
+  else {
+    params.set("relationship_id", id);
+    params.set("return_to", `#/vendors/${encodeURIComponent(id)}${assessmentId ? `/assessments/${encodeURIComponent(assessmentId)}` : ""}`);
+  }
+  return `#/documents?${params}`;
+}
