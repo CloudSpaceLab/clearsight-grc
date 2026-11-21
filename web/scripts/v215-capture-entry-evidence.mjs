@@ -42,6 +42,31 @@ try {
     await page.screenshot({ path: path.join(output, `verification-failed-${width}.png`), fullPage: true });
     results.push({ width, overflow: false, retry: true, masked_recipient: true });
     await page.close();
+    const conflict = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
+    let reads = 0;
+    await conflict.route('**/api/v1/evidence/**', async route => {
+      const endpoint = new URL(route.request().url()).pathname;
+      if (endpoint.endsWith('/access/start')) return route.fulfill({ json: { policy: 'DIRECT_MAGIC_LINK', expires_at: '2027-01-01T00:00:00Z' } });
+      if (endpoint.endsWith('/access/redeem')) return route.fulfill({ json: { session_id: 's', session_token: 'sample-session', request_id: 'r', distribution_id: 'd', assurance: 'LINK_POSSESSION' } });
+      if (endpoint.endsWith('/workspace/submissions')) return route.fulfill({ status: 409, json: { error: 'workspace_conflict', message: 'Response changed' } });
+      if (endpoint.endsWith('/session/workspace')) {
+        reads++;
+        return route.fulfill({ json: { session: { id: 's', request_id: 'r', distribution_id: 'd', assurance: 'LINK_POSSESSION' }, request: { id: 'r', status: 'READY', title: 'Sample access review', fields: [{ id: 'q', label: 'Is access reviewed?', type: 'yes_no', required: true }] }, workspace: { workspace: { id: 'w', distribution_id: 'd', status: 'OPEN', version: reads === 1 ? 3 : 4 }, answers: { q: { text: reads === 1 ? 'Yes' : 'No' } }, field_sequences: { q: reads }, presentation_mode: 'AUTOMATIC' } } });
+      }
+      return route.fulfill({ status: 404, json: { error: 'not_found' } });
+    });
+    await conflict.goto(`${process.env.PAGE_URL ?? 'http://127.0.0.1:43117/'}#form_access=sample-invitation`, { waitUntil: 'domcontentloaded' });
+    await conflict.getByRole('button', { name: 'Open request' }).click();
+    await conflict.getByRole('button', { name: 'Submit response' }).click();
+    await conflict.getByRole('button', { name: 'Compare answers' }).click();
+    await conflict.getByLabel('Keep your answer: Yes').waitFor();
+    assert.equal(await conflict.getByLabel('Use latest answer: No').count(), 1);
+    const firstChoice = await conflict.getByLabel('Keep your answer: Yes').locator('..').boundingBox();
+    const secondChoice = await conflict.getByLabel('Use latest answer: No').locator('..').boundingBox();
+    assert.ok(firstChoice && secondChoice && firstChoice.height >= 44 && secondChoice.height >= 44 && firstChoice.y + firstChoice.height <= secondChoice.y);
+    assert.equal(await conflict.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await conflict.screenshot({ path: path.join(output, `conflict-${width}.png`), fullPage: true });
+    await conflict.close();
   }
   await writeFile(path.join(output, 'results.json'), JSON.stringify({ fixture: 'SYNTHETIC_NOT_BACKEND_AUTHORIZATION', results }, null, 2));
   console.log(`Capture entry verified at ${results.length} widths.`);

@@ -64,7 +64,7 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 	}
 	workService.ConfigureRelationshipReader(relationships)
 	distributions.ConfigureDocumentContexts(thirdparty.DocumentContextReader{Work: workService})
-	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory", Identity: identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"), ThirdPartyWork: workService, FormDistributions: distributions})
+	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory", Identity: identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"), ThirdPartyWork: workService, FormDistributions: distributions, FormDistributionAccess: access})
 	due := time.Now().UTC().Add(48 * time.Hour).Format(time.RFC3339)
 	body := `{"relationship_link_id":"` + link.ID + `","request_kind":"CERTIFICATION_REFRESH","purpose":"Collect current certification evidence for this Program.","instructions":"Provide the current ISO 27001 and PCI DSS evidence that applies to this service.","form_template_id":"form-1","form_template_version":1,"presentation":"WIZARD","vendor_audience":"security@vendor.example","due_at":"` + due + `"}`
 	response := httptest.NewRecorder()
@@ -119,6 +119,39 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 	verified, err := access.VerifyOTP(context.Background(), selector, challenge.ChallengeID, otp.code)
 	if err != nil {
 		t.Fatal(err)
+	}
+	// Public OTP failures deliberately do not distinguish wrong, exhausted,
+	// consumed, or unavailable challenges. The old static UI fixture emitted
+	// distinct codes that the production handler never returns.
+	verify := func(challengeID, code string) *httptest.ResponseRecorder {
+		body, marshalErr := json.Marshal(map[string]string{"route_selector": selector, "challenge_id": challengeID, "code": code})
+		if marshalErr != nil {
+			t.Fatal(marshalErr)
+		}
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/v1/evidence/access/otp/verify", bytes.NewReader(body)))
+		return w
+	}
+	replayed := verify(challenge.ChallengeID, otp.code)
+	fresh, err := access.SendOTP(context.Background(), selector, start.Recipients[0].SelectorID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	correct := otp.code
+	wrong := "000000"
+	if wrong == correct {
+		wrong = "999999"
+	}
+	var wrongResponse *httptest.ResponseRecorder
+	for attempt := 0; attempt < evidence.OTPMaxAttempts; attempt++ {
+		wrongResponse = verify(fresh.ChallengeID, wrong)
+	}
+	exhausted := verify(fresh.ChallengeID, correct)
+	unknown := verify("missing-challenge", correct)
+	for name, result := range map[string]*httptest.ResponseRecorder{"wrong": wrongResponse, "exhausted": exhausted, "unknown": unknown, "consumed": replayed} {
+		if result.Code != http.StatusUnauthorized || result.Body.String() != replayed.Body.String() || result.Header().Get("Cache-Control") != "no-store" || !strings.Contains(result.Body.String(), "form_access_failed") {
+			t.Fatalf("%s response differs: status=%d body=%s headers=%v", name, result.Code, result.Body.String(), result.Header())
+		}
 	}
 	workspace, err := access.GetResponseWorkspace(context.Background(), verified.SessionToken)
 	if err != nil {

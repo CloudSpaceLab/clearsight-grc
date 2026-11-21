@@ -233,6 +233,64 @@ func TestDistributionAccessDirectEmailOTPCreatesOneBoundRoutePerExternalTO(t *te
 	}
 }
 
+func TestDistributionAccessOTPFailureContractAndRecovery(t *testing.T) {
+	for _, scenario := range []string{"wrong", "expired", "attempts exhausted"} {
+		t.Run(scenario, func(t *testing.T) {
+			fixture := newMemoryAccessFixture(t, AccessDirectEmailOTP, []DistributionRecipientInput{{Role: RecipientTo, Type: RecipientExternalAudience, Address: "alpha@example.test", AudienceHint: "a***@example.test"}})
+			ctx := context.Background()
+			routes, err := fixture.access.IssueDistributionAccessRoutes(ctx, "tenant-a", "entity-a", fixture.distribution.ID, "actor-a")
+			if err != nil || len(routes) != 1 {
+				t.Fatalf("issue routes: %v %#v", err, routes)
+			}
+			start, err := fixture.access.StartDistributionAccess(ctx, routes[0].Selector)
+			if err != nil || len(start.Recipients) != 1 {
+				t.Fatalf("start: %v %#v", err, start)
+			}
+			selector := start.Recipients[0].SelectorID
+			receipt, err := fixture.access.SendOTP(ctx, routes[0].Selector, selector)
+			if err != nil {
+				t.Fatal(err)
+			}
+			correct := fixture.delivery.values[len(fixture.delivery.values)-1].Code
+			wrong := "000000"
+			if wrong == correct {
+				wrong = "999999"
+			}
+			if scenario == "expired" {
+				*fixture.now = fixture.now.Add(OTPValidity + time.Second)
+			}
+			if scenario == "attempts exhausted" {
+				for i := 0; i < OTPMaxAttempts; i++ {
+					if _, err := fixture.access.VerifyOTP(ctx, routes[0].Selector, receipt.ChallengeID, wrong); !errors.Is(err, ErrAccessVerificationFailed) {
+						t.Fatalf("wrong attempt %d: %v", i, err)
+					}
+				}
+			}
+			code := correct
+			if scenario == "wrong" {
+				code = wrong
+			}
+			if _, err := fixture.access.VerifyOTP(ctx, routes[0].Selector, receipt.ChallengeID, code); !errors.Is(err, ErrAccessVerificationFailed) {
+				t.Fatalf("failure was distinguishable: %v", err)
+			}
+			if scenario == "attempts exhausted" {
+				if _, err := fixture.access.SendOTP(ctx, routes[0].Selector, selector); !errors.Is(err, ErrAccessVerificationFailed) {
+					t.Fatalf("exhausted code was replaced before expiration: %v", err)
+				}
+				*fixture.now = fixture.now.Add(OTPValidity + time.Second)
+			}
+			fresh, err := fixture.access.SendOTP(ctx, routes[0].Selector, selector)
+			if err != nil {
+				t.Fatalf("request another code: %v", err)
+			}
+			latest := fixture.delivery.values[len(fixture.delivery.values)-1].Code
+			if _, err := fixture.access.VerifyOTP(ctx, routes[0].Selector, fresh.ChallengeID, latest); err != nil {
+				t.Fatalf("verify replacement code: %v", err)
+			}
+		})
+	}
+}
+
 type memoryAccessFixture struct {
 	access        *DistributionAccessService
 	delivery      *recordingOTPDelivery

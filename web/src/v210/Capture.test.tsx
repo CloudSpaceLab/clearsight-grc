@@ -262,6 +262,48 @@ it("lets the respondent compare and keep a local answer after a save conflict", 
   await waitFor(() => expect(api.saveFormResponseWorkspace).toHaveBeenLastCalledWith("session-secret", expect.objectContaining({ expected_version: 4, edits: [{ field_id: "q", value: { text: "Yes" }, base_sequence: 2 }] })));
 });
 
+it("compares the saved answer with a newer answer after a submission conflict", async () => {
+  api.loadFormResponseWorkspace.mockResolvedValueOnce({ ...payload, workspace: { ...workspace, answers: { q: { text: "Yes" } }, field_sequences: { q: 1 } } }).mockResolvedValueOnce({ ...payload, workspace: { ...workspace, workspace: { ...workspace.workspace, version: 4 }, answers: { q: { text: "No" } }, field_sequences: { q: 2 } } });
+  api.submitFormResponseWorkspace.mockRejectedValueOnce(new ApiError(409, "Conflict", "workspace_conflict"));
+  render(<Capture invitationToken="invitation-secret"/>);
+  fireEvent.click(screen.getByRole("button", { name: "Open request" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Submit response" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Compare answers" }));
+  expect(await screen.findByLabelText("Keep your answer: Yes")).toBeTruthy();
+  expect(screen.getByLabelText("Use latest answer: No")).toBeTruthy();
+  fireEvent.click(screen.getByLabelText("Keep your answer: Yes"));
+  fireEvent.click(screen.getByRole("button", { name: "Apply choices" }));
+  expect((screen.getByLabelText("Is access reviewed?") as HTMLSelectElement).value).toBe("Yes");
+  expect(screen.getByRole("button", { name: "Save response" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Submit response" })).toBeNull();
+});
+
+it("can use the latest answer after a submission conflict without resaving the old one", async () => {
+  api.loadFormResponseWorkspace.mockResolvedValueOnce({ ...payload, workspace: { ...workspace, answers: { q: { text: "Yes" } }, field_sequences: { q: 1 } } }).mockResolvedValueOnce({ ...payload, workspace: { ...workspace, workspace: { ...workspace.workspace, version: 4 }, answers: { q: { text: "No" } }, field_sequences: { q: 2 } } });
+  api.submitFormResponseWorkspace.mockRejectedValueOnce(new ApiError(409, "Conflict", "workspace_conflict"));
+  render(<Capture invitationToken="invitation-secret"/>);
+  fireEvent.click(screen.getByRole("button", { name: "Open request" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Submit response" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Compare answers" }));
+  fireEvent.click(await screen.findByLabelText("Use latest answer: No"));
+  fireEvent.click(screen.getByRole("button", { name: "Apply choices" }));
+  expect((screen.getByLabelText("Is access reviewed?") as HTMLSelectElement).value).toBe("No");
+  expect(screen.queryByRole("button", { name: "Save response" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Submit response" })).toBeTruthy();
+});
+
+it("does not offer to choose between changed documents after a submission conflict", async () => {
+  const request = { ...payload.request, fields: [{ id: "q", type: "file", label: "Audit report", required: true }] };
+  api.loadFormResponseWorkspace.mockResolvedValueOnce({ ...payload, request, workspace: { ...workspace, answers: { q: { artifact_ids: ["old"] } }, field_sequences: { q: 1 } } }).mockResolvedValueOnce({ ...payload, request, workspace: { ...workspace, workspace: { ...workspace.workspace, version: 4 }, answers: { q: { artifact_ids: ["new"] } }, field_sequences: { q: 2 } } });
+  api.submitFormResponseWorkspace.mockRejectedValueOnce(new ApiError(409, "Conflict", "workspace_conflict"));
+  render(<Capture invitationToken="invitation-secret"/>);
+  fireEvent.click(screen.getByRole("button", { name: "Open request" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Submit response" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Compare answers" }));
+  expect(await screen.findByText("Document answers changed. Contact the requester before continuing.")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Apply choices" })).toBeNull();
+});
+
 it("distinguishes a definite submission conflict from an uncertain submission", async () => {
   api.loadFormResponseWorkspace.mockResolvedValue({ ...payload, workspace: { ...workspace, answers: { q: { text: "Yes" } } } });
   api.submitFormResponseWorkspace.mockRejectedValueOnce(new ApiError(409, "Changed"));
