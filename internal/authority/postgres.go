@@ -82,6 +82,20 @@ type batchResolveRequest struct {
 	ResolveInput
 }
 
+// PostgresCurrentRouteRequest encodes one validated exact route for the shared
+// statement-time CTEs. The caller must still bind verified actor and scope.
+func PostgresCurrentRouteRequest(input ResolveInput) ([]byte, error) {
+	if err := validateInput(input); err != nil {
+		return nil, err
+	}
+	for _, value := range []string{input.TenantID, input.LegalEntityID, input.ObjectType, input.ObjectID, string(input.Responsibility), input.DecisionType} {
+		if strings.TrimSpace(value) == "" || strings.TrimSpace(value) == "*" {
+			return nil, ErrInvalidInput
+		}
+	}
+	return json.Marshal([]batchResolveRequest{{RequestIndex: 0, ResolveInput: input}})
+}
+
 func (s *postgresService) ResolveMany(ctx context.Context, inputs []ResolveInput) ([]ResolveOutcome, error) {
 	outcomes, _, err := s.resolveMany(ctx, inputs, false)
 	return outcomes, err
@@ -205,10 +219,18 @@ func dereference(value *string) string {
 	return *value
 }
 
-var batchResolveSQL = `
+// PostgresCurrentRouteCTEs returns the shared route graph evaluated at the
+// current statement time. The caller supplies the bounded request JSON as $1
+// and must apply subject, identity and session checks in its own statement.
+func PostgresCurrentRouteCTEs() string {
+	return postgresRouteCTEs("statement_timestamp()")
+}
+
+func postgresRouteCTEs(atExpression string) string {
+	return `
 WITH RECURSIVE requests AS (
 	SELECT request_index,tenant_id,legal_entity_id,object_type,object_id,responsibility,
-	       COALESCE(decision_type,'') AS decision_type,materiality,CASE WHEN $2::boolean THEN statement_timestamp() ELSE at END AS at,
+	       COALESCE(decision_type,'') AS decision_type,materiality,` + atExpression + ` AS at,
 	       t.id AS tenant_uuid
 	FROM jsonb_to_recordset($1::jsonb) AS x(
 		request_index integer,tenant_id text,legal_entity_id text,object_type text,object_id text,
@@ -374,7 +396,10 @@ WITH RECURSIVE requests AS (
 	                    ` + authorityGrantLimitsSQL("ag", "r.materiality") + `
 	                    AND g.principal_id IN (c.principal_id,c.origin_id)))
 	  AND NOT EXISTS (SELECT 1 FROM blocked b WHERE b.request_index=c.request_index AND b.principal_id=c.principal_id)
-)
+)`
+}
+
+var batchResolveSQL = postgresRouteCTEs("CASE WHEN $2::boolean THEN statement_timestamp() ELSE at END") + `
 SELECT statement_timestamp(),s.request_index,s.source_id,s.rule_id,s.policy_version,s.resolution_strategy,s.priority,s.ambiguous,
 	   p.id::text,p.display_name,p.kind,CASE WHEN e.principal_id=e.origin_id THEN e.seed_role ELSE '' END AS role,e.origin_id::text,e.seed_role_code
 FROM selected s

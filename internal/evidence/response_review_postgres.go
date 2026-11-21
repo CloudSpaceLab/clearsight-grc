@@ -29,14 +29,14 @@ func (s *PostgresDistributionStore) ReadResponseReviews(ctx context.Context, ten
 	if err = tx.QueryRow(ctx, `SELECT COALESCE(max(version),0) FROM capture_response_reviews WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND response_revision_id=$3::uuid`, m.Summary.TenantID, entity, response).Scan(&latest); err != nil {
 		return assessmentMaterial{}, nil, 0, err
 	}
-	rows, err := tx.Query(ctx, `SELECT id::text,response_revision_id::text,response_revision,version,decision,comment,reviewer_id::text,authority_route,reviewed_at,COALESCE(supersedes_id::text,'') FROM capture_response_reviews WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND response_revision_id=$3::uuid AND ($4=0 OR version<$4) ORDER BY version DESC LIMIT $5`, m.Summary.TenantID, entity, response, before, limit)
+	rows, err := tx.Query(ctx, `SELECT id::text,response_revision_id::text,response_revision,version,decision,comment,reviewer_id::text,authority_route,reviewed_at,COALESCE(supersedes_id::text,''),COALESCE(authority_source_type,''),COALESCE(authority_source_id::text,''),COALESCE(authority_rule_id,''),COALESCE(authority_policy_version,'') FROM capture_response_reviews WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND response_revision_id=$3::uuid AND ($4=0 OR version<$4) ORDER BY version DESC LIMIT $5`, m.Summary.TenantID, entity, response, before, limit)
 	if err != nil {
 		return assessmentMaterial{}, nil, 0, err
 	}
 	items := make([]ResponseReview, 0, limit)
 	for rows.Next() {
 		var v ResponseReview
-		if err = rows.Scan(&v.ID, &v.ResponseID, &v.ResponseRevision, &v.Version, &v.Decision, &v.Comment, &v.ReviewerID, &v.AuthorityRoute, &v.ReviewedAt, &v.SupersedesID); err != nil {
+		if err = rows.Scan(&v.ID, &v.ResponseID, &v.ResponseRevision, &v.Version, &v.Decision, &v.Comment, &v.ReviewerID, &v.AuthorityRoute, &v.ReviewedAt, &v.SupersedesID, &v.AuthoritySourceType, &v.AuthoritySourceID, &v.AuthorityRuleID, &v.AuthorityPolicyVersion); err != nil {
 			rows.Close()
 			return assessmentMaterial{}, nil, 0, err
 		}
@@ -58,7 +58,7 @@ func (s *PostgresDistributionStore) WriteResponseReview(ctx context.Context, ten
 	if !ok || actor.TenantID != tenant || actor.PrincipalID != principal || (actor.LegalEntityID != entity && actor.LegalEntityID != "*") || actor.ExpiresAt.IsZero() {
 		return ResponseReview{}, ErrAssessmentForbidden
 	}
-	tx, err := s.repo.pool.Begin(ctx)
+	tx, err := s.repo.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
 		return ResponseReview{}, err
 	}
@@ -91,12 +91,9 @@ func (s *PostgresDistributionStore) WriteResponseReview(ctx context.Context, ten
 	if err != nil {
 		return ResponseReview{}, err
 	}
-	inserted, err := tx.Exec(ctx, `INSERT INTO capture_response_reviews(id,tenant_id,legal_entity_id,response_revision_id,response_revision,version,decision,comment,reviewer_id,authority_route,reviewed_at,supersedes_id) SELECT $1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8,$9::uuid,$10,$11,NULLIF($12,'')::uuid WHERE clock_timestamp() < $13::timestamptz`, review.ID, m.Summary.TenantID, m.Summary.LegalEntityID, response, review.ResponseRevision, review.Version, review.Decision, review.Comment, review.ReviewerID, review.AuthorityRoute, review.ReviewedAt, review.SupersedesID, actor.ExpiresAt)
+	review, err = insertCurrentResponseReview(ctx, tx, actor, m, review)
 	if err != nil {
 		return ResponseReview{}, err
-	}
-	if inserted.RowsAffected() != 1 {
-		return ResponseReview{}, ErrAssessmentForbidden
 	}
 	event := responseReviewEvent(m, review)
 	payload, err := json.Marshal(event.Payload)

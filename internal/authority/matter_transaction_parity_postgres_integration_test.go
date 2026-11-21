@@ -107,6 +107,40 @@ func TestMatterBatchAuthoritySeesRevocationAfterSubjectLock(t *testing.T) {
 	if err != nil || !resolved.AllowsPrincipal(principal) || resolved.RuleID == "" || resolved.PolicyVersion == "" || resolved.SourceType != "ASSIGNMENT" || resolved.SourceID == "" || evaluated.Before(now) {
 		t.Fatalf("current route and database instant: %+v at=%v error=%v", resolved, evaluated, err)
 	}
+	if _, err = tx.Exec(ctx, `CREATE TEMP TABLE review_decision_probe(source_id text NOT NULL,rule_id text NOT NULL,policy_version text NOT NULL,decided_at timestamptz NOT NULL) ON COMMIT DROP`); err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := PostgresCurrentRouteRequest(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := PostgresCurrentRouteRequest(ResolveInput{}); err == nil {
+		t.Fatal("invalid authority request accepted")
+	}
+	wildcard := input
+	wildcard.ObjectID = "*"
+	if _, err := PostgresCurrentRouteRequest(wildcard); err == nil {
+		t.Fatal("wildcard authority request accepted")
+	}
+	statement := PostgresCurrentRouteCTEs() + ` INSERT INTO review_decision_probe(source_id,rule_id,policy_version,decided_at)
+	SELECT DISTINCT s.source_id,s.rule_id,s.policy_version,statement_timestamp() FROM selected s JOIN effective e USING(request_index)
+	WHERE NOT s.ambiguous AND e.principal_id=$2::uuid RETURNING source_id,rule_id,policy_version,decided_at`
+	var sourceID, ruleID, policy string
+	var decidedAt time.Time
+	err = tx.QueryRow(ctx, statement, string(encoded), principal).Scan(&sourceID, &ruleID, &policy, &decidedAt)
+	if err != nil || sourceID != "assignment:"+resolved.SourceID || ruleID != resolved.RuleID || policy != resolved.PolicyVersion || decidedAt.Before(evaluated) {
+		t.Fatalf("atomic authority insert: source=%q rule=%q policy=%q at=%v err=%v", sourceID, ruleID, policy, decidedAt, err)
+	}
+	if _, err = tx.Exec(ctx, `UPDATE responsibility_assignments SET valid_until=$2 WHERE tenant_id=$1::uuid`, tenant, now.Add(-time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.QueryRow(ctx, statement, string(encoded), principal).Scan(&sourceID, &ruleID, &policy, &decidedAt); !errors.Is(err, pgx.ErrNoRows) {
+		t.Fatalf("revoked route inserted a decision: %v", err)
+	}
+	var count int
+	if err = tx.QueryRow(ctx, `SELECT count(*) FROM review_decision_probe`).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("decision count=%d err=%v", count, err)
+	}
 }
 
 // These checks establish limited resolver parity, not command authorization.

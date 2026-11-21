@@ -16,16 +16,20 @@ type RecordResponseReviewInput struct {
 }
 
 type ResponseReview struct {
-	ID               string    `json:"id"`
-	ResponseID       string    `json:"response_id"`
-	ResponseRevision int64     `json:"response_revision"`
-	Version          int64     `json:"version"`
-	Decision         string    `json:"decision"`
-	Comment          string    `json:"comment"`
-	ReviewerID       string    `json:"reviewer_id"`
-	AuthorityRoute   string    `json:"authority_route"`
-	ReviewedAt       time.Time `json:"reviewed_at"`
-	SupersedesID     string    `json:"supersedes_id,omitempty"`
+	ID                     string    `json:"id"`
+	ResponseID             string    `json:"response_id"`
+	ResponseRevision       int64     `json:"response_revision"`
+	Version                int64     `json:"version"`
+	Decision               string    `json:"decision"`
+	Comment                string    `json:"comment"`
+	ReviewerID             string    `json:"reviewer_id"`
+	AuthorityRoute         string    `json:"authority_route"`
+	AuthoritySourceType    string    `json:"authority_source_type,omitempty"`
+	AuthoritySourceID      string    `json:"authority_source_id,omitempty"`
+	AuthorityRuleID        string    `json:"authority_rule_id,omitempty"`
+	AuthorityPolicyVersion string    `json:"authority_policy_version,omitempty"`
+	ReviewedAt             time.Time `json:"reviewed_at"`
+	SupersedesID           string    `json:"supersedes_id,omitempty"`
 }
 
 type responseReviewStore interface {
@@ -130,5 +134,12 @@ func (s *DistributionService) RecordResponseReview(ctx context.Context, tenant, 
 }
 
 func responseReviewEvent(m assessmentMaterial, review ResponseReview) distributionEvent {
-	return distributionEvent{DistributionID: m.Revision.DistributionID, Version: review.Version, EventType: "FORM_RESPONSE_REVIEWED", ActorID: review.ReviewerID, OccurredAt: review.ReviewedAt, Payload: map[string]any{"response_revision_id": review.ResponseID, "review_id": review.ID, "version": review.Version, "decision": review.Decision}}
+	payload := map[string]any{"response_revision_id": review.ResponseID, "review_id": review.ID, "version": review.Version, "decision": review.Decision}
+	if review.AuthoritySourceID != "" {
+		payload["authority_source_type"] = review.AuthoritySourceType
+		payload["authority_source_id"] = review.AuthoritySourceID
+		payload["authority_rule_id"] = review.AuthorityRuleID
+		payload["authority_policy_version"] = review.AuthorityPolicyVersion
+	}
+	return distributionEvent{DistributionID: m.Revision.DistributionID, Version: review.Version, EventType: "FORM_RESPONSE_REVIEWED", ActorID: review.ReviewerID, OccurredAt: review.ReviewedAt, Payload: payload}
 }
