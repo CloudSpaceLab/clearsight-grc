@@ -258,7 +258,7 @@ export function addProgramRequirement(programID: string, expectedVersion: number
     actor: input.actor,
     action: input.action,
     object: input.object,
-    status: "APPROVED",
+    status: "DRAFT",
     effective_from: input.effectiveFrom,
   });
 }

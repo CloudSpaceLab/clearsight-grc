@@ -5,7 +5,7 @@
 .v-program-requirement-actions button, .v-program-requirements p button { min-height: 44px; padding: 0 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
 .v-program-requirement-actions button.v-primary { background: #246cf0; color: #fff; border-color: #246cf0; }
 .v-program-requirement-actions button:disabled { opacity: .55; cursor: not-allowed; }
-.v-program-requirement-form { border-top: 1px solid #e5edf7; margin-top: 16px; }
+.v-program-requirement-form { max-width: 760px; border-top: 1px solid #e5edf7; margin-top: 16px; }
 .v-program-requirement-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .v-program-requirement-form label { display: grid; gap: 6px; margin-bottom: 14px; color: #536c90; font-size: 12px; font-weight: 700; }
 .v-program-requirement-form input, .v-program-requirement-form select, .v-program-requirement-form textarea { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }

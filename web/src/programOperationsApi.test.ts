@@ -87,7 +87,7 @@ describe("Program operation API", () => {
         object: "the filing receipt", effectiveFrom: "2026-09-01T00:00:00Z",
       }),
       path: "/api/v1/programs/program-1/requirements?tenant_id=tenant-1",
-      body: { tenant_id: "tenant-1", expected_version: 7, code: "CAR-02", title: "Keep filing evidence", statement: "The bank must keep the filing receipt.", source_anchor: "GAID 2025, section 7.3", modality: "MUST", actor: "The bank", action: "keep", object: "the filing receipt", status: "APPROVED", effective_from: "2026-09-01T00:00:00Z" },
+      body: { tenant_id: "tenant-1", expected_version: 7, code: "CAR-02", title: "Keep filing evidence", statement: "The bank must keep the filing receipt.", source_anchor: "GAID 2025, section 7.3", modality: "MUST", actor: "The bank", action: "keep", object: "the filing receipt", status: "DRAFT", effective_from: "2026-09-01T00:00:00Z" },
     },
     {
       name: "applicability decision",

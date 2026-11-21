@@ -103,6 +103,29 @@ func TestRequirementReviewHTTPIndependentAuthorityAndScope(t *testing.T) {
 	if len(program.Requirements) != 2 || program.Requirements[1].Status != continuity.RequirementDraft {
 		t.Fatalf("default requirement was not draft: %#v", program.Requirements)
 	}
+	// The authoring form submits a draft with its source and obligation details.
+	// A retry with the old Program version must not create a second record.
+	version := program.Program.Version
+	explicit := `{"expected_version":` + strconv.FormatInt(version, 10) + `,"code":"USER-REQ","title":"Review privileged access","statement":"Review privileged access quarterly.","source_anchor":"Access policy section 4","modality":"MUST","actor":"Access owner","action":"Review","object":"Privileged accounts","status":"DRAFT","effective_from":"2026-11-22T00:00:00Z"}`
+	created = post(handler("owner-1", "bank-ng"), root+"/requirements", explicit)
+	if created.Code != http.StatusCreated {
+		t.Fatalf("explicit draft creation: %d %s", created.Code, created.Body.String())
+	}
+	if err = json.Unmarshal(created.Body.Bytes(), &program); err != nil {
+		t.Fatal(err)
+	}
+	var authoring *continuity.Requirement
+	for i := range program.Requirements {
+		if program.Requirements[i].Code == "USER-REQ" {
+			authoring = &program.Requirements[i]
+		}
+	}
+	if authoring == nil || authoring.Status != continuity.RequirementDraft || authoring.SourceAnchor != "Access policy section 4" || authoring.Modality != "MUST" || authoring.Actor != "Access owner" || authoring.Action != "Review" || authoring.Object != "Privileged accounts" || authoring.EffectiveFrom.UTC().Format(time.RFC3339) != "2026-11-22T00:00:00Z" || program.Program.Version <= version {
+		t.Fatalf("draft authoring receipt did not preserve requirement details: %#v", authoring)
+	}
+	if retry := post(handler("owner-1", "bank-ng"), root+"/requirements", explicit); retry.Code != http.StatusConflict {
+		t.Fatalf("stale draft retry: %d %s", retry.Code, retry.Body.String())
+	}
 	proposal := `{"expected_version":` + strconv.FormatInt(program.Program.Version, 10) + `,"rationale":"Review this draft."}`
 	route := root + "/requirements/" + program.Requirements[0].ID + "/review"
 	if w := post(handler("other", "bank-ng"), route, proposal); w.Code == http.StatusCreated {
