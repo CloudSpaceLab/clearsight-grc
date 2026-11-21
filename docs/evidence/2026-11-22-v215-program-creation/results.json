@@ -1,0 +1,20 @@
+{
+  "fixture": "SYNTHETIC_NOT_BACKEND_AUTHORIZATION",
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "created": "SYNTHETIC"
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "created": "SYNTHETIC"
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "created": "SYNTHETIC"
+    }
+  ]
+}

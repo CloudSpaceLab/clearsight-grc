@@ -114,6 +114,19 @@ func TestProgramSetupCandidatesAndCreationKeepOwnerAndApprovalAuthorityDistinct(
 	if aggregate.Program.OwnerPrincipalID == aggregate.Program.AuthorityPrincipalID {
 		t.Fatal("Program owner and approval authority were collapsed")
 	}
+	// Exercise the current Program creation form's exact owner, checker and scope payload.
+	created = httptest.NewRecorder()
+	body = bytes.NewBufferString(`{"legal_entity_id":"bank-ng","code":"ACCESS-26","name":"Access assurance","type":"COMPLIANCE","owning_function":"Risk","owner_candidate_id":"owner-1","approval_authority_candidate_id":"cro-1","scope":{"description":"Privileged access"},"effective_from":"2026-11-22T00:00:00Z"}`)
+	handler.ServeHTTP(created, httptest.NewRequest(http.MethodPost, "/api/v1/programs?tenant_id=bank", body))
+	if created.Code != http.StatusCreated {
+		t.Fatalf("form Program creation returned %d: %s", created.Code, created.Body.String())
+	}
+	if err := json.NewDecoder(created.Body).Decode(&aggregate); err != nil {
+		t.Fatal(err)
+	}
+	if aggregate.Program.TenantID != "bank" || aggregate.Program.LegalEntityID != "bank-ng" || aggregate.Program.Code != "ACCESS-26" || aggregate.Program.Name != "Access assurance" || aggregate.Program.Type != "COMPLIANCE" || aggregate.Program.OwningFunction != "Risk" || aggregate.Program.OwnerPrincipalID != "owner-1" || aggregate.Program.AuthorityPrincipalID != "cro-1" || aggregate.Program.Status != continuity.ProgramDraft || aggregate.Program.Version != 1 || !bytes.Contains(aggregate.Program.Scope, []byte(`"description":"Privileged access"`)) {
+		t.Fatalf("form Program receipt mismatch: %#v", aggregate.Program)
+	}
 }
 
 func TestProgramSetupCandidatesRequireAnExactEntityForWildcardActors(t *testing.T) {

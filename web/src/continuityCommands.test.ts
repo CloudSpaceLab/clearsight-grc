@@ -4,7 +4,7 @@ import { addProgramRequirement, createMatter, createProgram, loadProgramSetupCan
 import { requestJSON } from "./http";
 
 vi.mock("./api", () => ({ loadContext: vi.fn(), resolveAuthority: vi.fn() }));
-vi.mock("./http", () => ({ requestJSON: vi.fn() }));
+vi.mock("./http", async (importOriginal) => ({ ...await importOriginal<typeof import("./http")>(), requestJSON: vi.fn() }));
 
 describe("continuity commands", () => {
   it("preserves the obligated party, action and object without making that party the command actor", async () => {
@@ -63,6 +63,11 @@ describe("continuity commands", () => {
 	expect(body).not.toHaveProperty("owner_principal_id");
 	expect(body).not.toHaveProperty("authority_principal_id");
 	expect(body).not.toHaveProperty("actor_id");
+  });
+
+  it("does not create a Program if the active verified scope changed", async () => {
+    await expect(createProgram({ code: "NDPA", name: "Data protection", type: "PRIVACY", owningFunction: "Privacy", ownerCandidateID: "owner-1", approvalAuthorityCandidateID: "cro-1" }, { tenantID: "tenant-1", legalEntityID: "other-entity", actorID: "actor-1" })).rejects.toMatchObject({ code: "scope_changed" });
+    expect(requestJSON).not.toHaveBeenCalled();
   });
 
   it("loads Program responsibility candidates for the exact legal entity", async () => {

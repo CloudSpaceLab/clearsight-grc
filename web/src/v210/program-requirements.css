@@ -10,6 +10,9 @@
 .v-program-requirement-form label, .v-requirement-reviews label { display: grid; gap: 6px; margin-bottom: 14px; color: #536c90; font-size: 12px; font-weight: 700; }
 .v-program-requirement-form input, .v-program-requirement-form select, .v-program-requirement-form textarea { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
 .v-program-requirement-form textarea { min-height: 80px; }
+.v-requirement-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 0 0 16px; }
+.v-requirement-details dt { color: #536c90; font-size: 12px; font-weight: 700; }
+.v-requirement-details dd { margin: 4px 0 0; overflow-wrap: anywhere; }
 .v-requirement-reviews { max-width: 760px; border-top: 1px solid #e5edf7; margin-top: 18px; padding-top: 16px; }
 .v-requirement-reviews textarea { width: 100%; min-height: 80px; padding: 8px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
 .v-requirement-reviews > div { margin-bottom: 16px; }

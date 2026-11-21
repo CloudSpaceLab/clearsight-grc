@@ -1,0 +1,28 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { expect, it, vi } from 'vitest';
+import { FreshApp } from './FreshApp';
+const calls = vi.hoisted(() => ({ loadSessionStatus: vi.fn(), loadContext: vi.fn(), loadProgram: vi.fn(), loadProgramSummaries: vi.fn(), loadProgramSetupCandidates: vi.fn(), createProgram: vi.fn(), loadProgramOperations: vi.fn(), addProgramRequirement: vi.fn() }));
+vi.mock('../api', () => ({ loadSessionStatus: calls.loadSessionStatus, loadContext: calls.loadContext, loadProgram: calls.loadProgram, loadProgramSummaries: calls.loadProgramSummaries }));
+vi.mock('../continuityCommands', () => ({ loadProgramSetupCandidates: calls.loadProgramSetupCandidates, createProgram: calls.createProgram }));
+vi.mock('../programOperationsApi', () => ({ loadProgramOperations: calls.loadProgramOperations, addProgramRequirement: calls.addProgramRequirement }));
+vi.mock('./FrameworkMappings', () => ({ FrameworkMappings: () => null }));
+const context = { tenant: { id: 'bank', name: 'Bank' }, legal_entity: { id: 'entity', name: 'Bank' }, actor: { id: 'maker', name: 'Ada', kind: 'PERSON' }, mode: 'live' };
+const program = { id: 'p1', tenant_id: 'bank', legal_entity_id: 'entity', code: 'DELIVERY', name: 'Delivery records', type: 'COMPLIANCE', owning_function: 'Logistics', owner_principal_id: 'owner', authority_principal_id: 'checker', status: 'DRAFT', version: 1, scope: { description: 'Delivery records' } };
+it('creates a Program and adds its first source-anchored requirement', async () => {
+  calls.loadSessionStatus.mockResolvedValue({ authenticated: true }); calls.loadContext.mockResolvedValue(context);
+  calls.loadProgramSetupCandidates.mockResolvedValue({ owner_candidates: [{ id: 'owner', display_name: 'Owner', kind: 'PERSON' }], approval_authority_candidates: [{ id: 'checker', display_name: 'Risk officer', kind: 'PERSON' }], has_more: false });
+  calls.createProgram.mockResolvedValue({ program, requirements: [], applicability: [] });
+  calls.loadProgram.mockResolvedValue({ program, requirements: [], applicability: [] });
+  calls.loadProgramOperations.mockResolvedValue({ program_id: 'p1', program_version: 1, authority_available: true, operations: [{ command: 'program.requirement.add', can_act: true }] });
+  calls.addProgramRequirement.mockImplementation(async (_id: string, _version: number, input: { code: string; title: string; statement: string; sourceAnchor: string; modality: string; actor: string; action: string; object: string; effectiveFrom: string }) => ({ program: { ...program, version: 2 }, requirements: [{ id: 'r1', code: input.code, title: input.title, statement: input.statement, source_anchor: input.sourceAnchor, modality: input.modality, actor: input.actor, action: input.action, object: input.object, effective_from: input.effectiveFrom, status: 'DRAFT' }], applicability: [] }));
+  window.location.hash = '#/programs/new'; render(<FreshApp/>);
+  for (const [label, value] of [['Program name', 'Delivery records'], ['Program code', 'DELIVERY'], ['Program type', 'COMPLIANCE'], ['Owning function', 'Logistics'], ['Scope', 'Delivery records'], ['Program owner', 'owner'], ['Approval authority', 'checker']]) fireEvent.change(await screen.findByLabelText(label!), { target: { value } });
+  fireEvent.click(screen.getByRole('button', { name: 'Create program' }));
+  const open = await screen.findByRole('link', { name: 'Open program' });
+  window.location.hash = open.getAttribute('href')!; fireEvent(window, new HashChangeEvent('hashchange'));
+  fireEvent.click(await screen.findByRole('button', { name: 'Add requirement' }));
+  for (const [label, value] of [['Requirement code', 'RETENTION'], ['Requirement title', 'Retain records'], ['Requirement text', 'The carrier should retain delivery records.'], ['Source and section', 'Contract 4'], ['Obligation strength', 'SHOULD'], ['Who must act?', 'The carrier'], ['What must they do?', 'retain'], ['What does it apply to?', 'delivery records']]) fireEvent.change(screen.getByLabelText(label!), { target: { value } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save requirement' }));
+  await waitFor(() => expect(calls.addProgramRequirement).toHaveBeenCalledWith('p1', 1, expect.objectContaining({ actor: 'The carrier', action: 'retain', object: 'delivery records', modality: 'SHOULD', sourceAnchor: 'Contract 4' })));
+  expect(await screen.findByText('Requirement draft saved. Review required.')).toBeTruthy();
+});

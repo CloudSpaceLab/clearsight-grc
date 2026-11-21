@@ -7,6 +7,7 @@ vi.mock("./Vendors", () => ({ Vendors: ({ context, relationshipId, assessmentId 
 vi.mock("./Responses", () => ({ Responses: ({ id }: { id?: string }) => <p>Response route: {id}</p> }));
 vi.mock("./FormAssignment", () => ({ FormAssignment: ({ formId }: { formId: string }) => <p>Assignment route: {formId}</p> }));
 vi.mock("./FormCreator", () => ({ FormCreator: () => <h1>Create form</h1> }));
+vi.mock("./ProgramCreator", () => ({ ProgramCreator: () => <h1>Create program</h1>, ProgramCreateLink: () => null }));
 vi.mock("./FormEditor", () => ({ FormEditor: ({ id }: { id: string }) => <p>Form editor: {id}</p> }));
 vi.mock("./Frameworks", () => ({ Frameworks: () => <h1>Framework catalog</h1> }));
 vi.mock("./RiskWorkspace", () => ({ RiskWorkspace: ({ id }: { id?: string }) => <p>Risk route: {id ?? "register"}</p> }));
@@ -120,6 +121,18 @@ it("opens the new form builder without looking up a template", async () => {
   window.location.hash = "#/forms/new";
   render(<FreshApp/>);
   expect(await screen.findByRole("heading", { name: "Create form" })).toBeTruthy();
+});
+
+it("opens Program creation without looking up an existing record", async () => {
+  window.location.hash = "#/programs/new";
+  render(<FreshApp/>);
+  expect(await screen.findByRole("heading", { name: "Create program" })).toBeTruthy();
+});
+
+it("rejects extra segments on Program creation links", async () => {
+  window.location.hash = "#/programs/new/extra";
+  render(<FreshApp/>);
+  expect(await screen.findByRole("heading", { name: "Record unavailable" })).toBeTruthy();
 });
 
 it("opens the editor for the exact selected form", async () => {

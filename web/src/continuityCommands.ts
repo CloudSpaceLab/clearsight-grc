@@ -1,5 +1,5 @@
-import { loadContext, resolveAuthority } from "./api";
-import { requestJSON } from "./http";
+import { loadContext, resolveAuthority, type RuntimeContext } from "./api";
+import { ApiError, requestJSON } from "./http";
 import type { AuthorityPrincipal, MatterAggregate, ProgramAggregate, WorkflowTask } from "./types";
 import { normalizeProgramAggregate } from "./programAggregate";
 
@@ -84,8 +84,8 @@ export type CreateMatterInput = {
   programID?: string;
 };
 
-export async function continuityCommand<T>(path: string, body: Record<string, unknown>): Promise<T> {
-  const context = await loadContext();
+export async function continuityCommand<T>(path: string, body: Record<string, unknown>, verifiedContext?: RuntimeContext): Promise<T> {
+  const context = verifiedContext ?? await loadContext();
   const params = new URLSearchParams({ tenant_id: context.tenant.id });
   return requestJSON<T>(apiBase, `${path}?${params.toString()}`, {
     method: "POST",
@@ -112,8 +112,9 @@ export async function loadActorMatterWork(limit = 100): Promise<WorkflowTask[]> 
   return (await requestJSON<{ items: WorkflowTask[] }>(apiBase, `/api/v1/workflow/tasks?${params.toString()}`)).items;
 }
 
-export async function createProgram(input: CreateProgramInput): Promise<ProgramAggregate> {
+export async function createProgram(input: CreateProgramInput, expectedScope?: { tenantID: string; legalEntityID: string; actorID: string }): Promise<ProgramAggregate> {
   const context = await loadContext();
+  if (expectedScope && (context.tenant.id !== expectedScope.tenantID || context.legal_entity.id !== expectedScope.legalEntityID || context.actor.id !== expectedScope.actorID)) throw new ApiError(403, "Program scope changed.", "scope_changed");
   const value = await continuityCommand<Parameters<typeof normalizeProgramAggregate>[0]>("/api/v1/programs", {
     legal_entity_id: context.legal_entity.id,
     code: input.code,
@@ -126,7 +127,7 @@ export async function createProgram(input: CreateProgramInput): Promise<ProgramA
     organization_scope_id: input.organizationScopeID,
     scope: { description: input.scopeDescription ?? "" },
     effective_from: new Date().toISOString(),
-  });
+  }, context);
   return normalizeProgramAggregate(value);
 }
 

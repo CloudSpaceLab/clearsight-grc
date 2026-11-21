@@ -54,12 +54,15 @@ it("saves the edited wording as a new requirement version with source metadata",
   api.supersedeProgramRequirement.mockResolvedValue({ ...aggregate, program: { id: "p1", version: 5 }, requirements: [{ ...requirement, status: "SUPERSEDED" }, { ...requirement, id: "r2", title: "Review privileged access", status: "APPROVED" }] });
   const updated = vi.fn(); render(<ProgramRequirements aggregate={aggregate} onUpdated={updated}/>);
   fireEvent.click(await screen.findByRole("button", { name: "Edit Review access" }));
+  expect(screen.getByText("Owner")).toBeTruthy();
+  expect(screen.getByText("Review", { exact: true })).toBeTruthy();
+  expect(screen.getByText("Access", { exact: true })).toBeTruthy();
   fireEvent.change(screen.getByLabelText("Requirement title"), { target: { value: "Review privileged access" } });
   fireEvent.change(screen.getByLabelText("Reason for change"), { target: { value: "Updated scope" } });
   fireEvent.change(screen.getByLabelText("Effective date"), { target: { value: "2026-01-01" } });
   fireEvent.click(screen.getByRole("button", { name: "Save requirement" }));
   expect(await screen.findByText("Requirement updated.")).toBeTruthy();
-  expect(api.supersedeProgramRequirement).toHaveBeenCalledWith("p1", "r1", 4, expect.objectContaining({ title: "Review privileged access", sourceID: "s1", sourceAnchor: "Section 1", actor: "Owner", rationale: "Updated scope" }));
+  expect(api.supersedeProgramRequirement).toHaveBeenCalledWith("p1", "r1", 4, expect.objectContaining({ title: "Review privileged access", sourceID: "s1", sourceAnchor: "Section 1", modality: "MUST", actor: "Owner", action: "Review", object: "Access", rationale: "Updated scope" }));
   expect(updated).toHaveBeenCalledTimes(1);
 });
 

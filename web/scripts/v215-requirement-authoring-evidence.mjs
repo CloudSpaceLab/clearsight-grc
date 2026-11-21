@@ -16,11 +16,12 @@ try {
       window.fetch = async (input, init) => {
         const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, location.origin);
         if (url.pathname === '/api/v1/programs/sample-program/operations') return new Response(JSON.stringify({ program_id: 'sample-program', program_version: 1, authority_available: true, operations: [{ command: 'program.requirement.add', can_act: true }, { command: 'program.requirement.review.propose', can_act: true }, { command: 'program.applicability.decide', can_act: true }, { command: 'program.requirement.supersede', subresource_id: 'sample-requirement', can_act: true }] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-        if (url.pathname === '/api/v1/programs/sample-program/requirement-reviews') return new Response(JSON.stringify({ program_id: 'sample-program', program_version: 1, items: [], next_after_id: '' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        if (url.pathname === '/api/v1/programs/sample-program/requirement-reviews') return new Response(JSON.stringify({ program_id: 'sample-program', program_version: 1, items: [], next_after_id: window.programReviewPagedFixture && !url.searchParams.has('after_id') ? 'sample-cursor' : '' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         if (url.pathname === '/api/v1/programs/sample-program') {
           const response = await original(input, init);
           const value = await response.json();
           value.program = { ...value.program, tenant_id: 'sample-bank', legal_entity_id: 'sample-entity', owner_principal_id: 'sample-person', authority_principal_id: 'sample-reviewer' };
+          value.requirements[0] = { ...value.requirements[0], actor: 'Service owner', action: 'review', object: 'privileged access' };
           value.requirements.push({ id: 'sample-draft', code: 'R-02', title: 'Sample draft', statement: 'Review the sample procedure.', status: 'DRAFT' });
           return new Response(JSON.stringify(value), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
@@ -47,6 +48,12 @@ try {
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: path.join(output, `add-${width}.png`), fullPage: true });
     await page.getByRole('button', { name: 'Cancel' }).click();
+    await page.getByRole('button', { name: 'Edit Review access' }).click();
+    assert.equal(await page.getByText('Service owner').count(), 1);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: path.join(output, `edit-${width}.png`), fullPage: true });
+    await page.getByRole('button', { name: 'Cancel' }).click();
     await page.getByRole('button', { name: 'Set applicability for Review access' }).click();
     assert.equal(await page.getByLabel('Why is this not applicable?').count(), 0);
     await page.getByLabel('Does this apply?').selectOption('NOT_APPLICABLE');
@@ -54,6 +61,15 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: path.join(output, `not-applicable-${width}.png`), fullPage: true });
+    await page.evaluate(() => { window.programReviewPagedFixture = true; location.hash = '#/home'; });
+    await page.getByRole('heading', { name: 'Overview' }).waitFor();
+    await page.evaluate(() => { location.hash = '#/programs/sample-program'; });
+    await page.getByRole('button', { name: 'Load more reviews' }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Send Sample draft for review' }).count(), 0);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: path.join(output, `review-incomplete-${width}.png`), fullPage: true });
+    await page.getByRole('button', { name: 'Load more reviews' }).click();
+    await page.getByRole('button', { name: 'Send Sample draft for review' }).waitFor();
     results.push({ width, overflow: false, source: 'SYNTHETIC' });
     await page.close();
     const reviewer = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
