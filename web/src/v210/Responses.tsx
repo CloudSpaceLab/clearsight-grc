@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { loadCompletedResponse, loadCompletedResponses, type CompletedResponseDetail, type CompletedResponseSummary } from "../formsDistributionApi";
-import { loadResponseReviews, recordResponseReview, type ResponseReviewDecision, type ResponseReviewPage } from "../responseReviewApi";
+import { loadResponseReviews, recordResponseReview, type ResponseReviewDecision, type ResponseReviewPage, type RecordResponseReviewInput } from "../responseReviewApi";
 import type { CaptureAnswerValue } from "../types";
 import { documentContentURL, loadDocuments } from "../submittedDocumentApi";
 import { apiErrorKind } from "../http";
 import { documentReturnDestination, scopedDocumentsHref } from "./documentReturn";
 import "./responses.css";
 
-export function Responses({ id }: { id?: string }) {
+type ReviewScope = { tenant: string; entity: string; actor: string };
+type PendingReview = { key: string; revision: number; input: RecordResponseReviewInput; needsComment?: boolean };
+export function Responses({ id, reviewScope }: { id?: string; reviewScope?: ReviewScope }) {
   const scope = new URLSearchParams(window.location.hash.split("?")[1] ?? "").getAll("distribution_id");
-  return id ? <ResponseDetail key={JSON.stringify([id, scope])} id={id}/> : <ResponseList/>;
+  return id ? <ResponseDetail key={JSON.stringify([id, scope, reviewScope])} id={id} reviewScope={reviewScope}/> : <ResponseList/>;
 }
 
 function ResponseList() {
@@ -41,10 +43,12 @@ function ResponseList() {
 }
 
 type Details = { response: CompletedResponseDetail; review?: ResponseReviewPage };
-function ResponseDetail({ id }: { id: string }) {
+function ResponseDetail({ id, reviewScope }: { id: string; reviewScope?: ReviewScope }) {
+ const storageKey = reviewScope && reviewScope.tenant && reviewScope.entity && reviewScope.actor ? "clearsight:review:" + JSON.stringify([reviewScope.tenant,reviewScope.entity,reviewScope.actor,id]) : undefined;
+ const [pending, setPending] = useState<PendingReview | null | undefined>(() => readPendingReview(storageKey));
   const [data, setData] = useState<Details>(); const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0); const [decision, setDecision] = useState<"" | ResponseReviewDecision>(""); const [comment, setComment] = useState("");
-  const [busy, setBusy] = useState(false); const [saveError, setSaveError] = useState<"" | "validation" | "conflict" | "forbidden" | "unknown" | "committed">(""); const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false); const [saveError, setSaveError] = useState<"" | "validation" | "conflict" | "forbidden" | "unknown" | "committed" | "storage">(""); const [saved, setSaved] = useState(false);
   const [historyBusy, setHistoryBusy] = useState(false); const [historyError, setHistoryError] = useState(false);
   const [documentsBusy, setDocumentsBusy] = useState(false); const [documentsError, setDocumentsError] = useState(false);
   const generation = useRef(0);
@@ -64,16 +68,30 @@ function ResponseDetail({ id }: { id: string }) {
   }, [id, attempt]);
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (!data?.review || !data.response.answers || !data.response.documents || data.response.documents_next_cursor || !data.response.response.current || !data.response.revision.current || !data.review.may_review || !decision || busy || saveLock.current || historyLock.current !== null || (saveError && saveError !== "validation") || new TextEncoder().encode(comment.trim()).length > 4000 || (decision === "CHANGES_REQUESTED" && !comment.trim())) return;
+    if (!storageKey || !data?.review || !data.response.answers || !data.response.documents || data.response.documents_next_cursor || !data.response.response.current || !data.response.revision.current || !data.review.may_review || !decision || busy || saveLock.current || historyLock.current !== null || pending !== undefined || (saveError && saveError !== "validation") || new TextEncoder().encode(comment.trim()).length > 4000 || (decision === "CHANGES_REQUESTED" && !comment.trim())) return;
+    const input = { expected_version: data.review.version, decision, comment: comment.trim() };
+    let current: PendingReview | undefined;
+    if (storageKey) {
+      try { current = {key: crypto.randomUUID(), revision: data.response.revision.revision, input}; sessionStorage.setItem(storageKey, JSON.stringify({key: current.key, revision: current.revision, input: {expected_version: input.expected_version, decision: input.decision}})); setPending(current); }
+      catch { setSaveError("storage"); return; }
+    }
+    if (!current) return;
+    await submitReview(input, current);
+  }
+  async function submitReview(input: RecordResponseReviewInput, current: PendingReview, isRetry = false) {
+    if (!storageKey || !data?.review || !data.response.answers || !data.response.documents || data.response.documents_next_cursor || !data.review.may_review || busy || saveLock.current || historyLock.current !== null) return;
+    const revision = current.revision;
     saveLock.current = true;
     const token = generation.current; setBusy(true); setSaved(false); setSaveError(""); let committed = false;
     try {
-      const receipt = await recordResponseReview(id, { expected_version: data.review.version, decision, comment: comment.trim() });
-      if (!receipt || receipt.response_id !== id || !Number.isSafeInteger(data.response.revision.revision) || data.response.revision.revision < 1 || receipt.response_revision !== data.response.revision.revision || !Number.isSafeInteger(data.review.version) || data.review.version < 0 || !Number.isSafeInteger(receipt.version) || receipt.version !== data.review.version + 1 || receipt.decision !== decision || typeof receipt.id !== "string" || !receipt.id.trim()) throw new Error("Review receipt unavailable");
+      const receipt = await recordResponseReview(id, input, current.key);
+      if (!receipt || receipt.response_id !== id || !Number.isSafeInteger(revision) || revision < 1 || receipt.response_revision !== revision || !Number.isSafeInteger(input.expected_version) || input.expected_version < 0 || !Number.isSafeInteger(receipt.version) || receipt.version !== input.expected_version + 1 || receipt.decision !== input.decision || typeof receipt.id !== "string" || !receipt.id.trim()) throw new Error("Review receipt unavailable");
       committed = true;
+      if (storageKey) { try { sessionStorage.removeItem(storageKey); } catch { /* The receipt remains valid. */ } }
+      setPending(undefined);
       const updated = await loadResponseReviews(id);
       if (token === generation.current) { setData((value) => value ? { ...value, review: updated } : value); setDecision(""); setComment(""); setSaved(true); }
-    } catch (error) { if (token === generation.current) { const kind = apiErrorKind(error); setSaveError(committed ? "committed" : kind === "validation" ? "validation" : kind === "conflict" ? "conflict" : kind === "forbidden" ? "forbidden" : "unknown"); } }
+    } catch (error) { if (token === generation.current) { const kind = apiErrorKind(error); if (!committed && !isRetry && kind === "validation") { if (storageKey) { try { sessionStorage.removeItem(storageKey); } catch { /* The rejected attempt can remain unavailable. */ } } setPending(undefined); } setSaveError(committed ? "committed" : kind === "validation" ? "validation" : kind === "conflict" ? "conflict" : kind === "forbidden" ? "forbidden" : "unknown"); } }
     finally { saveLock.current = false; if (token === generation.current) setBusy(false); }
   }
   async function older() {
@@ -94,7 +112,7 @@ function ResponseDetail({ id }: { id: string }) {
   if (state === "error" || !data) return <section className="v-responses"><div className="v-panel"><h1>Response unavailable</h1><button className="v-primary" onClick={() => setAttempt(attempt + 1)}>Try again</button>{documentReturnDestination() && <p><a href={documentReturnDestination()}>View documents</a></p>}</div></section>;
   const { response: { response, revision, answers, documents, documents_next_cursor: documentsNext }, review } = data;
   const isCurrent = response.current && revision.current;
-  const canReview = isCurrent && answers && documents && !documentsNext && review?.may_review && (!saveError || saveError === "validation");
+  const canReview = Boolean(storageKey) && pending === undefined && isCurrent && answers && documents && !documentsNext && review?.may_review && (!saveError || saveError === "validation");
   const commentTooLong = new TextEncoder().encode(comment.trim()).length > 4000;
   const returnToDocuments = documentReturnDestination();
   const previousHref = revision.supersedes_revision_id ? previousResponseHref(revision.supersedes_revision_id, response.distribution_id) : undefined;
@@ -108,9 +126,10 @@ function ResponseDetail({ id }: { id: string }) {
     <section className="v-panel v-response-documents"><h2>Documents</h2>{!documents ? <p role="alert">Documents unavailable. Reload before reviewing.</p> : documents.length === 0 && !documentsNext ? <p>No documents submitted.</p> : <ul>{documents.map((document) => <li key={document.id}><span>{document.file_name}</span>{document.artifact_status === "AVAILABLE" || (document.artifact_status === "STORED_UNSCANNED" && document.demo_unscanned_allowed) ? <a href={documentContentURL(document, true)}>Download</a> : <small>File unavailable</small>}</li>)}</ul>}{documentsNext && <><p>More documents must be loaded before review.</p>{documentsError && <p role="alert">Additional documents unavailable.</p>}<button disabled={documentsBusy} onClick={() => void moreDocuments()}>{documentsBusy ? "Loading…" : "Load more documents"}</button></>}</section>
     <section className="v-panel v-response-review"><h2>Review</h2>{!review ? <><p role="alert">Review unavailable.</p><button onClick={() => setAttempt(attempt + 1)}>Reload response</button></> : <>
       {!isCurrent && <p>Review is available for the current response.</p>}
-      {isCurrent && !review.may_review && <p>Review unavailable.</p>}
-      {saveError && <p role="alert">{{ validation: "Review not saved. Check the decision and comment.", conflict: "The response or review changed. Reload before saving.", forbidden: "You cannot review this response. Reload to check access.", unknown: "Review status unknown. Reload before trying again.", committed: "Review saved. Reload to see review history." }[saveError]}</p>}
+      {isCurrent && (!review.may_review || !storageKey) && <p>Review unavailable.</p>}
+      {saveError && !(pending && saveError === "unknown") && <p role="alert">{{ validation: "Review not saved. Check the decision and comment.", conflict: "The response or review changed. Reload before saving.", forbidden: "You cannot review this response. Reload to check access.", unknown: "Review status unknown. Reload before trying again.", committed: "Review saved. Reload to see review history.", storage: "Review not saved. Browser storage is unavailable." }[saveError]}</p>}
       {saved && <p role="status">Review saved.</p>}
+      {pending === null && <p role="alert">Review status unavailable. Check review history before saving another decision.</p>}{pending && <><p role={busy ? "status" : "alert"}>{busy ? "Saving review…" : "Review status unknown. Retrying will submit the same decision."}</p>{!pending.needsComment && pending.input.comment !== "" && <label>{pending.input.decision === "CHANGES_REQUESTED" ? "Reason for changes" : "Comment (optional)"}<textarea readOnly value={pending.input.comment}/></label>}{pending.needsComment && <label>Original comment<textarea value={comment} disabled={busy} onChange={(event) => setComment(event.target.value)}/></label>}<button disabled={busy || saveError === "forbidden" || !review.may_review || (pending.needsComment && pending.input.decision === "CHANGES_REQUESTED" && !comment.trim()) || (pending.needsComment && new TextEncoder().encode(comment.trim()).length > 4000)} onClick={() => void submitReview(pending.needsComment ? {...pending.input, comment: comment.trim()} : pending.input,pending,true)}>{busy ? "Saving…" : "Retry review"}</button></>}
       {canReview && <form onSubmit={(event) => void save(event)}><label>Review decision<select required disabled={busy} value={decision} onChange={(event) => setDecision(event.target.value as typeof decision)}><option value="">Select decision</option><option value="REVIEWED">Reviewed</option><option value="CHANGES_REQUESTED">Request changes</option></select></label><label>{decision === "CHANGES_REQUESTED" ? "Reason for changes" : "Comment (optional)"}<textarea disabled={busy} required={decision === "CHANGES_REQUESTED"} value={comment} onChange={(event) => setComment(event.target.value)}/></label>{commentTooLong && <p role="alert">Comment must be 4,000 bytes or fewer.</p>}{decision === "CHANGES_REQUESTED" && <p>The respondent is not notified automatically.</p>}<button className="v-primary" disabled={busy || historyBusy || commentTooLong}>{busy ? "Saving…" : "Save review"}</button></form>}
       {((saveError && saveError !== "validation") || !answers || !documents) && <button onClick={() => setAttempt(attempt + 1)}>Reload response</button>}
       <h3>Review history</h3>{review.items.length === 0 ? <p>No reviews recorded.</p> : <ul className="v-review-history">{review.items.map((item) => <li key={item.id}><strong>{item.decision === "REVIEWED" ? "Reviewed" : "Changes requested"}</strong><span>{item.reviewer_display_name || "Reviewer name unavailable"} · {timestampLabel(item.reviewed_at)}</span>{item.comment && <p>{item.comment}</p>}</li>)}</ul>}{historyError && <p role="alert">Earlier reviews unavailable.</p>}{review.next_before_version && <button disabled={busy || historyBusy} onClick={() => void older()}>{historyBusy ? "Loading…" : "Load earlier reviews"}</button>}
@@ -118,6 +137,15 @@ function ResponseDetail({ id }: { id: string }) {
   </section>;
 }
 
+function readPendingReview(key?: string): PendingReview | null | undefined {
+ if (!key) return undefined;
+ try { const raw = sessionStorage.getItem(key); if (raw === null) return undefined; const value: unknown = JSON.parse(raw);
+  if (!value || typeof value !== "object") return null;
+  const item = value as PendingReview; const input = item.input;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.key) || !Number.isSafeInteger(item.revision) || item.revision < 1 || !input || !Number.isSafeInteger(input.expected_version) || input.expected_version < 0 || (input.decision !== "REVIEWED" && input.decision !== "CHANGES_REQUESTED") || (input as Partial<RecordResponseReviewInput>).comment !== undefined) return null;
+  return {...item, input: {...input, comment: ""}, needsComment: true};
+ } catch { return null; }
+}
 function submitter(item: CompletedResponseSummary) { return item.submitted_by_display_name || (item.submitted_by ? "Submitter name unavailable" : "Submitter not identified"); }
 function matchesResponseScope(value: CompletedResponseDetail, id: string) {
   const params = new URLSearchParams(window.location.hash.split("?")[1] ?? "");

@@ -243,7 +243,7 @@ func TestPostgresResponseReviewAtomicHistory(t *testing.T) {
 	probe := ResponseReview{ID: probeID, ResponseID: response, ResponseRevision: 1, Version: 1, Decision: "REVIEWED", ReviewerID: reviewer}
 	material := assessmentMaterial{Summary: CompletedResponseSummary{ID: response, TenantID: tenant, LegalEntityID: entity}, Revision: ResponseRevision{ID: response, Revision: 1}}
 	actor, _ := identity.FromContext(ctx)
-	if _, err = insertCurrentResponseReview(ctx, repeatable, actor, material, probe); !errors.Is(err, ErrAssessmentForbidden) {
+	if _, err = insertCurrentResponseReview(ctx, repeatable, actor, material, probe, ""); !errors.Is(err, ErrAssessmentForbidden) {
 		_ = repeatable.Rollback(ctx)
 		t.Fatalf("repeatable-read decision must fail closed: %v", err)
 	}
@@ -364,5 +364,109 @@ func TestPostgresResponseReviewAtomicHistory(t *testing.T) {
 	}
 	if _, err = pool.Exec(ctx, `UPDATE capture_response_reviews SET comment='changed' WHERE id=$1::uuid`, first.ID); err == nil {
 		t.Fatal("review history was mutable")
+	}
+}
+
+func TestPostgresResponseReviewAcceptsVerifiedTenantSlug(t *testing.T) {
+	pool, ctx := distributionTestPool(t)
+	tenant, entity, owner, reviewer, form := mustResponseWorkspaceID(t), mustResponseWorkspaceID(t), mustResponseWorkspaceID(t), mustResponseWorkspaceID(t), mustResponseWorkspaceID(t)
+	now := time.Now().UTC()
+	slug := "review-slug-" + tenant
+	setupResponseWorkspaceFixture(t, ctx, pool, tenant, slug, entity, owner, form, now)
+	seedCompletedResponseRows(t, ctx, pool, tenant, entity, owner, form, slug, 1, now)
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `BEGIN; SET LOCAL session_replication_role='replica'; DELETE FROM capture_response_reviews WHERE tenant_id=$1::uuid; COMMIT`, pgx.QueryExecModeSimpleProtocol, tenant)
+		cleanupResponseWorkspaceTenant(context.Background(), pool, tenant)
+	})
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($2::uuid,$1::uuid,'PERSON','Reviewer','ACTIVE',$3); UPDATE capture_submissions SET answers='{"score":{"text":"Report supplied"}}'::jsonb WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenant, reviewer, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	var response string
+	if err := pool.QueryRow(ctx, `SELECT id::text FROM capture_response_revisions WHERE tenant_id=$1::uuid`, tenant).Scan(&response); err != nil {
+		t.Fatal(err)
+	}
+	seedResponseReviewerRoute(t, ctx, pool, tenant, entity, reviewer, response, now)
+	service := NewDistributionService(NewPostgresDistributionStore(NewPostgresRepository(pool), nil)).WithResponseReviewAuthorizer(func(_ context.Context, actor identity.Actor, summary CompletedResponseSummary) (string, error) {
+		if actor.TenantID != summary.TenantID {
+			return "", errors.New("scope mismatch")
+		}
+		return "review:v1:rule", nil
+	})
+	service.demoResponseReviewDecisions = true
+	// A UUID that is also another tenant's slug is ambiguous and must not select either tenant.
+	otherTenant := mustResponseWorkspaceID(t)
+	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,'Ambiguous tenant')`, otherTenant, tenant); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, otherTenant) })
+	ambiguousCtx := identity.WithActor(ctx, identity.Actor{TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, Kind: "PERSON", ExpiresAt: now.Add(time.Hour)})
+	if _, err := service.RecordResponseReview(ambiguousCtx, tenant, entity, response, RecordResponseReviewInput{Decision: "REVIEWED"}); !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("ambiguous tenant identity: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, otherTenant); err != nil {
+		t.Fatal(err)
+	}
+	actorCtx := identity.WithActor(ctx, identity.Actor{TenantID: slug, LegalEntityID: entity, PrincipalID: reviewer, Kind: "PERSON", ExpiresAt: now.Add(time.Hour)})
+	requestKey := mustResponseWorkspaceID(t)
+	review, err := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: requestKey})
+	if err != nil || review.AuthoritySourceID == "" {
+		t.Fatalf("verified tenant slug: review=%+v err=%v", review, err)
+	}
+	// A retry after a lost response returns the exact recorded decision.
+	retry, err := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: requestKey})
+	if err != nil || retry.ID != review.ID {
+		t.Fatalf("retry: %+v %v", retry, err)
+	}
+	if _, err := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{Decision: "CHANGES_REQUESTED", Comment: "Changed", RequestKey: requestKey}); !errors.Is(err, ErrAssessmentConflict) {
+		t.Fatalf("key reuse: %v", err)
+	}
+	history, err := service.GetResponseReviews(actorCtx, slug, entity, reviewer, response, 0, 10)
+	if err != nil || history.Version != 1 || len(history.Items) != 1 || history.Items[0].ID != review.ID || history.Items[0].ReviewerID != reviewer {
+		t.Fatalf("scoped recovery history: %+v %v", history, err)
+	}
+	// Competing requests with one key must return the same decision and emit once.
+	nextKey := mustResponseWorkspaceID(t)
+	type result struct {
+		review ResponseReview
+		err    error
+	}
+	results := make(chan result, 2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			v, e := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: 1, Decision: "REVIEWED", RequestKey: nextKey})
+			results <- result{v, e}
+		}()
+	}
+	first, second := <-results, <-results
+	if first.err != nil || second.err != nil || first.review.ID != second.review.ID {
+		t.Fatalf("concurrent same-key: %+v %+v", first, second)
+	}
+	var reviews, events, outbox int
+	if err := pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_reviews WHERE tenant_id=$1::uuid),(SELECT count(*) FROM capture_distribution_events WHERE tenant_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_REVIEWED_%'),(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_REVIEWED')`, tenant).Scan(&reviews, &events, &outbox); err != nil || reviews != 2 || events != 2 || outbox != 2 {
+		t.Fatalf("records %d %d %d: %v", reviews, events, outbox, err)
+	}
+	// Loss of subject visibility prevents recovery even when the preflight callback allows it.
+	if _, err := pool.Exec(ctx, `UPDATE programs SET scope='{"access":"RESTRICTED","allowed_principal_ids":[]}'::jsonb WHERE tenant_id=$1::uuid`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: 1, Decision: "REVIEWED", RequestKey: nextKey}); !errors.Is(err, ErrAssessmentForbidden) && !errors.Is(err, ErrNotFound) {
+		t.Fatalf("restricted retry: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE programs SET scope='{"access":"INTERNAL"}'::jsonb WHERE tenant_id=$1::uuid`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	// An expired database-clock session cannot recover a receipt even if the service clock lags.
+	service.now = func() time.Time { return now.Add(-time.Minute) }
+	expiredCtx := identity.WithActor(ctx, identity.Actor{TenantID: slug, LegalEntityID: entity, PrincipalID: reviewer, Kind: "PERSON", ExpiresAt: now.Add(-time.Second)})
+	if _, err := service.RecordResponseReview(expiredCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: 1, Decision: "REVIEWED", RequestKey: nextKey}); !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("expired retry: %v", err)
+	}
+	service.now = nil
+	// A receipt is not disclosed once the current route has been revoked.
+	if _, err := pool.Exec(ctx, `UPDATE responsibility_assignments SET valid_until=clock_timestamp()-interval '1 second' WHERE tenant_id=$1::uuid`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: 1, Decision: "REVIEWED", RequestKey: nextKey}); !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("revoked retry: %v", err)
 	}
 }

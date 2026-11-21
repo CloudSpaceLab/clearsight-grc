@@ -10,6 +10,6 @@ const path = (id: string) => `/api/v1/forms/responses/${encodeURIComponent(id)}/
 export function loadResponseReviews(id: string, before?: number): Promise<ResponseReviewPage> {
   return requestJSON(apiBase, path(id) + (before ? `?before_version=${encodeURIComponent(before)}` : ""));
 }
-export function recordResponseReview(id: string, input: RecordResponseReviewInput): Promise<ResponseReviewRecord> {
-  return requestJSON(apiBase, path(id), { method: "POST", body: JSON.stringify(input) });
+export function recordResponseReview(id: string, input: RecordResponseReviewInput, key?: string): Promise<ResponseReviewRecord> {
+  return requestJSON(apiBase, path(id), { method: "POST", body: JSON.stringify(input), ...(key ? { headers: { "Idempotency-Key": key } } : {}) });
 }

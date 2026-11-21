@@ -98,7 +98,7 @@ func (a *API) recordResponseReview(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	result, err := service.RecordResponseReview(r.Context(), actor.TenantID, entity, r.PathValue("revision_id"), evidence.RecordResponseReviewInput{ExpectedVersion: *body.ExpectedVersion, Decision: body.Decision, Comment: body.Comment})
+	result, err := service.RecordResponseReview(r.Context(), actor.TenantID, entity, r.PathValue("revision_id"), evidence.RecordResponseReviewInput{ExpectedVersion: *body.ExpectedVersion, Decision: body.Decision, Comment: body.Comment, RequestKey: r.Header.Get("Idempotency-Key")})
 	if err != nil {
 		writeResponseReviewError(w, err)
 		return

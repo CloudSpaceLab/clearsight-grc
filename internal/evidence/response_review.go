@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"context"
+	"regexp"
 	"strings"
 	"time"
 
@@ -9,8 +10,11 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
 
+var responseReviewRequestKeyPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+
 type RecordResponseReviewInput struct {
 	ExpectedVersion int64  `json:"expected_version"`
+	RequestKey      string `json:"-"`
 	Decision        string `json:"decision"`
 	Comment         string `json:"comment"`
 }
@@ -33,7 +37,7 @@ type ResponseReview struct {
 }
 
 type responseReviewStore interface {
-	WriteResponseReview(context.Context, string, string, string, string, assessmentReadAuthorizer, func(context.Context, assessmentMaterial, *ResponseReview) (ResponseReview, error)) (ResponseReview, error)
+	WriteResponseReview(context.Context, string, string, string, string, RecordResponseReviewInput, assessmentReadAuthorizer, func(context.Context, assessmentMaterial, *ResponseReview) (ResponseReview, error)) (ResponseReview, error)
 	ReadResponseReviews(context.Context, string, string, string, string, assessmentReadAuthorizer, int64, int) (assessmentMaterial, []ResponseReview, int64, error)
 }
 
@@ -93,6 +97,10 @@ func (s *DistributionService) RecordResponseReview(ctx context.Context, tenant, 
 		return ResponseReview{}, ErrProgramReviewUnavailable
 	}
 	input.Comment = strings.TrimSpace(input.Comment)
+	input.RequestKey = strings.ToLower(strings.TrimSpace(input.RequestKey))
+	if input.RequestKey != "" && !responseReviewRequestKeyPattern.MatchString(input.RequestKey) {
+		return ResponseReview{}, ErrAssessmentInvalid
+	}
 	if input.ExpectedVersion < 0 || (input.Decision != "REVIEWED" && input.Decision != "CHANGES_REQUESTED") || len(input.Comment) > 4000 || (input.Decision == "CHANGES_REQUESTED" && input.Comment == "") {
 		return ResponseReview{}, ErrAssessmentInvalid
 	}
@@ -100,7 +108,7 @@ func (s *DistributionService) RecordResponseReview(ctx context.Context, tenant, 
 	if !ok {
 		return ResponseReview{}, ErrAssessmentInvalid
 	}
-	return store.WriteResponseReview(ctx, tenant, entity, actor.PrincipalID, response, s.assessmentReadAuthority(ctx, tenant, entity, actor.PrincipalID), func(ctx context.Context, m assessmentMaterial, previous *ResponseReview) (ResponseReview, error) {
+	return store.WriteResponseReview(ctx, tenant, entity, actor.PrincipalID, response, input, s.assessmentReadAuthority(ctx, tenant, entity, actor.PrincipalID), func(ctx context.Context, m assessmentMaterial, previous *ResponseReview) (ResponseReview, error) {
 		if assessmentRespondentConflict(m, actor.PrincipalID) {
 			return ResponseReview{}, ErrAssessmentForbidden
 		}

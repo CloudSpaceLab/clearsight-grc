@@ -131,3 +131,36 @@ func TestResponseReviewHistoryRequiresScopedReadAndReportsPermission(t *testing.
 		t.Fatal("unverified read allowed")
 	}
 }
+
+func TestMemoryResponseReviewKeyRetryRechecksAuthority(t *testing.T) {
+	s, store, ctx := assessmentFixture(t)
+	s.ConfigureDemoResponseReviewDecisions(true)
+	allowed := true
+	s.WithResponseReviewAuthorizer(func(context.Context, identity.Actor, CompletedResponseSummary) (string, error) {
+		if !allowed {
+			return "", ErrAssessmentForbidden
+		}
+		return "policy:rule", nil
+	})
+	input := RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: "00000000-0000-4000-8000-000000000001"}
+	first, err := s.RecordResponseReview(ctx, "tenant", "entity", "response", input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replay, err := s.RecordResponseReview(ctx, "tenant", "entity", "response", input)
+	if err != nil || replay.ID != first.ID {
+		t.Fatalf("replay %+v %v", replay, err)
+	}
+	changed := input
+	changed.Comment = "changed"
+	if _, err = s.RecordResponseReview(ctx, "tenant", "entity", "response", changed); !errors.Is(err, ErrAssessmentConflict) {
+		t.Fatalf("changed replay: %v", err)
+	}
+	allowed = false
+	if _, err = s.RecordResponseReview(ctx, "tenant", "entity", "response", input); !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("revoked replay: %v", err)
+	}
+	if len(store.events) != 1 || len(store.outbox) != 1 {
+		t.Fatalf("duplicate events %d %d", len(store.events), len(store.outbox))
+	}
+}

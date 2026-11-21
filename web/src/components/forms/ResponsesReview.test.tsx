@@ -13,6 +13,7 @@ const summary = { id: "response-2", distribution_id: "distribution-1", title: "S
 const detail = { response: summary, revision: { id: "response-2", revision: 2, current: true, supersedes_revision_id: "response-1" }, answers: [{ field_id: "report", label: "Test coverage", value: { text: "Payment service omitted" } }], documents: [] };
 const olderReview = { id: "review-2", response_id: "response-2", version: 2, decision: "REVIEWED", reviewer_id: "reviewer-1", reviewer_display_name: "Risk Officer", reviewed_at: "2026-11-20T10:00:00Z" };
 beforeEach(() => {
+  sessionStorage.clear();
   vi.resetAllMocks();
   window.history.replaceState(null, "", "#/forms/responses/response-2");
   responses.loadCompletedResponse.mockResolvedValue(detail);
@@ -21,7 +22,7 @@ beforeEach(() => {
 
 it("preserves the review reason on conflict and does not retry the command", async () => {
   review.recordResponseReview.mockRejectedValueOnce(new ApiError(409, "Changed"));
-  render(<Responses id="response-2"/>);
+  render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.change(await screen.findByLabelText("Review decision"), { target: { value: "CHANGES_REQUESTED" } });
   fireEvent.change(screen.getByLabelText("Reason for changes"), { target: { value: "The report excludes payment processing." } });
   fireEvent.click(screen.getByRole("button", { name: "Save review" }));
@@ -36,7 +37,7 @@ it("retries earlier review history without reloading the selected response or lo
   review.loadResponseReviews.mockResolvedValueOnce({ version: 4, may_review: true, items: [], next_before_version: 3 })
     .mockRejectedValueOnce(new Error("History unavailable"))
     .mockResolvedValueOnce({ version: 4, may_review: true, items: [olderReview] });
-  render(<Responses id="response-2"/>);
+  render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.change(await screen.findByLabelText("Review decision"), { target: { value: "CHANGES_REQUESTED" } });
   fireEvent.change(screen.getByLabelText("Reason for changes"), { target: { value: "Clarify the reporting period." } });
   fireEvent.click(screen.getByRole("button", { name: "Load earlier reviews" }));
@@ -49,20 +50,20 @@ it("retries earlier review history without reloading the selected response or lo
 });
 
 it("carries the original distribution when opening the exact previous revision", async () => {
-  render(<Responses id="response-2"/>);
+  render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect((await screen.findByRole("link", { name: "Previous response" })).getAttribute("href")).toBe("#/forms/responses/response-1?distribution_id=distribution-1");
 });
 
 it.each([undefined, "", "*", " ", "bad\u0000scope"])("does not offer an earlier response with invalid distribution %s", async (distribution_id) => {
   responses.loadCompletedResponse.mockResolvedValue({ ...detail, response: { ...summary, distribution_id } });
-  render(<Responses id="response-2"/>);
+  render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("Earlier response unavailable.")).toBeTruthy();
   expect(screen.queryByRole("link", { name: "Previous response" })).toBeNull();
 });
 
 it("retains the Documents return destination in the previous-response link", async () => {
   window.history.replaceState(null, "", `#/forms/responses/response-2?return_to=${encodeURIComponent("#/documents?view=NEEDS_REFRESH")}`);
-  render(<Responses id="response-2"/>);
+  render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   const href = (await screen.findByRole("link", { name: "Previous response" })).getAttribute("href") ?? "";
   const params = new URLSearchParams(href.split("?")[1]);
   expect(params.get("distribution_id")).toBe("distribution-1");
@@ -72,7 +73,7 @@ it("retains the Documents return destination in the previous-response link", asy
 it("rejects a previous revision returned from a different distribution, including on retry", async () => {
   window.history.replaceState(null, "", "#/forms/responses/response-1?distribution_id=distribution-1");
   responses.loadCompletedResponse.mockResolvedValue({ ...detail, response: { ...summary, id: "response-1", distribution_id: "other", current: false }, revision: { id: "response-1", current: false } });
-  render(<Responses id="response-1"/>);
+  render(<Responses id="response-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByRole("heading", { name: "Response unavailable" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   await waitFor(() => expect(responses.loadCompletedResponse).toHaveBeenCalledTimes(2));
@@ -83,24 +84,52 @@ it("rejects a previous revision returned from a different distribution, includin
 
 it("rejects a detail response for a different revision", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ ...detail, revision: { ...detail.revision, id: "other" } });
-  render(<Responses id="response-2"/>);
+  render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByRole("heading", { name: "Response unavailable" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Save review" })).toBeNull();
 });
 
 it("rechecks the distribution receipt when the route changes for the same revision", async () => {
-  const view = render(<Responses id="response-2"/>);
+  const view = render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("Payment service omitted")).toBeTruthy();
   window.history.replaceState(null, "", "#/forms/responses/response-2?distribution_id=other");
-  view.rerender(<Responses id="response-2"/>);
+  view.rerender(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByRole("heading", { name: "Response unavailable" })).toBeTruthy();
   expect(screen.queryByText("Payment service omitted")).toBeNull();
 });
 
 it("does not offer a decision when the independent reviewer route is unavailable", async () => {
   review.loadResponseReviews.mockResolvedValue({ version: 4, may_review: false, items: [] });
-  render(<Responses id="response-2"/>);
+  render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("Review unavailable.")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Save review" })).toBeNull();
   expect(review.recordResponseReview).not.toHaveBeenCalled();
+});
+
+it("retries the same decision after a pre-commit connection failure and reload", async () => {
+ sessionStorage.clear(); const scope={tenant:"tenant",entity:"entity",actor:"reviewer"};
+ review.recordResponseReview.mockRejectedValueOnce(new Error("connection lost")).mockResolvedValueOnce({id:"review-5",response_id:"response-2",response_revision:2,version:5,decision:"REVIEWED"});
+ const view=render(<Responses id="response-2" reviewScope={scope}/>);
+ fireEvent.change(await screen.findByLabelText("Review decision"),{target:{value:"REVIEWED"}}); fireEvent.change(screen.getByLabelText("Comment (optional)"),{target:{value:"Confidential reviewer comment"}}); fireEvent.click(screen.getByRole("button",{name:"Save review"}));
+ expect(await screen.findByText(/Review status unknown/)).toBeTruthy(); const first=review.recordResponseReview.mock.calls[0]; expect(first[2]).toBeTruthy();
+ expect(JSON.stringify(sessionStorage)).not.toContain("Confidential reviewer comment");
+ view.unmount(); const other=render(<Responses id="response-2" reviewScope={{...scope,actor:"another"}}/>); expect(await screen.findByLabelText("Review decision")).toBeTruthy(); expect(screen.queryByRole("button",{name:"Retry review"})).toBeNull(); other.unmount();
+ render(<Responses id="response-2" reviewScope={scope}/>); fireEvent.change(await screen.findByLabelText("Original comment"),{target:{value:"Confidential reviewer comment"}}); fireEvent.click(await screen.findByRole("button",{name:"Retry review"}));
+ await waitFor(()=>expect(review.recordResponseReview).toHaveBeenCalledTimes(2)); expect(review.recordResponseReview.mock.calls[1]).toEqual(first);
+ expect(await screen.findByText("Review saved.")).toBeTruthy(); sessionStorage.clear();
+});
+
+
+it("allows correction after a definite validation rejection", async () => {
+ sessionStorage.clear(); const scope={tenant:"tenant",entity:"entity",actor:"reviewer"};
+ review.recordResponseReview.mockRejectedValueOnce(new ApiError(422,"Invalid"));
+ render(<Responses id="response-2" reviewScope={scope}/>);
+ fireEvent.change(await screen.findByLabelText("Review decision"),{target:{value:"REVIEWED"}}); fireEvent.click(screen.getByRole("button",{name:"Save review"}));
+ expect(await screen.findByText("Review not saved. Check the decision and comment.")).toBeTruthy();
+ expect(screen.getByLabelText("Review decision")).toBeTruthy(); expect(screen.queryByRole("button",{name:"Retry review"})).toBeNull(); expect(sessionStorage.length).toBe(0);
+});
+
+
+it("does not submit without verified account scope", async () => {
+ render(<Responses id="response-2"/>); expect(await screen.findByText("Review unavailable.")).toBeTruthy(); expect(screen.queryByRole("button",{name:"Save review"})).toBeNull(); expect(review.recordResponseReview).not.toHaveBeenCalled();
 });

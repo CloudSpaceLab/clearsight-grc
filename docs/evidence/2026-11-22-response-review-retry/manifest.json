@@ -1,0 +1,44 @@
+[
+  {
+    "state": "retry",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "file": "retry-1440.png"
+  },
+  {
+    "state": "unavailable",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "file": "unavailable-1440.png"
+  },
+  {
+    "state": "retry",
+    "width": 768,
+    "overflow": false,
+    "errors": [],
+    "file": "retry-768.png"
+  },
+  {
+    "state": "unavailable",
+    "width": 768,
+    "overflow": false,
+    "errors": [],
+    "file": "unavailable-768.png"
+  },
+  {
+    "state": "retry",
+    "width": 390,
+    "overflow": false,
+    "errors": [],
+    "file": "retry-390.png"
+  },
+  {
+    "state": "unavailable",
+    "width": 390,
+    "overflow": false,
+    "errors": [],
+    "file": "unavailable-390.png"
+  }
+]

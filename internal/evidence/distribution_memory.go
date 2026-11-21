@@ -23,6 +23,7 @@ type MemoryDistributionStore struct {
 	assessments         map[string][]assessmentSnapshot
 	assessmentDecisions []FieldAssessmentDecision
 	responseReviews     map[string][]ResponseReview
+	responseReviewKeys  map[string]ResponseReview
 	mu                  sync.RWMutex
 	repo                *MemoryRepository
 	forms               DistributionFormReader
@@ -375,10 +376,9 @@ func requestFieldsFromContract(fields []formcontract.Field) []Field {
 	for index, field := range fields {
 		result[index] = Field{
 			ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: string(field.Type), Required: field.Required,
-			Rows: append([]string(nil), field.Rows...), Columns: append([]string(nil), field.Columns...), ScaleMax: field.ScaleMax, Image: field.Image,
 			Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...),
 			Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring, Assessment: field.Assessment,
-			CollectionIntent: field.CollectionIntent, RecordTarget: field.RecordTarget, BrowserCachePolicy: field.BrowserCachePolicy, AnswerValidityDays: field.AnswerValidityDays, ValidationBinding: field.ValidationBinding,
+			CollectionIntent: field.CollectionIntent, RecordTarget: field.RecordTarget, BrowserCachePolicy: field.BrowserCachePolicy,
 		}
 	}
 	return result
