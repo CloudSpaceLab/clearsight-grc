@@ -9,3 +9,4 @@
 .v-vendor-collection-choice input { width: 18px !important; min-height: 18px !important; }
 .v-vendor-collection button:disabled { opacity: .55; cursor: not-allowed; }
 @media (max-width: 600px) { .v-vendor-collection > ul > li { align-items: flex-start; flex-direction: column; } }
+.v-collection-gate { min-width: 0; padding: 0; margin: 0; border: 0; }

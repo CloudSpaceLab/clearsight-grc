@@ -98,3 +98,8 @@ a { color: inherit; }
 @media (max-width: 760px) { .v-topbar { height: 64px; padding: 0 16px; gap: 12px; } .v-menu { display: inline-grid; place-items: center; border: 0; background: transparent; color: #18335e; min-width: 44px; min-height: 44px; font-size: 20px; } .v-brand { width: auto; } .v-brand small, .v-entity { display: none; } .v-sidebar { top: 64px; transform: translateX(-100%); visibility: hidden; } .v-sidebar.is-open { transform: translateX(0); visibility: visible; } .v-shade { display: block; position: fixed; inset: 64px 0 0; border: 0; background: #10295088; z-index: 14; } .v-main { margin: 0; padding: 94px 20px 40px; } }
 @media (max-width: 700px) { .v-program-table table, .v-program-table tbody, .v-program-table tr, .v-program-table td { display: block; } .v-program-table thead { display: none; } .v-program-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 14px 16px; border-bottom: 1px solid #e5edf7; gap: 8px; } .v-program-table td { padding: 0; border: 0; } .v-program-table td:first-child { grid-column: 1 / -1; } .v-mobile-label { display: block; margin-bottom: 3px; color: #7389a9; font-size: 11px; } }
 @media (max-width: 420px) { .v-main { padding-inline: 16px; } .v-metrics { gap: 10px; } .v-metric { min-height: 100px; padding: 14px; } .v-metric strong { font-size: 26px; } }
+
+.v-assessment-questions { min-width: 0; margin: 0; padding: 12px; border: 1px solid var(--v-field-border); border-radius: var(--v-field-radius); }
+.v-assessment-questions p { margin: 0 0 8px; }
+.v-intake .v-assessment-question { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.v-intake .v-assessment-question input { flex: none; width: 18px; min-height: 18px; height: 18px; padding: 0; }

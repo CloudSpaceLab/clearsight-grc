@@ -69,6 +69,21 @@ func testPostgresCollectionReconciliationKeepsSourceAndCommitsAtomically(t *test
 	if err != nil || len(sources.Items) != 1 {
 		t.Fatalf("source read: %+v %v", sources, err)
 	}
+	// The transaction-bound source read uses the same inventory query and must
+	// preserve its exact relationship and Program filters before selection.
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	exact := evidence.DocumentQuery{TenantID: thirdPartyTenantID, LegalEntityID: thirdPartyEntityA, PrincipalID: thirdPartyPrincipal, RelationshipID: relationship.Relationship.ID, SubmissionID: submitted.SubmissionID, FieldID: "report", ArtifactID: artifact.ID, CurrentOnly: true}
+	if got, readErr := evidence.ReadCollectionSourcePostgres(ctx, tx, exact); readErr != nil || got.ArtifactID != artifact.ID {
+		t.Fatalf("transaction source read: %+v %v", got, readErr)
+	}
+	exact.ProgramID, _ = id.NewUUIDv7()
+	if _, readErr := evidence.ReadCollectionSourcePostgres(ctx, tx, exact); !errors.Is(readErr, evidence.ErrNotFound) {
+		t.Fatalf("transaction source ignored Program scope: %v", readErr)
+	}
+	_ = tx.Rollback(ctx)
 	receiptID, _ := id.NewUUIDv7()
 	source := sources.Items[0]
 	record := assessmentCollectionRecord{Scope: Scope{TenantID: input.TenantID, LegalEntityID: thirdPartyEntityA}, AssessmentID: a.ID, RequestID: target.ID, FieldID: "report", ActorPrincipalID: thirdPartyPrincipal, ExpectedVersion: 4, ExpectedRequestVersion: target.Version, At: now.Add(time.Minute), Resolution: evidence.CollectionResolution{ID: receiptID, Version: 1, Source: source, SourceArtifactRequestID: sourceRequest.ID, ReconciledBy: thirdPartyPrincipal, ReconciledAt: now.Add(time.Minute), Rationale: "The report covers this service.", BankReviewState: "PENDING"}, Authorize: func(context.Context) error { return errors.New("revoked route") }}
@@ -118,7 +133,7 @@ func testPostgresCollectionReconciliationKeepsSourceAndCommitsAtomically(t *test
 	if _, err = pool.Exec(ctx, `UPDATE capture_field_collection_resolutions SET receipt='{}'::jsonb WHERE id=$1::uuid`, receipt.ID); err == nil {
 		t.Fatal("receipt was mutable")
 	}
-	tx, err := pool.Begin(ctx)
+	tx, err = pool.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,6 +148,9 @@ func testPostgresCollectionReconciliationKeepsSourceAndCommitsAtomically(t *test
 	record.Resolution = receipt
 	record.Resolution.ID, _ = id.NewUUIDv7()
 	record.Resolution.BankReviewState = "VALIDATED"
+	record.Resolution.EvidenceClass = "OFFICIAL_SOURCE"
+	record.Resolution.Document.DocumentType = "ISO_27001"
+	record.Resolution.Document.ExpiresOn = "2099-12-31"
 	record.Resolution.ReviewedBy = thirdPartyPrincipal
 	reviewedAt := now.Add(2 * time.Minute)
 	record.Resolution.ReviewedAt = &reviewedAt
@@ -140,6 +158,18 @@ func testPostgresCollectionReconciliationKeepsSourceAndCommitsAtomically(t *test
 	saved, request, _, err = repo.WriteAssessmentCollection(ctx, record, nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+	freshRequest, err := capture.GetRequest(ctx, input.TenantID, target.ID)
+	if err != nil || len(freshRequest.Fields) == 0 || freshRequest.Fields[0].CollectionResolution == nil {
+		t.Fatalf("review receipt reload: %+v %v", freshRequest, err)
+	}
+	persisted := freshRequest.Fields[0].CollectionResolution
+	if persisted.EvidenceClass != "OFFICIAL_SOURCE" || persisted.Document.DocumentType != "ISO_27001" || persisted.Document.ExpiresOn != "2099-12-31" || persisted.BankReviewState != "VALIDATED" {
+		t.Fatalf("review metadata did not survive PostgreSQL reload: %+v", persisted)
+	}
+	freshReview, err := reviewService.GetReview(ctx, Actor{TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, PrincipalID: thirdPartyPrincipal}, a.ID)
+	if err != nil || len(freshReview.Documents) != 1 || freshReview.Documents[0].EvidenceClass != AssessmentEvidenceOfficialSource || freshReview.Documents[0].DocumentType != "ISO_27001" || freshReview.Documents[0].ExpiresOn != "2099-12-31" {
+		t.Fatalf("review metadata projection: %+v %v", freshReview.Documents, err)
 	}
 	tx, err = pool.Begin(ctx)
 	if err != nil {

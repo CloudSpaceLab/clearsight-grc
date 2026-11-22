@@ -1,9 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { VendorReview } from "./VendorReview";
+import { ApiError } from "../http";
 
 const assessment = vi.hoisted(() => ({ loadCurrentVendorAssessment: vi.fn(), loadVendorAssessment: vi.fn(), startVendorAssessment: vi.fn(), startVendorAssessmentReview: vi.fn(), completeVendorAssessment: vi.fn(), sendVendorAssessmentRequest: vi.fn(), retryVendorAssessmentSetup: vi.fn(), reissueVendorAssessmentRequest: vi.fn(), requestVendorAssessmentClarification: vi.fn() }));
-const forms = vi.hoisted(() => ({ loadFormTemplatePage: vi.fn() }));
+const forms = vi.hoisted(() => ({ loadFormTemplatePage: vi.fn(), loadFormTemplateRevision: vi.fn() }));
 const authority = vi.hoisted(() => ({ checkVendorAuthority: vi.fn() }));
 const collections = vi.hoisted(() => ({ loadVendorCollection: vi.fn(), reconcileVendorEvidence: vi.fn() }));
 const submittedDocuments = vi.hoisted(() => ({ loadDocuments: vi.fn() }));
@@ -13,7 +14,7 @@ vi.mock("./vendorAuthority", () => authority);
 vi.mock("../vendorCollectionApi", () => collections);
 vi.mock("../submittedDocumentApi", async (importOriginal) => ({ ...await importOriginal<typeof import("../submittedDocumentApi")>(), ...submittedDocuments }));
 vi.mock("./VendorActivation", () => ({ VendorActivation: () => null }));
-const relationship = { vendor: { legal_name: "Atlas Ltd" }, relationship: { id: "rel-1", version: 3, service_name: "Hosting", status: "PROPOSED", criticality: "IMPORTANT", privacy_role: "PROCESSOR" } } as any;
+const relationship = { vendor: { legal_name: "Atlas Ltd" }, relationship: { id: "rel-1", tenant_id: "bank", legal_entity_id: "entity", version: 3, service_name: "Hosting", status: "PROPOSED", criticality: "IMPORTANT", privacy_role: "PROCESSOR" } } as any;
 beforeEach(() => { vi.clearAllMocks(); forms.loadFormTemplatePage.mockResolvedValue({ items: [{ template: { id: "form-1", name: "Security", code: "F-01" }, active_version: 2, active_status: "ACTIVE" }] }); authority.checkVendorAuthority.mockResolvedValue(true); });
 
 it("opens Documents for the selected vendor and returns to its assessment", async () => {
@@ -49,15 +50,168 @@ it("prevents assessment actions while linking a document", async () => {
   expect(screen.queryByRole("button", { name: "Start review" })).toBeNull();
 });
 
+it("opens the matching document review directly from the checklist", async () => {
+  const current = { id: "assess-1", tenant_id: "bank", legal_entity_id: "entity", relationship_id: "rel-1", version: 7, status: "UNDER_REVIEW", review_kind: "ONBOARDING", current_request_id: "req-1" };
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: current });
+  assessment.loadVendorAssessment.mockResolvedValue({ assessment: current, answers: [], documents: [{ field_id: "field", request_id: "req-1", artifact_id: "doc", file_name: "Audit.pdf", artifact_status: "AVAILABLE", status: "SUBMITTED", document_type: "AUDIT" }], matters: [], coverage: {} });
+  collections.loadVendorCollection.mockResolvedValue({ assessment_id: "assess-1", assessment_version: 7, request_id: "req-1", request_version: 2, fields: [{ field_id: "field", label: "Audit report", type: "vendor_document", collection_state: "RECEIVED", bank_review_state: "PENDING" }] });
+  render(<VendorReview relationship={relationship} onBack={() => {}}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Review Audit report" }));
+  expect(await screen.findByRole("heading", { name: "Review Audit.pdf" })).toBeTruthy();
+  expect(screen.getByLabelText("Document type")).toHaveProperty("value", "AUDIT");
+});
+
+it.each([{ request: "old-request", version: 7, allowed: true }, { request: "req-1", version: 6, allowed: true }, { request: "req-1", version: 7, allowed: false }])("withholds checklist review for stale collection or unavailable authority", async ({ request, version, allowed }) => {
+  const current = { id: "assess-1", tenant_id: "bank", legal_entity_id: "entity", relationship_id: "rel-1", version: 7, status: "UNDER_REVIEW", review_kind: "ONBOARDING", current_request_id: "req-1" };
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: current });
+  assessment.loadVendorAssessment.mockResolvedValue({ assessment: current, answers: [], documents: [{ field_id: "field", request_id: "req-1", artifact_id: "doc", file_name: "Audit.pdf", artifact_status: "AVAILABLE", status: "SUBMITTED", document_type: "AUDIT" }], matters: [], coverage: {} });
+  collections.loadVendorCollection.mockResolvedValue({ assessment_id: "assess-1", assessment_version: version, request_id: request, request_version: 2, fields: [{ field_id: "field", label: "Audit report", type: "vendor_document", collection_state: "RECEIVED", bank_review_state: "PENDING" }] });
+  authority.checkVendorAuthority.mockResolvedValue(allowed);
+  render(<VendorReview relationship={relationship} onBack={() => {}}/>);
+  expect(await screen.findByText("Audit report")).toBeTruthy();
+  await vi.waitFor(() => expect(authority.checkVendorAuthority).toHaveBeenCalled());
+  expect(screen.queryByRole("button", { name: "Review Audit report" })).toBeNull();
+});
+
 it("starts onboarding against the selected form and current relationship version", async () => {
   assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: null });
-  assessment.startVendorAssessment.mockResolvedValue({ id: "assess-1", version: 1, status: "SETUP_PENDING" });
+  assessment.startVendorAssessment.mockResolvedValue({ id: "assess-1", tenant_id: "bank", legal_entity_id: "entity", relationship_id: "rel-1", version: 1, status: "SETUP_PENDING", review_kind: "ONBOARDING", source_trigger: "INITIAL", form_template_id: "form-1", form_template_version: 2, review_due_at: new Date("2027-02-18T12:00").toISOString(), scope_kind: "FULL" });
   render(<VendorReview relationship={relationship} onBack={() => {}}/>);
   fireEvent.click(await screen.findByRole("button", { name: "Start onboarding assessment" }));
   fireEvent.change(await screen.findByLabelText("Assessment form"), { target: { value: "form-1" } });
   fireEvent.change(screen.getByLabelText("Review due"), { target: { value: "2027-02-18T12:00" } });
   fireEvent.click(screen.getByRole("button", { name: "Start assessment" }));
   await vi.waitFor(() => expect(assessment.startVendorAssessment).toHaveBeenCalledWith("rel-1", expect.objectContaining({ relationship_version: 3, form_template_id: "form-1", form_template_version: 2, review_kind: "ONBOARDING" })));
+});
+
+it("starts an event-driven reassessment with an explicit reference", async () => {
+  const managed = { ...relationship, relationship: { ...relationship.relationship, status: "ACTIVE" } };
+  const completed = { id: "old", relationship_id: "rel-1", version: 7, status: "COMPLETED", review_kind: "ONBOARDING" };
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: completed });
+  assessment.loadVendorAssessment.mockResolvedValue({ assessment: completed, answers: [], documents: [], matters: [], coverage: {} });
+  assessment.startVendorAssessment.mockResolvedValue({ id: "new", tenant_id: "bank", legal_entity_id: "entity", relationship_id: "rel-1", version: 1, status: "SETUP_PENDING", review_kind: "TRIGGERED", source_trigger: "incident-42", form_template_id: "form-1", form_template_version: 2, review_due_at: new Date("2027-02-18T12:00").toISOString(), scope_kind: "FULL" });
+  render(<VendorReview relationship={managed} onBack={() => {}}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Start reassessment" }));
+  fireEvent.change(screen.getByLabelText("Review type"), { target: { value: "TRIGGERED" } });
+  fireEvent.change(screen.getByLabelText("Review reference"), { target: { value: "incident-42" } });
+  fireEvent.change(await screen.findByLabelText("Assessment form"), { target: { value: "form-1" } });
+  fireEvent.change(screen.getByLabelText("Review due"), { target: { value: "2027-02-18T12:00" } });
+  fireEvent.click(screen.getByRole("button", { name: "Start assessment" }));
+  await vi.waitFor(() => expect(assessment.startVendorAssessment).toHaveBeenCalledWith("rel-1", expect.objectContaining({ relationship_version: 3, review_kind: "TRIGGERED", source_trigger: "incident-42", form_template_id: "form-1", form_template_version: 2 })));
+});
+
+it("starts a focused reassessment using fields from the selected form revision", async () => {
+  const managed = { ...relationship, relationship: { ...relationship.relationship, status: "ACTIVE" } };
+  const completed = { id: "old", relationship_id: "rel-1", version: 7, status: "COMPLETED", review_kind: "ONBOARDING" };
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: completed });
+  assessment.loadVendorAssessment.mockResolvedValue({ assessment: completed, answers: [], documents: [], matters: [], coverage: {} });
+  forms.loadFormTemplateRevision.mockResolvedValue({ id: "form-1", tenant_id: "bank", version: 2, status: "ACTIVE", is_current: true, fields: [{ id: "q1", label: "Access review" }, { id: "q2", label: "Audit report" }] });
+  assessment.startVendorAssessment.mockResolvedValue({ id: "new", tenant_id: "bank", legal_entity_id: "entity", relationship_id: "rel-1", version: 1, status: "SETUP_PENDING", review_kind: "PERIODIC", source_trigger: "annual-2027", form_template_id: "form-1", form_template_version: 2, review_due_at: new Date("2027-02-18T12:00").toISOString(), scope_kind: "FOCUSED", selected_field_ids: ["q2"] });
+  render(<VendorReview relationship={managed} onBack={() => {}}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Start reassessment" }));
+  fireEvent.change(screen.getByLabelText("Review reference"), { target: { value: "annual-2027" } });
+  fireEvent.change(await screen.findByLabelText("Assessment form"), { target: { value: "form-1" } });
+  fireEvent.change(screen.getByLabelText("Assessment scope"), { target: { value: "FOCUSED" } });
+  fireEvent.click(await screen.findByLabelText("Audit report"));
+  fireEvent.change(screen.getByLabelText("Review due"), { target: { value: "2027-02-18T12:00" } });
+  fireEvent.click(screen.getByRole("button", { name: "Start assessment" }));
+  await vi.waitFor(() => expect(assessment.startVendorAssessment).toHaveBeenCalledWith("rel-1", expect.objectContaining({ scope_kind: "FOCUSED", selected_field_ids: ["q2"], form_template_id: "form-1", form_template_version: 2 })));
+});
+
+it("clears loaded form choices when access is revoked during pagination", async () => {
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: null });
+  forms.loadFormTemplatePage.mockResolvedValueOnce({ items: [{ template: { id: "form-1", name: "Security", code: "F-01" }, active_version: 2, active_status: "ACTIVE" }], next_cursor: "next" }).mockRejectedValueOnce(new ApiError(403, "Forbidden"));
+  render(<VendorReview relationship={relationship} onBack={() => {}}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Start onboarding assessment" }));
+  fireEvent.change(await screen.findByLabelText("Assessment form"), { target: { value: "form-1" } });
+  fireEvent.click(screen.getByRole("button", { name: "Load more forms" }));
+  expect(await screen.findByText("Assessment forms unavailable.")).toBeTruthy();
+  expect(screen.queryByRole("option", { name: "Security · v2" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Start assessment" })).toBeNull();
+});
+
+it("stops repeated form pagination cursors", async () => {
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: null });
+  forms.loadFormTemplatePage.mockResolvedValueOnce({ items: [], next_cursor: "next" }).mockResolvedValueOnce({ items: [], next_cursor: "next" });
+  render(<VendorReview relationship={relationship} onBack={() => {}}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Start onboarding assessment" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Load more forms" }));
+  expect(await screen.findByText("More forms unavailable.")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Load more forms" })).toBeNull();
+});
+
+it("deduplicates form choices within a later page", async () => {
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: null });
+  const item = { template: { id: "form-2", name: "Continuity", code: "F-02" }, active_version: 3, active_status: "ACTIVE" };
+  forms.loadFormTemplatePage.mockResolvedValueOnce({ items: [], next_cursor: "next" }).mockResolvedValueOnce({ items: [item, item] });
+  render(<VendorReview relationship={relationship} onBack={() => {}}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Start onboarding assessment" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Load more forms" }));
+  expect(await screen.findAllByRole("option", { name: "Continuity · v3" })).toHaveLength(1);
+});
+
+it.each([{ version: 1, status: "ACTIVE", isCurrent: true }, { version: 2, status: "RETIRED", isCurrent: true }, { version: 2, status: "ACTIVE", isCurrent: false }])("fails closed for a mismatched, retired or superseded form revision ($version, $status, $isCurrent)", async ({ version, status, isCurrent }) => {
+  const managed = { ...relationship, relationship: { ...relationship.relationship, status: "ACTIVE" } };
+  const completed = { id: "old", relationship_id: "rel-1", version: 7, status: "COMPLETED", review_kind: "ONBOARDING" };
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: completed });
+  assessment.loadVendorAssessment.mockResolvedValue({ assessment: completed, answers: [], documents: [], matters: [], coverage: {} });
+  forms.loadFormTemplateRevision.mockResolvedValue({ id: "form-1", tenant_id: "bank", version, status, is_current: isCurrent, fields: [{ id: "q1", label: "Access review" }] });
+  render(<VendorReview relationship={managed} onBack={() => {}}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Start reassessment" }));
+  fireEvent.change(await screen.findByLabelText("Assessment form"), { target: { value: "form-1" } });
+  fireEvent.change(screen.getByLabelText("Assessment scope"), { target: { value: "FOCUSED" } });
+  expect(await screen.findByText(/Questions unavailable/)).toBeTruthy();
+  expect(screen.queryByLabelText("Access review")).toBeNull();
+  expect(screen.getByRole("button", { name: "Start assessment" }).matches(":disabled")).toBe(true);
+  expect(assessment.startVendorAssessment).not.toHaveBeenCalled();
+});
+
+it("does not confirm a focused assessment with different selected questions", async () => {
+  const managed = { ...relationship, relationship: { ...relationship.relationship, status: "ACTIVE" } };
+  const completed = { id: "old", relationship_id: "rel-1", version: 7, status: "COMPLETED", review_kind: "ONBOARDING" };
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: completed });
+  assessment.loadVendorAssessment.mockResolvedValue({ assessment: completed, answers: [], documents: [], matters: [], coverage: {} });
+  forms.loadFormTemplateRevision.mockResolvedValue({ id: "form-1", tenant_id: "bank", version: 2, status: "ACTIVE", is_current: true, fields: [{ id: "q1", label: "Access review" }, { id: "q2", label: "Audit report" }] });
+  assessment.startVendorAssessment.mockResolvedValue({ id: "new", tenant_id: "bank", legal_entity_id: "entity", relationship_id: "rel-1", version: 1, status: "SETUP_PENDING", review_kind: "PERIODIC", source_trigger: "annual-2027", form_template_id: "form-1", form_template_version: 2, review_due_at: new Date("2027-02-18T12:00").toISOString(), scope_kind: "FOCUSED", selected_field_ids: ["q1"] });
+  render(<VendorReview relationship={managed} onBack={() => {}}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Start reassessment" }));
+  fireEvent.change(screen.getByLabelText("Review reference"), { target: { value: "annual-2027" } });
+  fireEvent.change(await screen.findByLabelText("Assessment form"), { target: { value: "form-1" } });
+  fireEvent.change(screen.getByLabelText("Assessment scope"), { target: { value: "FOCUSED" } });
+  fireEvent.click(await screen.findByLabelText("Audit report"));
+  fireEvent.change(screen.getByLabelText("Review due"), { target: { value: "2027-02-18T12:00" } });
+  fireEvent.click(screen.getByRole("button", { name: "Start assessment" }));
+  expect(await screen.findByText(/Review status could not be confirmed/)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Start reassessment" })).toBeNull();
+});
+
+it("does not confirm a reassessment for another relationship", async () => {
+  const managed = { ...relationship, relationship: { ...relationship.relationship, status: "ACTIVE" } };
+  const completed = { id: "old", relationship_id: "rel-1", version: 7, status: "COMPLETED", review_kind: "ONBOARDING" };
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: completed });
+  assessment.loadVendorAssessment.mockResolvedValue({ assessment: completed, answers: [], documents: [], matters: [], coverage: {} });
+  assessment.startVendorAssessment.mockResolvedValue({ id: "new", tenant_id: "bank", legal_entity_id: "entity", relationship_id: "other", version: 1, status: "SETUP_PENDING", review_kind: "PERIODIC", source_trigger: "annual-2027", form_template_id: "form-1", form_template_version: 2, review_due_at: new Date("2027-02-18T12:00").toISOString(), scope_kind: "FULL" });
+  render(<VendorReview relationship={managed} onBack={() => {}}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Start reassessment" }));
+  fireEvent.change(screen.getByLabelText("Review reference"), { target: { value: "annual-2027" } });
+  fireEvent.change(await screen.findByLabelText("Assessment form"), { target: { value: "form-1" } });
+  fireEvent.change(screen.getByLabelText("Review due"), { target: { value: "2027-02-18T12:00" } });
+  fireEvent.click(screen.getByRole("button", { name: "Start assessment" }));
+  expect(await screen.findByText(/Review status could not be confirmed/)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Start reassessment" })).toBeNull();
+});
+
+it("does not start reassessment when authority is unavailable", async () => {
+  const managed = { ...relationship, relationship: { ...relationship.relationship, status: "ACTIVE" } };
+  const completed = { id: "old", relationship_id: "rel-1", version: 7, status: "COMPLETED", review_kind: "ONBOARDING" };
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: completed });
+  assessment.loadVendorAssessment.mockResolvedValue({ assessment: completed, answers: [], documents: [], matters: [], coverage: {} });
+  authority.checkVendorAuthority.mockResolvedValue(false);
+  render(<VendorReview relationship={managed} onBack={() => {}}/>);
+  expect(await screen.findByText(/Assessment action unavailable/)).toBeTruthy();
+  expect(authority.checkVendorAuthority).toHaveBeenCalledWith("start", "rel-1");
+  expect(screen.queryByRole("button", { name: "Start reassessment" })).toBeNull();
+  expect(assessment.startVendorAssessment).not.toHaveBeenCalled();
 });
 
 it("opens only the selected assessment and starts review at its recorded version", async () => {

@@ -35,6 +35,9 @@ func (s *AssessmentReviewService) addCollectionEvidence(view *AssessmentReviewVi
 		if status == "VALIDATED" {
 			class = AssessmentEvidenceBankValidated
 		}
+		if validAssessmentDocumentEvidenceClass(AssessmentDocumentEvidenceClass(receipt.EvidenceClass)) {
+			class = AssessmentEvidenceClass(receipt.EvidenceClass)
+		}
 		view.Documents = append(view.Documents, AssessmentReviewDocument{FieldID: field.ID, RequestID: receipt.SourceArtifactRequestID, ArtifactID: source.ArtifactID, FileName: source.FileName, MediaType: source.MediaType, SizeBytes: source.SizeBytes, ArtifactStatus: source.ArtifactStatus, DemoUnscannedAllowed: s.demoUnscannedAllowed(source.ArtifactStatus), Status: status, EvidenceClass: class, DocumentType: receipt.Document.DocumentType, Reference: receipt.Document.Reference, IssuedBy: receipt.Document.IssuedBy, IssuedOn: receipt.Document.IssuedOn, ExpiresOn: receipt.Document.ExpiresOn})
 		found := false
 		for i := range view.Answers {
@@ -67,6 +70,7 @@ func (s *AssessmentReviewService) reviewCollectionDocument(ctx context.Context, 
 		return AssessmentReviewView{}, err
 	}
 	receipt.Document.DocumentType = input.DocumentType
+	receipt.EvidenceClass = string(input.EvidenceClass)
 	if expiry != nil {
 		receipt.Document.ExpiresOn = assessmentDocumentDateString(expiry)
 	}

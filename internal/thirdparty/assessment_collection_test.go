@@ -174,7 +174,7 @@ func TestReusedDocumentReviewTargetsRequirementWhenArtifactIsShared(t *testing.T
 	capture.requests[request.ID] = request
 	capture.artifacts[source.ArtifactID] = evidence.Artifact{ID: source.ArtifactID, TenantID: actor.TenantID, RequestID: source.RequestID, Status: source.ArtifactStatus, SHA256: source.SHA256, SizeBytes: 100}
 	ctx := assessmentContextFor(actor.TenantID, actor.LegalEntityID, actor.PrincipalID)
-	input := ReviewAssessmentDocumentInput{ExpectedVersion: assessment.Version, Decision: AssessmentDocumentValidate, DocumentType: "SOC_2_TYPE_II", EvidenceClass: AssessmentDocumentBankValidated}
+	input := ReviewAssessmentDocumentInput{ExpectedVersion: assessment.Version, Decision: AssessmentDocumentValidate, DocumentType: "SOC_2_TYPE_II", EvidenceClass: AssessmentDocumentOfficialSource, ValidUntil: "2027-01-01"}
 	if _, err := review.ReviewDocument(ctx, actor, assessment.ID, source.ArtifactID, input); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("ambiguous artifact review accepted: %v", err)
 	}
@@ -183,6 +183,15 @@ func TestReusedDocumentReviewTargetsRequirementWhenArtifactIsShared(t *testing.T
 		result, err := review.ReviewDocument(ctx, actor, assessment.ID, source.ArtifactID, input)
 		if err != nil {
 			t.Fatal(err)
+		}
+		found := false
+		for _, document := range result.Documents {
+			if document.FieldID == fieldID && document.ArtifactID == source.ArtifactID && document.Status == "VALIDATED" && document.DocumentType == input.DocumentType && document.EvidenceClass == AssessmentEvidenceClass(input.EvidenceClass) && document.ExpiresOn == input.ValidUntil {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("review result did not preserve submitted metadata for %s: %+v", fieldID, result.Documents)
 		}
 		input.ExpectedVersion = result.Assessment.Version
 	}

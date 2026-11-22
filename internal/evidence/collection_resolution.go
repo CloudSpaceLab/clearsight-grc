@@ -39,6 +39,7 @@ type CollectionResolution struct {
 	ReconciledAt            time.Time                   `json:"reconciled_at"`
 	Rationale               string                      `json:"rationale"`
 	BankReviewState         string                      `json:"bank_review_state"`
+	EvidenceClass           string                      `json:"evidence_class,omitempty"`
 	ReviewedBy              string                      `json:"reviewed_by,omitempty"`
 	ReviewedAt              *time.Time                  `json:"reviewed_at,omitempty"`
 }

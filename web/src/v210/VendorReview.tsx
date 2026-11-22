@@ -1,6 +1,8 @@
+import { scopedDocumentsHref } from "./documentReturn";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { loadFormTemplatePage } from "../formsApi";
+import { loadFormTemplatePage, loadFormTemplateRevision } from "../formsApi";
 import type { ReusableFormTemplateRef } from "../formsTypes";
+import type { FormTemplateField } from "../monitoringTypes";
 import { ApiError } from "../http";
 import { completeVendorAssessment, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
 import type { VendorAssessment, VendorAssessmentConclusion, VendorAssessmentReviewAnswer, VendorAssessmentReviewView, VendorAssessmentSendState, VendorAssessmentSetupStatus } from "../vendorAssessmentTypes";
@@ -10,7 +12,6 @@ import { VendorDocuments } from "./VendorDocuments";
 import { VendorActivation } from "./VendorActivation";
 import { VendorFindings } from "./VendorFindings";
 import { VendorCollection } from "./VendorCollection";
-import { scopedDocumentsHref } from "./documentReturn";
 import "./vendor-review.css";
 
 type LoadState = "loading" | "ready" | "error";
@@ -28,6 +29,8 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
   const [uncertain, setUncertain] = useState(false);
   const [busy, setBusy] = useState(false);
   const [collectionPending, setCollectionPending] = useState(false);
+  const [documentAccess, setDocumentAccess] = useState<{ key: string; allowed: boolean }>();
+  const [reviewTarget, setReviewTarget] = useState<{ key: string; fieldID: string; sequence: number }>();
   const [commandError, setCommandError] = useState("");
   const [stale, setStale] = useState(false);
   const [historical, setHistorical] = useState(false);
@@ -39,6 +42,7 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
       if (error instanceof ApiError && error.status === 404 && error.code === "vendor_assessment_not_found") return { assessment: null, setup: undefined };
       throw error;
     }).then(async (current) => {
+      if (current.assessment && current.assessment.relationship_id !== relationship.relationship.id) throw new Error("Assessment relationship mismatch");
       const selectedID = assessmentId || current.assessment?.id;
       const details = selectedID && (assessmentId || current.assessment && ["SUBMITTED", "UNDER_REVIEW", "COMPLETED"].includes(current.assessment.status)) ? await loadVendorAssessment(selectedID) : undefined;
       if (details && details.assessment.relationship_id !== relationship.relationship.id) throw new Error("Assessment relationship mismatch");
@@ -50,8 +54,13 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
     return () => { active = false; };
   }, [relationship.relationship.id, assessmentId, attempt]);
 
-  const action: VendorAction | undefined = state !== "ready" || historical ? undefined : !assessment && relationship.relationship.status === "PROPOSED" ? "start" : assessment?.status === "SETUP_PENDING" && setup?.state === "FAILED" && setup.assessment_id === assessment.id ? "setup" : assessment?.status === "READY_TO_SEND" ? "send" : assessment?.status === "COLLECTING" && assessment.current_request_id ? "reissue" : assessment?.status === "SUBMITTED" ? "review" : assessment?.status === "UNDER_REVIEW" ? "complete" : undefined;
+  const reassessment = Boolean(assessment && ["COMPLETED", "CANCELLED"].includes(assessment.status) && ["ACTIVE", "RESTRICTED", "SUSPENDED"].includes(relationship.relationship.status));
+  const restart = assessment?.status === "CANCELLED" && assessment.review_kind === "ONBOARDING" && ["PROPOSED", "UNDER_REVIEW"].includes(relationship.relationship.status) ? assessment.id : undefined;
+  const canStart = Boolean(relationship.relationship.tenant_id && relationship.relationship.legal_entity_id && ((!assessment && ["PROPOSED", "UNDER_REVIEW"].includes(relationship.relationship.status)) || restart || reassessment));
+  const action: VendorAction | undefined = state !== "ready" || historical ? undefined : canStart ? "start" : assessment?.status === "SETUP_PENDING" && setup?.state === "FAILED" && setup.assessment_id === assessment.id ? "setup" : assessment?.status === "READY_TO_SEND" ? "send" : assessment?.status === "COLLECTING" && assessment.current_request_id ? "reissue" : assessment?.status === "SUBMITTED" ? "review" : assessment?.status === "UNDER_REVIEW" ? "complete" : undefined;
   const actionObjectID = action === "start" ? relationship.relationship.id : assessment?.id;
+  const reviewKey = assessment ? `${assessment.id}:${assessment.version}` : "";
+  const reviewableFields = documentAccess?.key === reviewKey && documentAccess.allowed && review && assessment?.status === "UNDER_REVIEW" && !historical ? review.documents.filter((file) => file.status === "SUBMITTED" && (file.artifact_status === "AVAILABLE" || (file.artifact_status === "STORED_UNSCANNED" && file.demo_unscanned_allowed)) && review.documents.filter((other) => other.field_id === file.field_id && other.status === "SUBMITTED" && (other.artifact_status === "AVAILABLE" || (other.artifact_status === "STORED_UNSCANNED" && other.demo_unscanned_allowed))).length === 1).map((file) => file.field_id) : [];
   useEffect(() => {
     let active = true; setAuthority("checking");
     if (action && actionObjectID) void checkVendorAuthority(action, actionObjectID).then((allowed) => { if (active) setAuthority(allowed ? "allowed" : "unavailable"); }).catch(() => { if (active) setAuthority("unavailable"); });
@@ -94,7 +103,7 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
     {uncertain && <div className="v-panel"><p role="alert">Review status could not be confirmed. Reload the assessment before trying again.</p><button onClick={reload}>Reload assessment</button></div>}
     {commandError && !uncertain && <p role="alert">{commandError}</p>}
     {stale && <button onClick={reload}>Reload assessment</button>}
-    {state === "ready" && !uncertain && !stale && mode === "start" && <StartAssessment relationship={relationship} onCancel={() => { setCommandError(""); setMode("view"); }} onDone={reload} onFailed={commandFailed}/>}
+    {state === "ready" && !uncertain && !stale && mode === "start" && <StartAssessment relationship={relationship} reassessment={reassessment} restartID={restart} onCancel={() => { setCommandError(""); setMode("view"); }} onDone={reload} onFailed={commandFailed}/>}
     {state === "ready" && !uncertain && !stale && mode === "complete" && assessment && <CompleteAssessment assessment={assessment} onCancel={() => { setCommandError(""); setMode("view"); }} onDone={reload} onFailed={commandFailed}/>}
     {state === "ready" && !uncertain && !stale && mode === "send" && assessment && <SendAssessment assessment={assessment} onCancel={() => { setCommandError(""); setMode("view"); }} onDone={(result) => { setCommandError(""); setSendState(result); setMode("sent"); }} onFailed={commandFailed}/>}
     {state === "ready" && !uncertain && !stale && mode === "reissue" && assessment && <ReissueAssessment assessment={assessment} onCancel={() => setMode("view")} onDone={(result) => { setSendState(result); setMode("reissued"); }} onUncertain={() => setUncertain(true)}/>}
@@ -110,11 +119,12 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
           {authority === "allowed" && action === "send" && <button className="v-primary" onClick={() => setMode("send")}>Send assessment request</button>}
           {authority === "allowed" && action === "setup" && <button className="v-primary" disabled={busy} onClick={() => void retrySetup()}>{busy ? "Retrying…" : "Retry assessment setup"}</button>}
           {authority === "allowed" && action === "reissue" && <button className="v-primary" onClick={() => setMode("reissue")}>Replace invitation</button>}
+          {authority === "allowed" && action === "start" && <button className="v-primary" onClick={() => setMode("start")}>{reassessment ? "Start reassessment" : "Restart onboarding assessment"}</button>}
         </div>
         {assessment.status === "SETUP_PENDING" && setup?.state === "FAILED" && setup.assessment_id === assessment.id && <p role="alert">Assessment setup failed.</p>}
         {setupQueued && <p role="status">Assessment setup queued.</p>}
         {clarificationAllowed && <p><button type="button" onClick={() => setMode("clarification")}>Request clarification</button></p>}
-        {review && <div className="v-panel v-vendor-answers"><h2>Submitted answers</h2>{review.response && <p>Submitted {date(review.response.submitted_at)}</p>}{review.answers.filter((answer) => answer.visibility === "VISIBLE").length === 0 ? <p>No visible answers recorded.</p> : <ul>{review.answers.filter((answer) => answer.visibility === "VISIBLE").map((answer) => <li key={answer.field_id}><strong>{answer.label}</strong>{answer.value ? <p>{answer.value.text || answer.value.values?.join(", ") || (answer.value.document || answer.value.artifact_ids?.length ? "Document submitted" : "No answer recorded")}</p> : !answer.collection_resolution && <p>No answer recorded</p>}{answer.collection_resolution && <><p>Bank document: {answer.collection_resolution.source.file_name}</p><p>Linked by {answer.collection_resolution.reconciled_by} · {date(answer.collection_resolution.reconciled_at)}</p><p>Link receipt: {answer.collection_resolution.id} · Version {answer.collection_resolution.version}</p><p>Reason: {answer.collection_resolution.rationale}</p></>}</li>)}</ul>}<VendorDocuments assessment={assessment} documents={review.documents} historical={historical} onChanged={(view) => { setReview(view); setAssessment(view.assessment); }} onFailed={commandFailed}/></div>}
+        {review && <div className="v-panel v-vendor-answers"><h2>Submitted answers</h2>{review.response && <p>Submitted {date(review.response.submitted_at)}</p>}{review.answers.filter((answer) => answer.visibility === "VISIBLE").length === 0 ? <p>No visible answers recorded.</p> : <ul>{review.answers.filter((answer) => answer.visibility === "VISIBLE").map((answer) => <li key={answer.field_id}><strong>{answer.label}</strong>{answer.value ? <p>{answer.value.text || answer.value.values?.join(", ") || (answer.value.document || answer.value.artifact_ids?.length ? "Document submitted" : "No answer recorded")}</p> : !answer.collection_resolution && <p>No answer recorded</p>}{answer.collection_resolution && <><p>Bank document: {answer.collection_resolution.source.file_name}</p><p>Linked by {answer.collection_resolution.reconciled_by} · {date(answer.collection_resolution.reconciled_at)}</p><p>Link receipt: {answer.collection_resolution.id} · Version {answer.collection_resolution.version}</p><p>Reason: {answer.collection_resolution.rationale}</p></>}</li>)}</ul>}<VendorDocuments assessment={assessment} documents={review.documents} historical={historical} onChanged={(view) => { setReview(view); setAssessment(view.assessment); }} onFailed={commandFailed} onPendingChange={setCollectionPending} onReviewAvailability={(allowed) => setDocumentAccess({ key: reviewKey, allowed })} reviewTarget={reviewTarget?.key === reviewKey ? reviewTarget : undefined}/></div>}
         {review && <VendorFindings matters={review.matters} mayCreate={!historical && assessment.status === "UNDER_REVIEW"}/>}
       </>}
       {action && authority === "checking" && <p role="status">Checking assessment access…</p>}
@@ -122,7 +132,7 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
     </>}
     {!assessmentId && <VendorActivation key={`${attempt}:${assessment?.version ?? "none"}`} relationshipId={relationship.relationship.id} relationshipScope={relationship.relationship} onActivated={(value) => onActivated?.(value)} onRefreshed={(value) => onActivated?.(value)}/>}
     </fieldset>
-    {state === "ready" && !uncertain && !stale && mode === "view" && !historical && assessment?.current_request_id && ["COLLECTING", "SUBMITTED", "UNDER_REVIEW"].includes(assessment.status) && <VendorCollection key={`${assessment.id}:${assessment.version}`} assessmentId={assessment.id} relationshipId={relationship.relationship.id} onChanged={reload} onUncertain={() => setUncertain(true)} onPendingChange={setCollectionPending}/>}
+    {state === "ready" && !uncertain && !stale && mode === "view" && !historical && assessment?.current_request_id && ["COLLECTING", "SUBMITTED", "UNDER_REVIEW"].includes(assessment.status) && <fieldset className="v-collection-gate" disabled={collectionPending}><VendorCollection key={`${assessment.id}:${assessment.version}`} assessmentId={assessment.id} relationshipId={relationship.relationship.id} onChanged={reload} onUncertain={() => setUncertain(true)} onPendingChange={setCollectionPending} reviewableFields={reviewableFields} reviewVersion={assessment.version} reviewRequestID={assessment.current_request_id} onReview={(fieldID) => setReviewTarget((previous) => ({ key: reviewKey, fieldID, sequence: (previous?.sequence ?? 0) + 1 }))}/></fieldset>}
   </section>;
 }
 
@@ -170,29 +180,58 @@ function SendAssessment({ assessment, onCancel, onDone, onFailed }: { assessment
   return <form className="v-panel v-intake" onSubmit={(event) => void submit(event)}><h2>Send assessment request</h2><label>Recipient email<input required type="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><label>Response deadline<input required type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)}/></label><label>Access expires<select value={ttl} onChange={(event) => setTtl(event.target.value)}><option value="1440">After 1 day</option><option value="10080">After 7 days</option><option value="43200">After 30 days</option></select></label><p>Access also expires at the response deadline.</p><div className="v-intake-actions"><button type="button" onClick={onCancel} disabled={busy}>Cancel</button><button className="v-primary" disabled={busy}>{busy ? "Sending…" : "Send request"}</button></div></form>;
 }
 
-function StartAssessment({ relationship, onCancel, onDone, onFailed }: { relationship: VendorRelationshipAggregate; onCancel: () => void; onDone: () => void; onFailed: (error: unknown) => void }) {
+function StartAssessment({ relationship, reassessment, restartID, onCancel, onDone, onFailed }: { relationship: VendorRelationshipAggregate; reassessment: boolean; restartID?: string; onCancel: () => void; onDone: () => void; onFailed: (error: unknown) => void }) {
   const [forms, setForms] = useState<ReusableFormTemplateRef[]>([]); const [state, setState] = useState<LoadState>("loading");
   const [formID, setFormID] = useState(""); const [due, setDue] = useState(""); const [busy, setBusy] = useState(false);
-  const [cursor, setCursor] = useState<string>(); const [searchDraft, setSearchDraft] = useState(""); const [search, setSearch] = useState(""); const [formAttempt, setFormAttempt] = useState(0); const [moreBusy, setMoreBusy] = useState(false); const [moreError, setMoreError] = useState(false); const generation = useRef(0);
+  const [reviewKind, setReviewKind] = useState<"PERIODIC" | "TRIGGERED">("PERIODIC"); const [reference, setReference] = useState(""); const [error, setError] = useState(""); const commandLock = useRef(false); const commandGeneration = useRef(0);
+  const [scope, setScope] = useState<"FULL" | "FOCUSED">("FULL"); const [fields, setFields] = useState<FormTemplateField[]>([]); const [selected, setSelected] = useState<string[]>([]); const [fieldsState, setFieldsState] = useState<LoadState>("loading"); const [fieldsKey, setFieldsKey] = useState(""); const [fieldsAttempt, setFieldsAttempt] = useState(0);
+  useEffect(() => { commandGeneration.current++; return () => { commandGeneration.current++; }; }, [relationship.relationship.id, relationship.relationship.version]);
+  const [cursor, setCursor] = useState<string>(); const [searchDraft, setSearchDraft] = useState(""); const [search, setSearch] = useState(""); const [formAttempt, setFormAttempt] = useState(0); const [moreBusy, setMoreBusy] = useState(false); const [moreError, setMoreError] = useState(false); const generation = useRef(0); const formCursors = useRef(new Set<string>()); const moreLock = useRef<number | null>(null);
+  const selectedForm = forms.find((item) => item.id === formID);
   useEffect(() => {
-    const token = ++generation.current; setState("loading"); setForms([]); setCursor(undefined); setFormID(""); setMoreBusy(false); setMoreError(false);
-    loadFormTemplatePage({ search: search || undefined, limit: 50 }).then((page) => { if (generation.current === token) { setForms(activeForms(page.items)); setCursor(page.next_cursor); setState("ready"); } }).catch(() => { if (generation.current === token) setState("error"); });
+    let active = true; setFields([]); setSelected([]); setFieldsKey(""); setFieldsState("loading");
+    if (scope === "FOCUSED" && selectedForm) void loadFormTemplateRevision(selectedForm.id, selectedForm.version).then((form) => {
+      if (!active) return;
+      if (form.id !== selectedForm.id || form.version !== selectedForm.version || form.status !== "ACTIVE" || form.is_current !== true || form.tenant_id !== relationship.relationship.tenant_id || (form.legal_entity_id && form.legal_entity_id !== relationship.relationship.legal_entity_id) || !Array.isArray(form.fields) || form.fields.some((field) => !field.id || !field.label) || new Set(form.fields.map((field) => field.id)).size !== form.fields.length) throw new Error("Invalid form revision");
+      setFields(form.fields); setFieldsKey(`${form.id}:${form.version}`); setFieldsState("ready");
+    }).catch((error: unknown) => { if (active) { if (error instanceof ApiError && (error.status === 401 || error.status === 403)) { generation.current++; moreLock.current = null; setMoreBusy(false); setForms([]); setFormID(""); setCursor(undefined); setState("error"); } setFieldsState("error"); } });
+    return () => { active = false; };
+  }, [scope, selectedForm?.id, selectedForm?.version, relationship.relationship.tenant_id, relationship.relationship.legal_entity_id, fieldsAttempt]);
+  useEffect(() => {
+    const token = ++generation.current; formCursors.current = new Set(); moreLock.current = null; setState("loading"); setForms([]); setCursor(undefined); setFormID(""); setMoreBusy(false); setMoreError(false);
+    loadFormTemplatePage({ search: search || undefined, limit: 50 }).then((page) => { if (generation.current === token) { setForms(activeForms(page.items)); if (page.next_cursor) formCursors.current.add(page.next_cursor); setCursor(page.next_cursor); setState("ready"); } }).catch(() => { if (generation.current === token) setState("error"); });
     return () => { generation.current++; };
   }, [search, formAttempt]);
   async function moreForms() {
-    if (!cursor || moreBusy) return;
-    const token = generation.current; setMoreBusy(true); setMoreError(false);
-    try { const page = await loadFormTemplatePage({ search: search || undefined, cursor, limit: 50 }); if (generation.current === token) { setForms((previous) => [...previous, ...activeForms(page.items)]); setCursor(page.next_cursor); } }
-    catch { if (generation.current === token) setMoreError(true); } finally { if (generation.current === token) setMoreBusy(false); }
+    if (!cursor || moreBusy || moreLock.current !== null) return;
+    const token = generation.current; moreLock.current = token; setMoreBusy(true); setMoreError(false);
+    try {
+      const page = await loadFormTemplatePage({ search: search || undefined, cursor, limit: 50 });
+      if (generation.current === token) {
+        if (page.next_cursor && formCursors.current.has(page.next_cursor)) { setCursor(undefined); setMoreError(true); return; }
+        if (page.next_cursor) formCursors.current.add(page.next_cursor);
+        setForms((previous) => { const ids = new Set(previous.map((form) => form.id)); return [...previous, ...activeForms(page.items).filter((form) => { if (ids.has(form.id)) return false; ids.add(form.id); return true; })]; }); setCursor(page.next_cursor);
+      }
+    } catch (error) { if (generation.current === token) { if (error instanceof ApiError && (error.status === 401 || error.status === 403)) { setForms([]); setFormID(""); setCursor(undefined); setState("error"); } else setMoreError(true); } }
+    finally { if (moreLock.current === token) moreLock.current = null; if (generation.current === token) setMoreBusy(false); }
   }
   async function submit(event: FormEvent) {
     event.preventDefault(); const form = forms.find((item) => item.id === formID); const when = new Date(due);
-    if (!form || Number.isNaN(when.getTime()) || busy) return;
-    setBusy(true);
-    try { await startVendorAssessment(relationship.relationship.id, { relationship_version: relationship.relationship.version, review_kind: "ONBOARDING", form_template_id: form.id, form_template_version: form.version, review_due_at: when.toISOString() }); onDone(); }
-    catch (error) { onFailed(error); } finally { setBusy(false); }
+    const source = reference.trim(); const kind = reassessment ? reviewKind : "ONBOARDING";
+    if (!form || Number.isNaN(when.getTime()) || when.getTime() <= Date.now() || commandLock.current || !relationship.relationship.tenant_id || !relationship.relationship.legal_entity_id) return;
+    if (reassessment && scope === "FOCUSED" && (fieldsState !== "ready" || fieldsKey !== `${form.id}:${form.version}` || selected.length === 0 || selected.some((id) => !fields.some((field) => field.id === id)))) return;
+    if (reassessment && (!source || source === "INITIAL" || new TextEncoder().encode(source).length > 128 || /[\u0000-\u001f\u007f]/.test(source))) { setError("Enter a valid review reference."); return; }
+    const token = commandGeneration.current; commandLock.current = true; setBusy(true); setError("");
+    try {
+      const result = await startVendorAssessment(relationship.relationship.id, { relationship_version: relationship.relationship.version, review_kind: kind, ...(reassessment ? { source_trigger: source, scope_kind: scope, selected_field_ids: scope === "FOCUSED" ? selected : [] } : restartID ? { restart_assessment_id: restartID } : {}), form_template_id: form.id, form_template_version: form.version, review_due_at: when.toISOString() });
+      if (token !== commandGeneration.current) return;
+      const expectedScope = reassessment ? scope : "FULL"; const expectedFields = expectedScope === "FOCUSED" ? selected : [];
+      if (!result.id || result.tenant_id !== relationship.relationship.tenant_id || result.legal_entity_id !== relationship.relationship.legal_entity_id || result.relationship_id !== relationship.relationship.id || result.review_kind !== kind || result.source_trigger !== (reassessment ? source : restartID ? `RESTART:${restartID}` : "INITIAL") || result.form_template_id !== form.id || result.form_template_version !== form.version || result.status !== "SETUP_PENDING" || !Number.isSafeInteger(result.version) || result.version < 1 || result.scope_kind !== expectedScope || (expectedScope === "FOCUSED" && (!Array.isArray(result.selected_field_ids) || result.selected_field_ids.length !== expectedFields.length || result.selected_field_ids.some((id, index) => id !== expectedFields[index]))) || Date.parse(result.review_due_at) !== when.getTime()) throw new Error("unconfirmed");
+      onDone();
+    }
+    catch (failure) { if (token === commandGeneration.current) onFailed(failure); } finally { if (token === commandGeneration.current) { commandLock.current = false; setBusy(false); } }
   }
-  return <form className="v-panel v-intake" onSubmit={(event) => void submit(event)}><h2>Onboarding assessment</h2><label>Search forms<input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)}/></label><button type="button" onClick={() => { setSearch(searchDraft.trim()); setFormAttempt((value) => value + 1); }}>Find forms</button>{state === "loading" && <p role="status">Loading forms…</p>}{state === "error" && <p role="alert">Assessment forms unavailable.</p>}{state === "ready" && <><label>Assessment form<select value={formID} required onChange={(event) => setFormID(event.target.value)}><option value="">Select a form</option>{forms.map((form) => <option key={form.id} value={form.id}>{form.name} · v{form.version}</option>)}</select></label>{forms.length === 0 && <p>No active forms in the loaded results.</p>}{moreError && <p role="alert">More forms unavailable.</p>}{cursor && <button type="button" disabled={moreBusy} onClick={() => void moreForms()}>{moreBusy ? "Loading…" : "Load more forms"}</button>}<label>Review due<input type="datetime-local" value={due} required onChange={(event) => setDue(event.target.value)}/></label><div className="v-intake-actions"><button type="button" disabled={busy} onClick={onCancel}>Cancel</button><button className="v-primary" disabled={busy || forms.length === 0}>{busy ? "Starting…" : "Start assessment"}</button></div></>}{state !== "ready" && <button type="button" onClick={onCancel}>Cancel</button>}</form>;
+  return <form className="v-panel v-intake" onSubmit={(event) => void submit(event)}><h2>{reassessment ? "Reassessment" : restartID ? "Restart onboarding assessment" : "Onboarding assessment"}</h2>{reassessment && <><label>Review type<select value={reviewKind} onChange={(event) => setReviewKind(event.target.value as typeof reviewKind)}><option value="PERIODIC">Periodic</option><option value="TRIGGERED">Event or change</option></select></label><label>Review reference<input required maxLength={128} value={reference} onChange={(event) => setReference(event.target.value)}/></label></>}<label>Search forms<input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)}/></label><button type="button" onClick={() => { setSearch(searchDraft.trim()); setFormAttempt((value) => value + 1); }}>Find forms</button>{state === "loading" && <p role="status">Loading forms…</p>}{state === "error" && <p role="alert">Assessment forms unavailable.</p>}{state === "ready" && <><label>Assessment form<select value={formID} required onChange={(event) => setFormID(event.target.value)}><option value="">Select a form</option>{forms.map((form) => <option key={form.id} value={form.id}>{form.name} · v{form.version}</option>)}</select></label>{reassessment && <><label>Assessment scope<select value={scope} onChange={(event) => setScope(event.target.value as typeof scope)}><option value="FULL">All questions</option><option value="FOCUSED">Selected questions</option></select></label>{scope === "FOCUSED" && (fieldsState === "loading" ? <p role="status">{formID ? "Loading questions…" : "Select a form to choose questions."}</p> : fieldsState === "error" ? <p role="alert">Questions unavailable. <button type="button" onClick={() => setFieldsAttempt((value) => value + 1)}>Try again</button></p> : <fieldset className="v-assessment-questions"><legend>Questions to reassess</legend><p>Prerequisite questions will also be included.</p>{fields.map((field) => <label className="v-assessment-question" key={field.id}><input type="checkbox" checked={selected.includes(field.id)} onChange={(event) => setSelected((previous) => event.target.checked ? [...previous, field.id] : previous.filter((id) => id !== field.id))}/>{field.label}</label>)}{fields.length === 0 && <p>No questions in this form revision.</p>}</fieldset>)}</>}{forms.length === 0 && <p>No active forms in the loaded results.</p>}{moreError && <p role="alert">More forms unavailable.</p>}{cursor && <button type="button" disabled={moreBusy} onClick={() => void moreForms()}>{moreBusy ? "Loading…" : "Load more forms"}</button>}<label>Review due<input type="datetime-local" value={due} required onChange={(event) => setDue(event.target.value)}/></label>{error && <p role="alert">{error}</p>}<div className="v-intake-actions"><button type="button" disabled={busy} onClick={onCancel}>Cancel</button><button className="v-primary" disabled={busy || forms.length === 0 || (reassessment && scope === "FOCUSED" && (fieldsState !== "ready" || selected.length === 0))}>{busy ? "Starting…" : "Start assessment"}</button></div></>}{state !== "ready" && <button type="button" onClick={onCancel}>Cancel</button>}</form>;
 }
 
 function activeForms(items: Awaited<ReturnType<typeof loadFormTemplatePage>>["items"]): ReusableFormTemplateRef[] { return items.flatMap((item) => item.active_version && item.active_status === "ACTIVE" ? [{ id: item.template.id, name: item.template.name, code: item.template.code, version: item.active_version }] : []); }
