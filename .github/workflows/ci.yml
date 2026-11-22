@@ -145,6 +145,10 @@ jobs:
         # Integration packages share one mutable database; serialize package execution
         # so fixture cleanup in one package cannot race another package's test data.
         run: go test -count=1 -p 1 -tags "postgres postgresintegration" ./internal/... ./cmd/seed-bank-reference
+      - name: PostgreSQL demo composition
+        env:
+          TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+        run: go test -count=1 -p 1 -tags postgres ./cmd/api -run '^TestPostgresCompositionInstallsRopaAndReportingDemoOnlyInDemoMode$'
       - name: Oversight reference history and projection acceptance
         env:
           TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
