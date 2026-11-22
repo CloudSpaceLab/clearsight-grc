@@ -6,7 +6,6 @@ import (
 	"context"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/apiquestion"
 	"log/slog"
-	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
@@ -19,6 +18,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentcoverage"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/frameworkcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
@@ -47,7 +47,6 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
-	"github.com/alexedwards/scs/pgxstore"
 )
 
 func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) (serviceSet, error) {
@@ -178,7 +177,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	stopInvalidations := invalidation.StartPostgresListener(ctx, pool, invalidationHub, logger)
 	notificationPreferences := notificationprefs.NewService(notificationprefs.NewPostgresRepository(pool))
 	groupOversightService := oversight.NewGroupService(oversightRepository, accessResolver)
-	sessionStore := pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"})
+	sessionStore := federation.NewPostgresSessionStore(pool)
 	scimService, err := scimapi.New(scimapi.NewPostgresRepository(pool), logger)
 	if err != nil {
 		sessionStore.StopCleanup()

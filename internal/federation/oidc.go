@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"net/http"
@@ -19,6 +20,9 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 )
+
+// SCS stores the session issue time in an interface-valued gob map.
+func init() { gob.Register(time.Time{}) }
 
 const (
 	sessionTenantID         = "auth.tenant_id"
@@ -120,7 +124,14 @@ func New(ctx context.Context, cfg Config, store scs.Store, resolver access.Resol
 }
 
 func (s *Service) Middleware(next http.Handler) http.Handler {
-	return s.sessions.LoadAndSave(next)
+	loaded := s.sessions.LoadAndSave(next)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var token string
+		if cookie, err := r.Cookie(s.sessions.Cookie.Name); err == nil {
+			token = cookie.Value
+		}
+		loaded.ServeHTTP(w, r.WithContext(withOriginalSessionToken(r.Context(), token)))
+	})
 }
 
 func (s *Service) Authenticate(r *http.Request) (identity.Actor, bool, error) {
