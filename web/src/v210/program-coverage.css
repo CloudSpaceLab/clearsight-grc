@@ -1,0 +1,5 @@
+.v-program-coverage { display: grid; gap: 8px; margin-bottom: 16px; }
+.v-program-coverage p { margin: 0; }
+.v-program-coverage-value { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+.v-program-coverage-value strong { font-size: 1.5rem; }
+.v-program-coverage progress { width: 100%; }

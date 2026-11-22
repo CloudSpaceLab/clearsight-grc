@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import type { ProgramAggregate } from "../types";
-import { ProgramRequirementCoverageSummary } from "./ProgramRequirementCoverageSummary";
+import { ProgramCoverage } from "../v210/ProgramCoverage";
 
 const current: ProgramAggregate = {
   program: {
@@ -18,10 +18,10 @@ const current: ProgramAggregate = {
     dimensions: {}, reasons: [], open_matter_count: 0,
     calculation: {
       state: "PROVISIONAL", policy_revision: "v1", coverage_bps: 5000,
-      eligible_count: 4, assessed_count: 2, unknown_count: 1, excluded_count: 0,
+      eligible_count: 4, assessed_count: 2, unknown_count: 2, excluded_count: 0,
       categories: [{
         code: "REQUIREMENTS", weight_bps: 10000, coverage_bps: 5000,
-        eligible_count: 4, assessed_count: 2, unknown_count: 1, excluded_count: 0,
+        eligible_count: 4, assessed_count: 2, unknown_count: 2, excluded_count: 0,
       }],
     },
   },
@@ -30,44 +30,60 @@ const current: ProgramAggregate = {
   triggers: [], state_label: "Evidence incomplete",
 } as unknown as ProgramAggregate;
 
-describe("approved Program Requirement coverage", () => {
-  it("shows a real assessed/eligible denominator and distinguishes unknown values", () => {
-    const onNavigate = vi.fn();
-    render(<ProgramRequirementCoverageSummary aggregate={current} onNavigate={onNavigate}/>);
+describe("Program requirement coverage", () => {
+  it("shows the assessed requirement count and percentage with the real denominator", () => {
+    render(<ProgramCoverage aggregate={current}/>);
     expect(screen.getByRole("heading", {name: "Requirement coverage"})).toBeTruthy();
-    expect(screen.getByText("2 of 4")).toBeTruthy();
-    expect(screen.getByText("Coverage incomplete")).toBeTruthy();
-    const progress = screen.getByRole("progressbar", {name: "Assessed requirement coverage"});
+    expect(screen.getByText("2 of 4 requirements assessed")).toBeTruthy();
+    expect(screen.getByText("50%")).toBeTruthy();
+    expect(screen.getByText("2 unknown")).toBeTruthy();
+    const progress = screen.getByRole("progressbar", {name: "Assessed requirements"});
     expect(progress.getAttribute("value")).toBe("2");
     expect(progress.getAttribute("max")).toBe("4");
-    expect(screen.getByText("Support and gap breakdowns remain unavailable without separately verified assessments.")).toBeTruthy();
-    const area = screen.getByRole("heading", {name: "By control area"});
-    expect(area).toBeTruthy();
-    expect(screen.getByText("Reviewed control-area results are unavailable.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", {name: "Open requirements"}));
-    expect(onNavigate).toHaveBeenCalledWith("requirements-controls");
-    fireEvent.click(screen.getByRole("button", {name: "View requirements"}));
-    expect(onNavigate).toHaveBeenCalledWith("requirements-controls");
+    expect(screen.getByText("Control area results unavailable.")).toBeTruthy();
+    expect(screen.queryByText(/supported 2/i)).toBeNull();
   });
-
-  it("does not fabricate coverage without an active approved calculation", () => {
-    render(<ProgramRequirementCoverageSummary aggregate={{
-      ...current,
-      program: {...current.program, calculation_policy: undefined},
-    }} onNavigate={vi.fn()}/>);
-    expect(screen.getByText("Coverage not assessed")).toBeTruthy();
+  it("does not fabricate coverage without an approved calculation", () => {
+    render(<ProgramCoverage aggregate={{ ...current, program: {...current.program, calculation_policy: undefined} }}/>);
+    expect(screen.getByText("Coverage unavailable.")).toBeTruthy();
     expect(screen.queryByRole("progressbar")).toBeNull();
-    expect(screen.queryByText("2 of 4")).toBeNull();
-    expect(screen.getByRole("heading", {name: "By control area"})).toBeTruthy();
-    expect(screen.queryByText("Supported 2")).toBeNull();
+    expect(screen.queryByText("50%")).toBeNull();
   });
-
-  it("labels an old Program projection as out-of-date without presenting it as current", () => {
-    render(<ProgramRequirementCoverageSummary aggregate={{
-      ...current, program: {...current.program, version: 5},
-    }} onNavigate={vi.fn()}/>);
-    expect(screen.getByText("Out-of-date assessment")).toBeTruthy();
-    expect(screen.getByText("2 of 4")).toBeTruthy();
-    expect(screen.queryByText("Current approved calculation and assessment coverage")).toBeNull();
+  it("marks an older Program snapshot as out of date", () => {
+    render(<ProgramCoverage aggregate={{ ...current, program: {...current.program, version: 5} }}/>);
+    expect(screen.getByText("Out of date")).toBeTruthy();
+    expect(screen.getByText("2 of 4 requirements assessed")).toBeTruthy();
+  });
+  it("withholds a percentage for an empty or inconsistent denominator", () => {
+    const calc = current.current_state!.calculation!;
+    render(<ProgramCoverage aggregate={{ ...current, current_state: { ...current.current_state!, calculation: { ...calc, categories: [{ ...calc.categories[0]!, eligible_count: 0, assessed_count: 0 }] } } }}/>);
+    expect(screen.getByText("Coverage unavailable.")).toBeTruthy();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+  });
+  it("uses requirement counts rather than totals across unrelated categories", () => {
+    const calc = current.current_state!.calculation!;
+    render(<ProgramCoverage aggregate={{ ...current, current_state: { ...current.current_state!, calculation: { ...calc, eligible_count: 10, assessed_count: 9, categories: [...calc.categories, { ...calc.categories[0]!, code: "VENDORS", eligible_count: 6, assessed_count: 6, unknown_count: 0 }] } } }}/>);
+    expect(screen.getByText("2 of 4 requirements assessed")).toBeTruthy();
+    expect(screen.getByText("50%")).toBeTruthy();
+    expect(screen.queryByText("90%")).toBeNull();
+  });
+  it("marks a snapshot using an older approved policy as out of date", () => {
+    const calc = current.current_state!.calculation!;
+    render(<ProgramCoverage aggregate={{ ...current, current_state: { ...current.current_state!, calculation: { ...calc, policy_revision: "old" } } }}/>);
+    expect(screen.getByText("Out of date")).toBeTruthy();
+  });
+  it("does not treat missing snapshot freshness or inconsistent counts as current", () => {
+    const calc = current.current_state!.calculation!;
+    const view = render(<ProgramCoverage aggregate={{ ...current, current_state: { ...current.current_state!, generated_at: "" } }}/>);
+    expect(screen.getByText("Coverage unavailable.")).toBeTruthy();
+    view.rerender(<ProgramCoverage aggregate={{ ...current, current_state: { ...current.current_state!, calculation: { ...calc, categories: [{ ...calc.categories[0]!, assessed_count: 5 }] } } }}/>);
+    expect(screen.getByText("Coverage unavailable.")).toBeTruthy();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+  });
+  it("withholds coverage when eligible requirements are unaccounted for", () => {
+    const calc = current.current_state!.calculation!;
+    render(<ProgramCoverage aggregate={{ ...current, current_state: { ...current.current_state!, calculation: { ...calc, categories: [{ ...calc.categories[0]!, unknown_count: 0 }] } } }}/>);
+    expect(screen.getByText("Coverage unavailable.")).toBeTruthy();
+    expect(screen.queryByRole("progressbar")).toBeNull();
   });
 });

@@ -16,6 +16,7 @@ import { Frameworks } from "./Frameworks";
 import { Home } from "./Home";
 import { RiskWorkspace } from "./RiskWorkspace";
 import { ProgramRequirements } from "./ProgramRequirements";
+import { ProgramCoverage } from "./ProgramCoverage";
 import { ProgramCreateLink, ProgramCreator } from "./ProgramCreator";
 import { PrivacyWorkspace } from "./PrivacyWorkspace";
 import { Reports } from "./Reports";
@@ -256,7 +257,7 @@ function ProgramDetail({ id }: { id: string }) {
   if (failed) return <section><h1>Program unavailable</h1><button onClick={() => setRetry(retry + 1)}>Try again</button></section>;
   if (!value) return <p role="status">Loading program…</p>;
   const filters = readProgramFilters(window.location.hash);
-  return <section className="v-programs"><a className="v-back" href={`#/programs${programFilterQuery(filters.search, filters.overallState)}`}>← Programs</a><header className="v-page-heading"><div><p className="v-eyebrow">{value.program.code}</p><h1>{value.program.name}</h1></div><span className="v-status">{value.program.status.toLowerCase()}</span></header><ProgramRequirements aggregate={value} onUpdated={setValue}/></section>;
+  return <section className="v-programs"><a className="v-back" href={`#/programs${programFilterQuery(filters.search, filters.overallState)}`}>← Programs</a><header className="v-page-heading"><div><p className="v-eyebrow">{value.program.code}</p><h1>{value.program.name}</h1></div><span className="v-status">{value.program.status.toLowerCase()}</span></header><ProgramCoverage aggregate={value}/><ProgramRequirements aggregate={value} onUpdated={setValue}/></section>;
 }
 
 function DemoSignIn({ accounts, onSignedIn }: { accounts: DemoAccount[]; onSignedIn: () => Promise<void> }) {
