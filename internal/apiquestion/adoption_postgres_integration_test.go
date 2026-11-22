@@ -178,6 +178,40 @@ func TestAdoptionManualDraftIsScopedVersionedAndIdempotent(t *testing.T) {
 	if err != nil || receipt.Version != 1 {
 		t.Fatalf("first association: %+v %v", receipt, err)
 	}
+	t.Run("expired session cannot recover an existing draft receipt", func(t *testing.T) {
+		blocking := blockingGuard{entered: make(chan struct{}), release: make(chan struct{})}
+		blockedStore := &PostgresStore{Pool: pool, Guard: blocking, FormAccess: allowAdoptionForm{}}
+		expiring := actor
+		expiring.ExpiresAt = time.Now().Add(500 * time.Millisecond)
+		result := make(chan error, 1)
+		go func() {
+			_, err := blockedStore.WriteAdoptionManualDraft(identity.WithActor(ctx, expiring), input)
+			result <- err
+		}()
+		<-blocking.entered
+		time.Sleep(time.Until(expiring.ExpiresAt) + 50*time.Millisecond)
+		close(blocking.release)
+		if err := <-result; !errors.Is(err, ErrUnavailable) {
+			t.Fatalf("expired session recovered adoption receipt: %v", err)
+		}
+	})
+	t.Run("expired session cannot read an existing draft", func(t *testing.T) {
+		blocking := blockingGuard{entered: make(chan struct{}), release: make(chan struct{})}
+		blockedStore := &PostgresStore{Pool: pool, Guard: blocking, FormAccess: allowAdoptionForm{}}
+		expiring := actor
+		expiring.ExpiresAt = time.Now().Add(500 * time.Millisecond)
+		result := make(chan error, 1)
+		go func() {
+			_, err := blockedStore.ReadAdoptionManualDraft(identity.WithActor(ctx, expiring), input)
+			result <- err
+		}()
+		<-blocking.entered
+		time.Sleep(time.Until(expiring.ExpiresAt) + 50*time.Millisecond)
+		close(blocking.release)
+		if err := <-result; !errors.Is(err, ErrUnavailable) {
+			t.Fatalf("expired session read adoption draft: %v", err)
+		}
+	})
 	if guard.request.ObjectType != "PROGRAM" || guard.request.ObjectID != program || guard.request.Responsibility != authority.ResponsibilityOwner || guard.request.DecisionType != "program.framework.propose" || guard.request.Materiality != 3 {
 		t.Fatalf("unexpected authority request: %+v", guard.request)
 	}

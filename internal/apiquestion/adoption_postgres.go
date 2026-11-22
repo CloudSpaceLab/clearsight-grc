@@ -53,11 +53,12 @@ func (s *PostgresStore) ReadAdoptionManualDraft(ctx context.Context, input Adopt
 		return AdoptionQuestionDraft{}, ErrUnavailable
 	}
 	var draft AdoptionQuestionDraft
-	err = tx.QueryRow(ctx, `SELECT version,mode,rationale FROM program_adoption_question_draft_revisions WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND adoption_id=$3::uuid AND form_revision_id=$4::uuid AND field_id=$5 ORDER BY version DESC LIMIT 1`, tenant, actor.LegalEntityID, input.AdoptionID, revision, input.FieldID).Scan(&draft.Version, &draft.Mode, &draft.Rationale)
+	var sessionCurrent bool
+	err = tx.QueryRow(ctx, `SELECT version,mode,rationale,clock_timestamp() < $6::timestamptz FROM program_adoption_question_draft_revisions WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND adoption_id=$3::uuid AND form_revision_id=$4::uuid AND field_id=$5 ORDER BY version DESC LIMIT 1`, tenant, actor.LegalEntityID, input.AdoptionID, revision, input.FieldID, actor.ExpiresAt).Scan(&draft.Version, &draft.Mode, &draft.Rationale, &sessionCurrent)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return AdoptionQuestionDraft{}, ErrNotFound
 	}
-	if err != nil {
+	if err != nil || !sessionCurrent {
 		return AdoptionQuestionDraft{}, ErrUnavailable
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -113,8 +114,12 @@ func (s *PostgresStore) WriteAdoptionManualDraft(ctx context.Context, input Adop
 	}
 	var existing Receipt
 	var previousDigest []byte
-	err = tx.QueryRow(ctx, `SELECT id::text,version,request_digest FROM program_adoption_question_draft_revisions WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND actor_id=$3::uuid AND idempotency_key=$4`, tenant, actor.LegalEntityID, actor.PrincipalID, input.Key).Scan(&existing.ID, &existing.Version, &previousDigest)
+	var sessionCurrent bool
+	err = tx.QueryRow(ctx, `SELECT id::text,version,request_digest,clock_timestamp() < $5::timestamptz FROM program_adoption_question_draft_revisions WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND actor_id=$3::uuid AND idempotency_key=$4`, tenant, actor.LegalEntityID, actor.PrincipalID, input.Key, actor.ExpiresAt).Scan(&existing.ID, &existing.Version, &previousDigest, &sessionCurrent)
 	if err == nil {
+		if !sessionCurrent {
+			return Receipt{}, ErrUnavailable
+		}
 		if !bytes.Equal(previousDigest, digest[:]) {
 			return Receipt{}, ErrConflict
 		}
