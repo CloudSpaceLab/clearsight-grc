@@ -221,7 +221,7 @@ func makeSeededResponsesVisible(t *testing.T, ctx context.Context, pool *pgxpool
 	_, err := pool.Exec(ctx, `INSERT INTO third_parties(id,tenant_id,legal_name,status,created_at,updated_at,version) VALUES(md5($4||':vendor')::uuid,$1::uuid,'Sample vendor','ACTIVE',$5,$5,1);
  INSERT INTO third_party_relationships(id,tenant_id,legal_entity_id,vendor_id,service_name,business_owner_principal_id,criticality,privacy_role,status,created_at,updated_at,version) VALUES(md5($4||':relationship')::uuid,$1::uuid,$2::uuid,md5($4||':vendor')::uuid,'Sample service',$3::uuid,'IMPORTANT','PROCESSOR','ACTIVE',$5,$5,1);
  UPDATE capture_form_distributions SET subject_type='VENDOR_RELATIONSHIP',subject_id=md5($4||':relationship')::uuid WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND title LIKE $4||' scored response %';
- UPDATE capture_requests req SET subject_type='VENDOR_RELATIONSHIP',subject_id=md5($4||':relationship') FROM capture_form_distributions d WHERE req.distribution_id=d.id AND d.tenant_id=$1::uuid AND d.legal_entity_id=$2::uuid AND d.title LIKE $4||' scored response %'`, pgx.QueryExecModeSimpleProtocol, tenant, entity, owner, prefix, now)
+ UPDATE capture_requests req SET subject_type='VENDOR_RELATIONSHIP',subject_id=(md5($4||':relationship')::uuid)::text FROM capture_form_distributions d WHERE req.distribution_id=d.id AND d.tenant_id=$1::uuid AND d.legal_entity_id=$2::uuid AND d.title LIKE $4||' scored response %'`, pgx.QueryExecModeSimpleProtocol, tenant, entity, owner, prefix, now)
 	if err != nil {
 		t.Fatal(err)
 	}

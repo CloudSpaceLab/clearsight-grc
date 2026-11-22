@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/jackc/pgx/v5"
+	"strings"
 	"time"
 )
 
@@ -101,6 +103,10 @@ func readResponseAssessmentMaterial(ctx context.Context, q assessmentQueryer, te
 	return m, err
 }
 func (s *PostgresDistributionStore) WriteResponseAssessment(ctx context.Context, tenant, entity, principal, response string, authorize assessmentReadAuthorizer, apply func(context.Context, assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error)) (assessmentMaterial, error) {
+	actor, ok := identity.FromContext(ctx)
+	if !ok || !strings.EqualFold(strings.TrimSpace(actor.Kind), "PERSON") || actor.TenantID != tenant || actor.PrincipalID != principal || (actor.LegalEntityID != entity && actor.LegalEntityID != "*") || actor.ExpiresAt.IsZero() {
+		return assessmentMaterial{}, ErrAssessmentForbidden
+	}
 	tx, err := s.repo.pool.Begin(ctx)
 	if err != nil {
 		return assessmentMaterial{}, err
@@ -135,12 +141,59 @@ func (s *PostgresDistributionStore) WriteResponseAssessment(ctx context.Context,
 	if err != nil {
 		return assessmentMaterial{}, err
 	}
-	now := s.now().UTC()
-	_, err = tx.Exec(ctx, `INSERT INTO capture_response_assessments(tenant_id,legal_entity_id,response_revision_id,version,state,required_count,reviewed_required_count,reviewed_count,score_result,decisions,created_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11)`, m.Summary.TenantID, m.Summary.LegalEntityID, response, next.Version, next.Result.State, next.Result.RequiredCount, next.Result.ReviewedRequiredCount, next.Result.ReviewedCount, string(score), string(decisionJSON), now)
+	var issuedAt any
+	if !actor.IssuedAt.IsZero() {
+		issuedAt = actor.IssuedAt
+	}
+	if len(decisions) == 0 || decisions[0].AuthorityRoute == "" {
+		return assessmentMaterial{}, ErrAssessmentForbidden
+	}
+	for _, decision := range decisions {
+		if decision.AuthorityRoute != decisions[0].AuthorityRoute {
+			return assessmentMaterial{}, ErrAssessmentForbidden
+		}
+	}
+	request, err := authority.PostgresCurrentRouteRequest(authority.ResolveInput{TenantID: m.Summary.TenantID, LegalEntityID: m.Summary.LegalEntityID, ObjectType: "FORM_RESPONSE", ObjectID: response, Responsibility: authority.ResponsibilityReviewer, DecisionType: "forms.response.assess", Materiality: 3})
+	if err != nil {
+		return assessmentMaterial{}, ErrAssessmentForbidden
+	}
+	fieldIDs := make([]string, 0, len(decisions))
+	rolesByField := make(map[string]string, len(m.Request.Fields))
+	for _, field := range m.Request.Fields {
+		if field.Assessment != nil {
+			rolesByField[field.ID] = strings.TrimSpace(field.Assessment.ReviewerRole)
+		}
+	}
+	roles := make([]string, 0, len(decisions))
+	for _, d := range decisions {
+		fieldIDs = append(fieldIDs, d.FieldID)
+		role := rolesByField[d.FieldID]
+		if role == "" {
+			return assessmentMaterial{}, ErrAssessmentForbidden
+		}
+		roles = append(roles, role)
+	}
+	statement := authority.PostgresCurrentRouteCTEs() + `, inserted AS (INSERT INTO capture_response_assessments(tenant_id,legal_entity_id,response_revision_id,version,state,required_count,reviewed_required_count,reviewed_count,score_result,decisions,created_at)
+ SELECT DISTINCT r.tenant_id,r.legal_entity_id,r.id,$2::bigint,$3::text,$4::integer,$5::integer,$7::integer,jsonb_set($17::jsonb,'{calculated_at}',to_jsonb(statement_timestamp())),
+ (SELECT jsonb_object_agg(k, CASE WHEN k=ANY($19::text[]) THEN v||jsonb_build_object('authority_source_type',CASE WHEN left(s.source_id,11)='assignment:' THEN 'ASSIGNMENT' ELSE 'POLICY' END,'authority_source_id',CASE WHEN left(s.source_id,11)='assignment:' THEN substring(s.source_id FROM 12) ELSE s.source_id END,'authority_rule_id',s.rule_id,'authority_policy_version',s.policy_version,'assessed_at',statement_timestamp()) ELSE v END) FROM jsonb_each($18::jsonb) AS x(k,v)),statement_timestamp() ` + responseReviewEligibilitySQL("") + `
+ AND r.is_current AND r.state IN ('FINAL','PROVISIONAL') AND d.status NOT IN ('REVOKED','SUPERSEDED') AND r.revision=$15
+ AND s.policy_version||':'||s.rule_id=$16 AND NOT EXISTS (SELECT 1 FROM unnest($20::text[]) required(role) WHERE NOT EXISTS (SELECT 1 FROM effective role_origin WHERE role_origin.request_index=0 AND role_origin.principal_id=actor.id AND (upper(role_origin.seed_role_code)=upper(required.role) OR (role_origin.principal_id=role_origin.origin_id AND role_origin.seed_role_code='' AND upper(role_origin.seed_role)=upper(required.role))))) AND COALESCE((SELECT max(version) FROM capture_response_assessments prior WHERE prior.tenant_id=r.tenant_id AND prior.legal_entity_id=r.legal_entity_id AND prior.response_revision_id=r.id),0)=$2::bigint-1 RETURNING created_at)
+ SELECT inserted.created_at, CASE WHEN left(s.source_id,11)='assignment:' THEN 'ASSIGNMENT' ELSE 'POLICY' END, CASE WHEN left(s.source_id,11)='assignment:' THEN substring(s.source_id FROM 12) ELSE s.source_id END,s.rule_id,s.policy_version FROM inserted CROSS JOIN selected s WHERE s.request_index=0 AND NOT s.ambiguous`
+	var now time.Time
+	var sourceType, sourceID, ruleID, policyVersion string
+	err = tx.QueryRow(ctx, statement, string(request), next.Version, next.Result.State, next.Result.RequiredCount, next.Result.ReviewedRequiredCount, principal, next.Result.ReviewedCount, response, m.Summary.TenantID, m.Summary.LegalEntityID, actor.TenantID, actor.LegalEntityID, actor.ExpiresAt, issuedAt, m.Revision.Revision, decisions[0].AuthorityRoute, string(score), string(decisionJSON), fieldIDs, roles).Scan(&now, &sourceType, &sourceID, &ruleID, &policyVersion)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return assessmentMaterial{}, ErrAssessmentForbidden
+	}
 	if err != nil {
 		return assessmentMaterial{}, err
 	}
+	if next.Result.Score != nil {
+		next.Result.Score.CalculatedAt = now
+	}
 	for _, d := range decisions {
+		d.AuthoritySourceType, d.AuthoritySourceID, d.AuthorityRuleID, d.AuthorityPolicyVersion, d.AssessedAt = sourceType, sourceID, ruleID, policyVersion, now
+		next.Decisions[d.FieldID] = d
 		payload, err := json.Marshal(d)
 		if err != nil {
 			return assessmentMaterial{}, err
@@ -150,6 +203,7 @@ func (s *PostgresDistributionStore) WriteResponseAssessment(ctx context.Context,
 			return assessmentMaterial{}, err
 		}
 	}
+	m.Snapshot = next
 	event := assessmentEvent(m, principal, now)
 	payload, err := json.Marshal(event.Payload)
 	if err != nil {

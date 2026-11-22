@@ -30,21 +30,25 @@ type RecordResponseAssessmentInput struct {
 	Decisions       []FieldAssessmentInput `json:"decisions"`
 }
 type FieldAssessmentDecision struct {
-	ID                  string    `json:"id"`
-	ResponseID          string    `json:"response_id"`
-	ResponseRevision    int64     `json:"response_revision"`
-	FormTemplateID      string    `json:"form_template_id"`
-	FormTemplateVersion int64     `json:"form_template_version"`
-	FieldID             string    `json:"field_id"`
-	FieldChecksum       string    `json:"field_checksum"`
-	OutcomeID           string    `json:"outcome_id"`
-	Points              int       `json:"points"`
-	Rationale           string    `json:"rationale"`
-	ReviewerID          string    `json:"reviewer_id"`
-	AuthorityRoute      string    `json:"authority_route"`
-	AssessedAt          time.Time `json:"assessed_at"`
-	SupersedesID        string    `json:"supersedes_id,omitempty"`
-	EvidenceReferences  []string  `json:"evidence_references,omitempty"`
+	ID                     string    `json:"id"`
+	ResponseID             string    `json:"response_id"`
+	ResponseRevision       int64     `json:"response_revision"`
+	FormTemplateID         string    `json:"form_template_id"`
+	FormTemplateVersion    int64     `json:"form_template_version"`
+	FieldID                string    `json:"field_id"`
+	FieldChecksum          string    `json:"field_checksum"`
+	OutcomeID              string    `json:"outcome_id"`
+	Points                 int       `json:"points"`
+	Rationale              string    `json:"rationale"`
+	ReviewerID             string    `json:"reviewer_id"`
+	AuthorityRoute         string    `json:"authority_route"`
+	AuthoritySourceType    string    `json:"authority_source_type,omitempty"`
+	AuthoritySourceID      string    `json:"authority_source_id,omitempty"`
+	AuthorityRuleID        string    `json:"authority_rule_id,omitempty"`
+	AuthorityPolicyVersion string    `json:"authority_policy_version,omitempty"`
+	AssessedAt             time.Time `json:"assessed_at"`
+	SupersedesID           string    `json:"supersedes_id,omitempty"`
+	EvidenceReferences     []string  `json:"evidence_references,omitempty"`
 }
 type ResponseAssessmentField struct {
 	MayReview bool                     `json:"may_review"`
@@ -151,7 +155,7 @@ func (s *DistributionService) RecordResponseAssessment(ctx context.Context, tena
 		return ResponseAssessment{}, ErrAssessmentInvalid
 	}
 	var committed ResponseAssessment
-	_, err := store.WriteResponseAssessment(ctx, tenant, entity, actor.PrincipalID, response, s.assessmentReadAuthority(ctx, tenant, entity, actor.PrincipalID), func(ctx context.Context, m assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error) {
+	written, err := store.WriteResponseAssessment(ctx, tenant, entity, actor.PrincipalID, response, s.assessmentReadAuthority(ctx, tenant, entity, actor.PrincipalID), func(ctx context.Context, m assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error) {
 		if assessmentRespondentConflict(m, actor.PrincipalID) {
 			return assessmentSnapshot{}, nil, ErrAssessmentForbidden
 		}
@@ -227,6 +231,13 @@ func (s *DistributionService) RecordResponseAssessment(ctx context.Context, tena
 	if err != nil {
 		return ResponseAssessment{}, err
 	}
+	for i := range committed.Fields {
+		if decision, ok := written.Snapshot.Decisions[committed.Fields[i].Field.ID]; ok {
+			d := decision
+			committed.Fields[i].Decision = &d
+		}
+	}
+	committed.AssessedScore = written.Snapshot.Result.Score
 	return committed, nil
 }
 func buildAssessment(m assessmentMaterial) (ResponseAssessment, error) {

@@ -12,9 +12,21 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
+
+func setupAssessmentRiskRole(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenant, entity, reviewer string, now time.Time) {
+	t.Helper()
+	role, position, binding := mustResponseWorkspaceID(t), mustResponseWorkspaceID(t), mustResponseWorkspaceID(t)
+	_, err := pool.Exec(ctx, `INSERT INTO role_templates(id,tenant_id,code,name,description,responsibilities,valid_from) VALUES($4::uuid,$1::uuid,'RISK','Risk reviewer','',ARRAY['REVIEWER'],$7);
+ INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id,valid_from) VALUES($5::uuid,$1::uuid,$2::uuid,'RISK','Risk reviewer',$3::uuid,$7);
+ INSERT INTO position_role_bindings(id,tenant_id,position_id,role_template_id,priority,valid_from) VALUES($6::uuid,$1::uuid,$5::uuid,$4::uuid,100,$7)`, pgx.QueryExecModeSimpleProtocol, tenant, entity, reviewer, role, position, binding, now.Add(-time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	pool, ctx := distributionTestPool(t)
@@ -27,7 +39,6 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	prefix := "bank-assessment-" + tenant
 	setupResponseWorkspaceFixture(t, ctx, pool, tenant, prefix, entity, actor, form, now)
 	seedCompletedResponseRows(t, ctx, pool, tenant, entity, actor, form, prefix, 1, now)
-	makeSeededResponsesVisible(t, ctx, pool, tenant, entity, actor, prefix, now)
 	t.Cleanup(func() {
 		tx, err := pool.Begin(context.Background())
 		if err == nil {
@@ -40,16 +51,19 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 				_ = tx.Commit(context.Background())
 			}
 		}
-		cleanupResponseWorkspaceTenant(context.Background(), pool, tenant)
-		_, _ = pool.Exec(context.Background(), `DELETE FROM third_party_relationships WHERE tenant_id=$1::uuid; DELETE FROM third_parties WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenant)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid; DELETE FROM org_positions WHERE tenant_id=$1::uuid; DELETE FROM role_templates WHERE tenant_id=$1::uuid; DELETE FROM third_party_relationships WHERE tenant_id=$1::uuid; DELETE FROM third_parties WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenant)
 		cleanupResponseWorkspaceTenant(context.Background(), pool, tenant)
 	})
 	_, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$2::uuid,'PERSON','Bank reviewer','ACTIVE',$3); UPDATE capture_requests SET fields='[{"id":"score","section_id":"general","label":"Evidence quality","type":"short_text","assessment":{"mode":"MANUAL","required":true,"weight":100,"reviewer_role":"RISK","rubric":[{"id":"poor","label":"Incomplete","points":80},{"id":"good","label":"Sufficient","points":10}]}}]'::jsonb WHERE tenant_id=$2::uuid; UPDATE capture_requests req SET subject_id=d.subject_id::text FROM capture_form_distributions d WHERE req.distribution_id=d.id AND req.tenant_id=$2::uuid; UPDATE capture_submissions SET answers='{"score":{"text":"Report supplied"}}'::jsonb WHERE tenant_id=$2::uuid`, pgx.QueryExecModeSimpleProtocol, reviewer, tenant, now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The reviewer retains relationship visibility after assessment authority is revoked.
-	if _, err = pool.Exec(ctx, `UPDATE third_party_relationships SET business_owner_principal_id=$1::uuid WHERE tenant_id=$2::uuid`, reviewer, tenant); err != nil {
+	setupAssessmentRiskRole(t, ctx, pool, tenant, entity, reviewer, now)
+	_, err = pool.Exec(ctx, `INSERT INTO third_parties(id,tenant_id,legal_name,status,created_at,updated_at,version) VALUES(md5($4||':vendor')::uuid,$1::uuid,'Sample vendor','ACTIVE',$5,$5,1);
+ INSERT INTO third_party_relationships(id,tenant_id,legal_entity_id,vendor_id,service_name,business_owner_principal_id,criticality,privacy_role,status,created_at,updated_at,version) VALUES(md5($4||':relationship')::uuid,$1::uuid,$2::uuid,md5($4||':vendor')::uuid,'Sample service',$3::uuid,'IMPORTANT','PROCESSOR','ACTIVE',$5,$5,1);
+ UPDATE capture_form_distributions SET subject_type='VENDOR_RELATIONSHIP',subject_id=md5($4||':relationship')::uuid WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid;
+ UPDATE capture_requests SET subject_type='VENDOR_RELATIONSHIP',subject_id=(md5($4||':relationship')::uuid)::text WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid`, pgx.QueryExecModeSimpleProtocol, tenant, entity, reviewer, prefix, now)
+	if err != nil {
 		t.Fatal(err)
 	}
 	var response string
@@ -64,7 +78,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	}
 	defer assessmentPool.Close()
 	policy, policyVersion := mustResponseWorkspaceID(t), mustResponseWorkspaceID(t)
-	definition := fmt.Sprintf(`{"rules":[{"id":"bank-review","legal_entity_id":"%s","object_type":"FORM_RESPONSE","object_id":"%s","responsibility":"REVIEWER","decision_type":"forms.response.assess","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"%s"}}]}`, entity, response, reviewer)
+	definition := fmt.Sprintf(`{"rules":[{"id":"bank-review","legal_entity_id":"%s","object_type":"FORM_RESPONSE","object_id":"%s","responsibility":"REVIEWER","decision_type":"forms.response.assess","min_materiality":0,"priority":100,"selector":{"kind":"ROLE","ref":"RISK"}}]}`, entity, response)
 	_, err = pool.Exec(ctx, `INSERT INTO routing_policies(id,tenant_id,legal_entity_id,code,name,status,current_version,approved_at,version) VALUES($1::uuid,$2::uuid,$3::uuid,'BANK-REVIEW','Bank review','DRAFT',1,$6,1); INSERT INTO routing_policy_versions(id,policy_id,legal_entity_id,version,definition,checksum,effective_from,approved_at) VALUES($4::uuid,$1::uuid,$3::uuid,1,$5::jsonb,'review-test',$6,$6); UPDATE routing_policies SET status='ACTIVE' WHERE id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, policy, tenant, entity, policyVersion, definition, now.Add(-time.Minute))
 	if err != nil {
 		t.Fatal(err)
@@ -78,15 +92,130 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 		if err != nil {
 			return "", err
 		}
-		if !route.AllowsPrincipal(a.PrincipalID) {
+		if !route.AllowsPrincipalWithRole(a.PrincipalID, f.Assessment.ReviewerRole) {
 			return "", ErrAssessmentForbidden
 		}
 		return route.PolicyVersion + ":" + route.RuleID, nil
 	})
 	service.assessmentDecisionsEnabled = true // Exercise the unexposed transaction in isolation.
-	ctx = identity.WithActor(ctx, identity.Actor{TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: now.Add(time.Hour)})
+	ctx = identity.WithActor(ctx, identity.Actor{Kind: "PERSON", TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: now.Add(time.Hour)})
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+	baseline, err := service.GetResponseAssessment(ctx, tenant, entity, reviewer, response)
+	if err != nil || !baseline.MayReview {
+		var visible bool
+		var details string
+		diag := pool.QueryRow(ctx, `SELECT (`+completedResponseVisibilitySQL(4, 5)+`), concat_ws('|',req.form_template_id::text,d.form_template_id::text,req.form_template_version::text,d.form_template_version::text,req.subject_type,d.subject_type,req.subject_id,d.subject_id::text) FROM capture_response_revisions r JOIN tenants t ON t.id=r.tenant_id JOIN capture_form_distributions d ON d.id=r.distribution_id AND d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id `+completedResponseRequestJoinsSQL()+` WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id=$2::uuid AND r.id=$3::uuid`, tenant, entity, response, reviewer, time.Now()).Scan(&visible, &details)
+		t.Fatalf("authorized assessment baseline: %+v %v; visibility=%v details=%s diagnostic=%v", baseline, err, visible, details, diag)
+	}
+	lock, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lock.Rollback(ctx)
+	if _, err = lock.Exec(ctx, `SELECT id FROM capture_response_revisions WHERE id=$1::uuid FOR UPDATE`, response); err != nil {
+		t.Fatal(err)
+	}
+	started := make(chan struct{})
+	var once sync.Once
+	service.now = func() time.Time { once.Do(func() { close(started) }); return time.Now() }
+	expires := time.Now().Add(600 * time.Millisecond)
+	expiring := identity.WithActor(ctx, identity.Actor{Kind: "PERSON", TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: expires})
+	expiryResult := make(chan error, 1)
+	go func() {
+		_, writeErr := service.RecordResponseAssessment(expiring, tenant, entity, response, RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
+		expiryResult <- writeErr
+	}()
+	<-started
+	time.Sleep(time.Until(expires) + 30*time.Millisecond)
+	if err = lock.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err = <-expiryResult; !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("expired session accepted after lock: %v", err)
+	}
+	service.now = time.Now
+	var expiredWrites int
+	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_assessments WHERE tenant_id=$1::uuid)+(SELECT count(*) FROM capture_field_assessments WHERE tenant_id=$1::uuid)+(SELECT count(*) FROM capture_distribution_events WHERE tenant_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_ASSESSED_%')+(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_ASSESSED')`, tenant).Scan(&expiredWrites); err != nil || expiredWrites != 0 {
+		t.Fatalf("expired assessment wrote %d records: %v", expiredWrites, err)
+	}
+	originalAuthorizer := service.assessmentAuthorizer
+	authorized, proceed := make(chan struct{}), make(chan struct{})
+	var authOnce sync.Once
+	service.WithAssessmentAuthorizer(func(c context.Context, a identity.Actor, r CompletedResponseSummary, f formcontract.Field) (string, error) {
+		route, routeErr := originalAuthorizer(c, a, r, f)
+		if routeErr == nil {
+			authOnce.Do(func() { close(authorized); <-proceed })
+		}
+		return route, routeErr
+	})
+	revokedResult := make(chan error, 1)
+	go func() {
+		_, e := service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
+		revokedResult <- e
+	}()
+	<-authorized
+	if _, err = pool.Exec(ctx, `UPDATE routing_policies SET status='RETIRED' WHERE id=$1::uuid`, policy); err != nil {
+		close(proceed)
+		t.Fatal(err)
+	}
+	close(proceed)
+	if err = <-revokedResult; !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("revoked route accepted before assessment insert: %v", err)
+	}
+	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_assessments WHERE tenant_id=$1::uuid)+(SELECT count(*) FROM capture_field_assessments WHERE tenant_id=$1::uuid)+(SELECT count(*) FROM capture_distribution_events WHERE tenant_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_ASSESSED_%')+(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_ASSESSED')`, tenant).Scan(&expiredWrites); err != nil || expiredWrites != 0 {
+		t.Fatalf("revoked assessment wrote %d records: %v", expiredWrites, err)
+	}
+	if _, err = pool.Exec(ctx, `UPDATE routing_policies SET status='ACTIVE' WHERE id=$1::uuid`, policy); err != nil {
+		t.Fatal(err)
+	}
+	service.WithAssessmentAuthorizer(originalAuthorizer)
+	// A replacement policy may reuse the rule ID/version while dropping the
+	// field's required reviewer role. The selected source must be rechecked.
+	replacement, replacementVersion := mustResponseWorkspaceID(t), mustResponseWorkspaceID(t)
+	replacementDefinition := fmt.Sprintf(`{"rules":[{"id":"bank-review","legal_entity_id":"%s","object_type":"FORM_RESPONSE","object_id":"%s","responsibility":"REVIEWER","decision_type":"forms.response.assess","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"%s"}}]}`, entity, response, reviewer)
+	_, err = pool.Exec(ctx, `INSERT INTO routing_policies(id,tenant_id,legal_entity_id,code,name,status,current_version,approved_at,version) VALUES($1::uuid,$2::uuid,$3::uuid,'REPLACEMENT','Replacement','DRAFT',1,$6,1); INSERT INTO routing_policy_versions(id,policy_id,legal_entity_id,version,definition,checksum,effective_from,approved_at) VALUES($4::uuid,$1::uuid,$3::uuid,1,$5::jsonb,'replacement',$6,$6)`, pgx.QueryExecModeSimpleProtocol, replacement, tenant, entity, replacementVersion, replacementDefinition, now.Add(-time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	checked, continueWrite := make(chan struct{}), make(chan struct{})
+	var collisionOnce sync.Once
+	var beforeRoute string
+	service.WithAssessmentAuthorizer(func(c context.Context, a identity.Actor, r CompletedResponseSummary, f formcontract.Field) (string, error) {
+		route, e := originalAuthorizer(c, a, r, f)
+		if e == nil {
+			collisionOnce.Do(func() { beforeRoute = route; close(checked); <-continueWrite })
+		}
+		return route, e
+	})
+	collisionResult := make(chan error, 1)
+	go func() {
+		_, e := service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
+		collisionResult <- e
+	}()
+	<-checked
+	_, err = pool.Exec(ctx, `UPDATE routing_policies SET status='RETIRED',code='OLD-REVIEW' WHERE id=$1::uuid; UPDATE routing_policies SET status='ACTIVE',code='BANK-REVIEW' WHERE id=$2::uuid`, pgx.QueryExecModeSimpleProtocol, policy, replacement)
+	if err == nil {
+		newRoute, routeErr := authority.NewPostgresService(pool).Resolve(context.Background(), authority.ResolveInput{TenantID: tenant, LegalEntityID: entity, ObjectType: "FORM_RESPONSE", ObjectID: response, Responsibility: authority.ResponsibilityReviewer, DecisionType: "forms.response.assess", Materiality: 3})
+		if routeErr != nil || beforeRoute != newRoute.PolicyVersion+":"+newRoute.RuleID || !newRoute.AllowsPrincipal(reviewer) || newRoute.AllowsPrincipalWithRole(reviewer, "RISK") {
+			err = fmt.Errorf("invalid collision fixture: old=%s replacement=%+v err=%v", beforeRoute, newRoute, routeErr)
+		}
+	}
+	close(continueWrite)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = <-collisionResult; !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("replacement without reviewer role recorded assessment: %v", err)
+	}
+	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_assessments WHERE tenant_id=$1::uuid)+(SELECT count(*) FROM capture_field_assessments WHERE tenant_id=$1::uuid)+(SELECT count(*) FROM capture_distribution_events WHERE tenant_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_ASSESSED_%')+(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_ASSESSED')`, tenant).Scan(&expiredWrites); err != nil || expiredWrites != 0 {
+		t.Fatalf("role collision wrote %d records: %v", expiredWrites, err)
+	}
+	_, err = pool.Exec(ctx, `UPDATE routing_policies SET status='RETIRED',code='REPLACEMENT' WHERE id=$2::uuid; UPDATE routing_policies SET status='ACTIVE',code='BANK-REVIEW' WHERE id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, policy, replacement)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.WithAssessmentAuthorizer(originalAuthorizer)
 	// A recipient change must not race a review after its conflict check.
 	entered, release, done := make(chan struct{}), make(chan struct{}), make(chan error, 1)
 	go func() {
@@ -121,6 +250,16 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	}
 	if v.Version != 1 || v.State != "ASSESSED" {
 		t.Fatalf("assessment %+v", v)
+	}
+	var sourceID, sourceType, sourceRule, sourceVersion string
+	var decisionTime, assessmentTime, eventTime, outboxTime time.Time
+	err = pool.QueryRow(ctx, `SELECT decision->>'authority_source_id', decision->>'authority_source_type', decision->>'authority_rule_id', decision->>'authority_policy_version', f.assessed_at, a.created_at, e.occurred_at, o.occurred_at FROM capture_field_assessments f JOIN capture_response_assessments a ON a.tenant_id=f.tenant_id AND a.response_revision_id=f.response_revision_id AND a.version=f.assessment_version JOIN capture_distribution_events e ON e.tenant_id=f.tenant_id AND e.event_type='FORM_RESPONSE_ASSESSED_'||f.response_revision_id::text||'_'||f.assessment_version::text JOIN outbox_events o ON o.tenant_id=f.tenant_id AND o.aggregate_id=f.response_revision_id AND o.event_type='FORM_RESPONSE_ASSESSED' WHERE f.tenant_id=$1::uuid`, tenant).Scan(&sourceID, &sourceType, &sourceRule, &sourceVersion, &decisionTime, &assessmentTime, &eventTime, &outboxTime)
+	if err != nil || sourceID != policy || sourceType != "POLICY" || sourceRule != "bank-review" || sourceVersion == "" || !decisionTime.Equal(assessmentTime) || !decisionTime.Equal(eventTime) || !decisionTime.Equal(outboxTime) {
+		t.Fatalf("assessment receipt: source=%s/%s/%s/%s times=%v/%v/%v/%v err=%v", sourceType, sourceID, sourceRule, sourceVersion, decisionTime, assessmentTime, eventTime, outboxTime, err)
+	}
+	var snapshotSource string
+	if err = pool.QueryRow(ctx, `SELECT decisions->'score'->>'authority_source_id' FROM capture_response_assessments WHERE tenant_id=$1::uuid AND version=1`, tenant).Scan(&snapshotSource); err != nil || snapshotSource != policy || v.Fields[0].Decision == nil || v.Fields[0].Decision.AuthoritySourceID != policy || !v.Fields[0].Decision.AssessedAt.Equal(decisionTime) || v.AssessedScore == nil || !v.AssessedScore.CalculatedAt.Equal(decisionTime) {
+		t.Fatalf("snapshot or response receipt differs: source=%q response=%+v err=%v", snapshotSource, v, err)
 	}
 	if _, err = service.RecordResponseAssessment(ctx, tenant, entity, response, input); !errors.Is(err, ErrAssessmentConflict) {
 		t.Fatalf("replay=%v", err)
@@ -175,7 +314,7 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 	seedCompletedResponseRows(t, ctx, pool, tenant, entity, owner, form, "review-docs-"+tenant, 1, now)
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `BEGIN; SET LOCAL session_replication_role='replica'; DELETE FROM capture_field_assessments WHERE tenant_id=$1::uuid; DELETE FROM capture_response_assessments WHERE tenant_id=$1::uuid; COMMIT`, pgx.QueryExecModeSimpleProtocol, tenant)
-		_, _ = pool.Exec(context.Background(), `DELETE FROM third_party_relationships WHERE tenant_id=$1::uuid; DELETE FROM third_parties WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenant)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid; DELETE FROM org_positions WHERE tenant_id=$1::uuid; DELETE FROM role_templates WHERE tenant_id=$1::uuid; DELETE FROM third_party_relationships WHERE tenant_id=$1::uuid; DELETE FROM third_parties WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenant)
 		cleanupResponseWorkspaceTenant(context.Background(), pool, tenant)
 	})
 	_, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($4::uuid,$1::uuid,'PERSON','Bank reviewer','ACTIVE',$8);
@@ -192,11 +331,26 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 	if err = pool.QueryRow(ctx, `SELECT id::text FROM capture_response_revisions WHERE tenant_id=$1::uuid`, tenant).Scan(&response); err != nil {
 		t.Fatal(err)
 	}
-	service := NewDistributionService(NewPostgresDistributionStore(NewPostgresRepository(pool), nil)).WithAssessmentAuthorizer(func(context.Context, identity.Actor, CompletedResponseSummary, formcontract.Field) (string, error) {
-		return "current-reviewer-route", nil
+	policy, policyVersion := mustResponseWorkspaceID(t), mustResponseWorkspaceID(t)
+	setupAssessmentRiskRole(t, ctx, pool, tenant, entity, reviewer, now)
+	definition := fmt.Sprintf(`{"rules":[{"id":"review","legal_entity_id":"%s","object_type":"FORM_RESPONSE","object_id":"%s","responsibility":"REVIEWER","decision_type":"forms.response.assess","min_materiality":0,"priority":100,"selector":{"kind":"ROLE","ref":"RISK"}}]}`, entity, response)
+	_, err = pool.Exec(ctx, `INSERT INTO routing_policies(id,tenant_id,legal_entity_id,code,name,status,current_version,approved_at,version) VALUES($1::uuid,$2::uuid,$3::uuid,'REVIEW','Review','DRAFT',1,$6,1); INSERT INTO routing_policy_versions(id,policy_id,legal_entity_id,version,definition,checksum,effective_from,approved_at) VALUES($4::uuid,$1::uuid,$3::uuid,1,$5::jsonb,'review-test',$6,$6); UPDATE routing_policies SET status='ACTIVE' WHERE id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, policy, tenant, entity, policyVersion, definition, now.Add(-time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM routing_policies WHERE tenant_id=$1::uuid`, tenant)
+	})
+	router := authority.NewPostgresService(pool)
+	service := NewDistributionService(NewPostgresDistributionStore(NewPostgresRepository(pool), nil)).WithAssessmentAuthorizer(func(c context.Context, a identity.Actor, r CompletedResponseSummary, f formcontract.Field) (string, error) {
+		route, e := router.Resolve(c, authority.ResolveInput{TenantID: a.TenantID, LegalEntityID: r.LegalEntityID, ObjectType: "FORM_RESPONSE", ObjectID: r.ID, Responsibility: authority.ResponsibilityReviewer, DecisionType: "forms.response.assess", Materiality: 3})
+		if e != nil || !route.AllowsPrincipalWithRole(a.PrincipalID, f.Assessment.ReviewerRole) {
+			return "", ErrAssessmentForbidden
+		}
+		return route.PolicyVersion + ":" + route.RuleID, nil
 	})
 	service.assessmentDecisionsEnabled = true // Exercise the unexposed transaction in isolation.
-	ctx = identity.WithActor(ctx, identity.Actor{TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: now.Add(time.Hour)})
+	ctx = identity.WithActor(ctx, identity.Actor{Kind: "PERSON", TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: now.Add(time.Hour)})
 	assessment, err := service.GetResponseAssessment(ctx, tenant, entity, reviewer, response)
 	if err != nil || !assessment.MayReview {
 		t.Fatalf("reviewer assessment %+v %v", assessment, err)
