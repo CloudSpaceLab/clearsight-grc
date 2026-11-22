@@ -308,3 +308,48 @@ func containsString(values []string, target string) bool {
 	}
 	return false
 }
+
+func TestDeficiencyMatterMustMatchAssessmentLegalEntity(t *testing.T) {
+	scope := Scope{TenantID: "bank", LegalEntityID: "entity-a"}
+	assessment := Assessment{ID: "assessment-1", TenantID: "bank", LegalEntityID: "entity-a"}
+	trigger := "vendor-deficiency:stable"
+	matter := continuity.MatterAggregate{Matter: continuity.Matter{ID: "matter-1", TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterVendorDeficiency, TriggerKey: trigger, TriggerID: assessment.ID, Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["reviewer"]}`)}}
+	if !validDeficiencyMatter(matter, scope, assessment, trigger, "reviewer") {
+		t.Fatal("same-entity finding rejected")
+	}
+	matter.Matter.LegalEntityID = "entity-b"
+	if validDeficiencyMatter(matter, scope, assessment, trigger, "reviewer") {
+		t.Fatal("different-entity finding accepted")
+	}
+}
+
+type crossEntityDeficiencyLookup struct{ assessment Assessment }
+
+func (f crossEntityDeficiencyLookup) MatterByTriggerKey(_ context.Context, tenant, trigger string) (continuity.MatterAggregate, error) {
+	return continuity.MatterAggregate{Matter: continuity.Matter{ID: "wrong-entity-matter", TenantID: tenant, LegalEntityID: "entity-other", Type: continuity.MatterVendorDeficiency, TriggerID: f.assessment.ID, TriggerKey: trigger, Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["verified-owner"]}`)}}, nil
+}
+func (f crossEntityDeficiencyLookup) CreateMatter(context.Context, continuity.CreateMatterInput) (continuity.MatterAggregate, error) {
+	return continuity.MatterAggregate{}, errors.New("unexpected create")
+}
+
+func TestCreateAssessmentDeficiencyRejectsCrossEntityReplayWithoutLink(t *testing.T) {
+	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := assessmentUnderReviewFixture(t, assessmentService, repo, relationship)
+	service := NewAssessmentDeficiencyService(assessmentService, repo, crossEntityDeficiencyLookup{assessment: assessment})
+	before, err := repo.ListAssessmentMatterLinks(context.Background(), scopeFromVerified(), assessment.ID, assessmentReviewMaxMatters+1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.CreateDeficiency(assessmentContext(), assessmentActor(), assessment.ID, CreateAssessmentDeficiencyInput{ExpectedVersion: assessment.Version, TriggerKey: "security-gap", Title: "Address security gap", Summary: "The report does not cover the service."})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("wrong-entity finding error = %v", err)
+	}
+	after, err := repo.ListAssessmentMatterLinks(context.Background(), scopeFromVerified(), assessment.ID, assessmentReviewMaxMatters+1)
+	if err != nil || len(after) != len(before) {
+		t.Fatalf("wrong-entity finding changed links: before=%d after=%d err=%v", len(before), len(after), err)
+	}
+	current, err := repo.GetAssessment(context.Background(), scopeFromVerified(), assessment.ID)
+	if err != nil || current.Version != assessment.Version {
+		t.Fatalf("wrong-entity finding changed assessment: %+v %v", current, err)
+	}
+}

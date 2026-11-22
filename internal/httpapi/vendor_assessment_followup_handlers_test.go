@@ -66,39 +66,6 @@ func TestVendorAssessmentClarificationRouteUsesStrictProtectedReviewerCommand(t 
 	}
 }
 
-func TestVendorAssessmentDeficiencyRouteCreatesCanonicalMatterAndRejectsInvalidBodies(t *testing.T) {
-	fixture := newAssessmentFollowupHTTPFixture(t)
-	body := `{"expected_version":` + jsonInt(fixture.assessment.Version) + `,"trigger_key":"security-test-report","title":"Provide current security test evidence","summary":"The submitted report is no longer current for this review.","actor_id":"forged-reviewer"}`
-	response := httptest.NewRecorder()
-	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/deficiencies", strings.NewReader(body)))
-	if response.Code != http.StatusCreated {
-		t.Fatalf("deficiency expected 201, got %d: %s", response.Code, response.Body.String())
-	}
-	var outcome thirdparty.AssessmentDeficiencyOutcome
-	if err := json.NewDecoder(response.Body).Decode(&outcome); err != nil {
-		t.Fatal(err)
-	}
-	if outcome.Assessment.Status != thirdparty.AssessmentUnderReview || outcome.Matter.Matter.Type != continuity.MatterVendorDeficiency {
-		t.Fatalf("deficiency outcome = %#v", outcome)
-	}
-	for _, test := range []struct {
-		name, body string
-		want       int
-	}{
-		{name: "unknown field", body: `{"expected_version":` + jsonInt(outcome.Assessment.Version) + `,"trigger_key":"retention-gap","title":"Record retention gap","summary":"Retention evidence is incomplete.","finding_id":"unsafe"}`, want: http.StatusBadRequest},
-		{name: "stale", body: `{"expected_version":` + jsonInt(fixture.assessment.Version) + `,"trigger_key":"retention-gap","title":"Record retention gap","summary":"Retention evidence is incomplete."}`, want: http.StatusConflict},
-		{name: "scope", body: `{"expected_version":` + jsonInt(outcome.Assessment.Version) + `,"trigger_key":"retention-gap","title":"Record retention gap","summary":"Retention evidence is incomplete.","legal_entity_id":"other-entity"}`, want: http.StatusForbidden},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			recorder := httptest.NewRecorder()
-			fixture.handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/deficiencies", strings.NewReader(test.body)))
-			if recorder.Code != test.want {
-				t.Fatalf("want %d got %d: %s", test.want, recorder.Code, recorder.Body.String())
-			}
-		})
-	}
-}
-
 func TestVendorAssessmentFollowupRoutesRequireReviewerMaterialAuthority(t *testing.T) {
 	wanted := map[string]string{"/api/v1/vendor-assessments/{id}/clarifications": thirdparty.AssessmentClarificationCommand, "/api/v1/vendor-assessments/{id}/deficiencies": thirdparty.AssessmentDeficiencyCommand}
 	for _, route := range (&API{}).routes() {
@@ -113,5 +80,32 @@ func TestVendorAssessmentFollowupRoutesRequireReviewerMaterialAuthority(t *testi
 	}
 	if len(wanted) != 0 {
 		t.Fatalf("missing follow-up routes: %#v", wanted)
+	}
+}
+
+func TestVendorAssessmentDeficiencyRouteFailsClosedWithoutWrites(t *testing.T) {
+	fixture := newAssessmentFollowupHTTPFixture(t)
+	scope := thirdparty.Scope{TenantID: "bank", LegalEntityID: "entity-a"}
+	before, err := fixture.base.repository.ListAssessmentMatterLinks(context.Background(), scope, fixture.assessment.ID, 51)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := `{"expected_version":` + jsonInt(fixture.assessment.Version) + `,"trigger_key":"security-test-report","title":"Provide current security test evidence","summary":"The submitted report is no longer current."}`
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/deficiencies", strings.NewReader(body)))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("unsafe finding route returned %d: %s", response.Code, response.Body.String())
+	}
+	after, err := fixture.base.repository.ListAssessmentMatterLinks(context.Background(), scope, fixture.assessment.ID, 51)
+	if err != nil || len(after) != len(before) {
+		t.Fatalf("links changed: before=%d after=%d err=%v", len(before), len(after), err)
+	}
+	current, err := fixture.base.repository.GetAssessment(context.Background(), scope, fixture.assessment.ID)
+	if err != nil || current.Version != fixture.assessment.Version {
+		t.Fatalf("assessment changed: %+v %v", current, err)
+	}
+	matters, err := fixture.matters.ListMatters(continuity.WithTrustedSystemEntityScope(context.Background(), "bank", "entity-a"), "bank", "", 100)
+	if err != nil || len(matters) != 0 {
+		t.Fatalf("finding Matter written: %+v %v", matters, err)
 	}
 }

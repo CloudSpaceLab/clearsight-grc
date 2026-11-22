@@ -27,6 +27,14 @@ func (r *PostgresRepository) LinkAssessmentDeficiency(ctx context.Context, recor
 	if err != nil {
 		return AssessmentMatterLink{}, Assessment{}, err
 	}
+	var proof bool
+	err = tx.QueryRow(ctx, `SELECT true FROM matters WHERE tenant_id=$1::uuid AND id=$2::uuid AND matter_type='VENDOR_DEFICIENCY' AND trigger_type='VENDOR_ASSESSMENT_DEFICIENCY' AND trigger_id=$3::text AND trigger_key=$4 AND legal_entity_id=$5::uuid`, tenantID, record.MatterID, current.ID, record.MatterTriggerKey, current.LegalEntityID).Scan(&proof)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return AssessmentMatterLink{}, Assessment{}, ErrNotFound
+	}
+	if err != nil {
+		return AssessmentMatterLink{}, Assessment{}, fmt.Errorf("verify canonical deficiency Matter: %w", err)
+	}
 	var existing AssessmentMatterLink
 	err = tx.QueryRow(ctx, `SELECT t.slug,l.legal_entity_id::text,l.assessment_id::text,l.matter_id::text,l.relationship_link_id::text,l.link_kind,l.created_at
 		FROM third_party_assessment_matter_links l JOIN tenants t ON t.id=l.tenant_id
@@ -59,14 +67,6 @@ func (r *PostgresRepository) LinkAssessmentDeficiency(ctx context.Context, recor
 	}
 	if current.Status != AssessmentUnderReview {
 		return AssessmentMatterLink{}, Assessment{}, ErrInvalidAssessmentTransition
-	}
-	var proof bool
-	err = tx.QueryRow(ctx, `SELECT true FROM matters WHERE tenant_id=$1::uuid AND id=$2::uuid AND matter_type='VENDOR_DEFICIENCY' AND trigger_type='VENDOR_ASSESSMENT_DEFICIENCY' AND trigger_id=$3::uuid AND trigger_key=$4`, tenantID, record.MatterID, current.ID, record.MatterTriggerKey).Scan(&proof)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return AssessmentMatterLink{}, Assessment{}, ErrNotFound
-	}
-	if err != nil {
-		return AssessmentMatterLink{}, Assessment{}, fmt.Errorf("verify canonical deficiency Matter: %w", err)
 	}
 	canonical, err := ensureAssessmentMatterRelationshipLink(ctx, tx, tenantID, current, record.MatterID, AssessmentMatterDeficiency, record.ActorPrincipalID, record.LinkedAt)
 	if err != nil {

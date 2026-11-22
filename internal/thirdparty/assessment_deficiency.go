@@ -157,7 +157,7 @@ func deficiencyMatterInput(actor Actor, assessment Assessment, input CreateAsses
 }
 
 func validDeficiencyMatter(value continuity.MatterAggregate, scope Scope, assessment Assessment, triggerKey, principalID string) bool {
-	if value.Matter.ID == "" || value.Matter.TenantID != scope.TenantID || value.Matter.Type != continuity.MatterVendorDeficiency || value.Matter.TriggerKey != triggerKey || value.Matter.TriggerID != assessment.ID {
+	if value.Matter.ID == "" || value.Matter.TenantID != scope.TenantID || value.Matter.LegalEntityID == "" || value.Matter.LegalEntityID != assessment.LegalEntityID || value.Matter.Type != continuity.MatterVendorDeficiency || value.Matter.TriggerKey != triggerKey || value.Matter.TriggerID != assessment.ID {
 		return false
 	}
 	policy, valid := continuity.ParseMatterAccessPolicy(value.Matter.Scope)
