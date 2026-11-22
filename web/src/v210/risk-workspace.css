@@ -13,3 +13,4 @@
 .v-risk-link-button, .v-risk-linker button { min-height: var(--v-button-height); padding: 8px 12px; border: 1px solid var(--v-button-secondary-border); border-radius: var(--v-button-radius); background: var(--v-button-secondary-background); color: var(--v-button-secondary-text); }
 .v-risk-linker { margin: 16px 0; } .v-risk-linker h3 { margin: 0; } .v-risk-linker button { justify-self: start; }
 .v-risk-linker button.v-primary { border-color: var(--v-button-primary-background); background: var(--v-button-primary-background); color: var(--v-button-primary-text); }
+.v-risk-linker [role="alert"] { color: var(--v-color-danger-text); }
