@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
@@ -102,9 +103,8 @@ func (b *riskIndicatorReadBuilder) build(link risk.IndicatorLink) (riskIndicator
 		detail.Reason = "Source Program is not active."
 	}
 
-	// Matter metadata requires a repository-scoped read for this actor. Until
-	// that path is available, withhold intervention existence and details.
-
+	intervention, err := b.api.deps.Continuity.VisibleIntervention(b.ctx, b.actor.TenantID, b.actor.LegalEntityID, "monitoring-check-adverse:"+check.ID, program.Program.ID)
+	complete = applyVisibleIndicatorIntervention(&detail, intervention, err) && complete
 	return detail, riskIndicatorLabelPair{ownerID: check.OwnerPrincipalID, reviewerID: check.ReviewerPrincipalID}, true, complete
 }
 
@@ -167,4 +167,12 @@ func equalRiskIndicatorTime(left, right *time.Time) bool {
 		return left == nil && right == nil
 	}
 	return left.Equal(*right)
+}
+
+func applyVisibleIndicatorIntervention(detail *riskIndicatorRead, value continuity.VisibleIntervention, err error) bool {
+	if err != nil {
+		return errors.Is(err, continuity.ErrNotFound)
+	}
+	detail.Intervention = &riskIndicatorInterventionRead{MatterID: value.ID, Reference: value.Reference, Status: value.Status, Priority: value.Priority, CreatedAt: value.CreatedAt}
+	return true
 }

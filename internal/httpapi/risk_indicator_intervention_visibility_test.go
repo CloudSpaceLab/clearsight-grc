@@ -15,7 +15,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 )
 
-func TestRiskIndicatorReadsDoNotExposeUnscopedIntervention(t *testing.T) {
+func TestRiskIndicatorReadsEnforceInterventionVisibility(t *testing.T) {
 	fixture := newLinkedIssueFixture(t)
 	ctx := t.Context()
 	matter, err := fixture.continuity.CreateMatter(continuity.WithTrustedSystemScope(ctx), continuity.CreateMatterInput{TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterControlGap, Priority: 3, Title: "Restricted issue", Summary: "Restricted issue", Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["program-owner"]}`), TriggerKey: "monitoring-check-adverse:" + fixture.check.ID, ProgramID: fixture.program.Program.ID})
@@ -47,7 +47,11 @@ func TestRiskIndicatorReadsDoNotExposeUnscopedIntervention(t *testing.T) {
 				if !strings.Contains(body, fixture.check.ID) {
 					t.Fatalf("indicator absent: %s", body)
 				}
-				if strings.Contains(body, `"intervention"`) || strings.Contains(body, matter.Matter.ID) || strings.Contains(body, matter.Matter.Reference) {
+				if principal == "program-owner" {
+					if !strings.Contains(body, `"intervention"`) || !strings.Contains(body, matter.Matter.ID) || !strings.Contains(body, matter.Matter.Reference) {
+						t.Fatalf("visible intervention missing: %s", body)
+					}
+				} else if strings.Contains(body, `"intervention"`) || strings.Contains(body, matter.Matter.ID) || strings.Contains(body, matter.Matter.Reference) {
 					t.Fatalf("intervention metadata exposed: %s", body)
 				}
 			}
