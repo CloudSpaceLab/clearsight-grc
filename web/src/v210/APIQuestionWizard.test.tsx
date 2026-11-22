@@ -1,8 +1,39 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { APIQuestionWizard } from "./APIQuestionWizard";
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+it("clears test feedback and endpoint when the question revision changes", async () => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ mode: "LIVE", outcome: "VALID", result_type: "BOOLEAN", checked_at: "2026-11-20T10:00:00Z" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+  const { rerender } = render(<APIQuestionWizard formID="f" version={1} fieldID="q" label="Access?" resultType="BOOLEAN"/>);
+  fireEvent.click(screen.getByRole("button", { name: "Prepare API question" }));
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  fireEvent.change(screen.getByLabelText("HTTPS endpoint"), { target: { value: "https://example.com/status" } });
+  fireEvent.click(screen.getByRole("button", { name: "Test endpoint" }));
+  await screen.findByRole("status");
+  rerender(<APIQuestionWizard formID="f" version={2} fieldID="q" label="Access?" resultType="BOOLEAN"/>);
+  expect(screen.queryByRole("status")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Prepare API question" }));
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  expect((screen.getByLabelText("HTTPS endpoint") as HTMLInputElement).value).toBe("");
+});
+
+it("does not apply a delayed test result to a later question revision", async () => {
+  let resolveRequest!: (response: Response) => void;
+  vi.spyOn(globalThis, "fetch").mockReturnValue(new Promise<Response>((resolve) => { resolveRequest = resolve; }));
+  const { rerender } = render(<APIQuestionWizard formID="f" version={1} fieldID="q" label="Access?" resultType="BOOLEAN"/>);
+  fireEvent.click(screen.getByRole("button", { name: "Prepare API question" }));
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  fireEvent.change(screen.getByLabelText("HTTPS endpoint"), { target: { value: "https://example.com/status" } });
+  fireEvent.click(screen.getByRole("button", { name: "Test endpoint" }));
+  rerender(<APIQuestionWizard formID="f" version={2} fieldID="q" label="Access?" resultType="BOOLEAN"/>);
+  fireEvent.click(screen.getByRole("button", { name: "Prepare API question" }));
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  await act(async () => { resolveRequest(new Response(JSON.stringify({ mode: "LIVE", outcome: "VALID", result_type: "BOOLEAN", checked_at: "2026-11-20T10:00:00Z" }), { status: 200, headers: { "Content-Type": "application/json" } })); });
+  expect(screen.queryByRole("status")).toBeNull();
+  expect((screen.getByLabelText("HTTPS endpoint") as HTMLInputElement).value).toBe("");
+});
 
 it("provides a typed developer contract while preserving manual answers", () => {
   render(<APIQuestionWizard formID="form/1" version={2} fieldID="q/1" label="Is access reviewed?" resultType="BOOLEAN"/>);

@@ -8,8 +8,14 @@ type TestReply = { mode: "SAMPLE" | "LIVE"; outcome: "VALID" | "INVALID" | "UNAV
 type Feedback = { kind: "status" | "alert"; message: string };
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
+type WizardProps = { formID: string; version: number; fieldID: string; label: string; resultType: ResultType };
+
 /** A format test is neither an integration nor an assessment result. */
-export function APIQuestionWizard({ formID, version, fieldID, label, resultType }: { formID: string; version: number; fieldID: string; label: string; resultType: ResultType }) {
+export function APIQuestionWizard(props: WizardProps) {
+  return <QuestionWizardState key={JSON.stringify([props.formID, props.version, props.fieldID, props.resultType])} {...props}/>;
+}
+
+function QuestionWizardState({ formID, version, fieldID, label, resultType }: WizardProps) {
   const [step, setStep] = useState<"closed" | "contract" | "test">("closed");
   const example = resultType === "BOOLEAN" ? '{\n  "result": true,\n  "message": "Optional details"\n}' : '{\n  "result": 0,\n  "message": "Optional details"\n}';
   const contract = [
