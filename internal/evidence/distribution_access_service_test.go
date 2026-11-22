@@ -300,6 +300,10 @@ type memoryAccessFixture struct {
 }
 
 func newMemoryAccessFixture(t *testing.T, policy AccessPolicy, recipients []DistributionRecipientInput) memoryAccessFixture {
+	return newMemoryAccessFixtureForSubject(t, policy, recipients, "VENDOR")
+}
+
+func newMemoryAccessFixtureForSubject(t *testing.T, policy AccessPolicy, recipients []DistributionRecipientInput, subjectType string) memoryAccessFixture {
 	t.Helper()
 	now := time.Date(2026, 8, 27, 20, 0, 0, 0, time.UTC)
 	clock := &now
@@ -314,7 +318,7 @@ func newMemoryAccessFixture(t *testing.T, policy AccessPolicy, recipients []Dist
 	distributions.now = func() time.Time { return *clock }
 	bundle, err := distributions.CreateDistribution(context.Background(), CreateDistributionInput{
 		TenantID: "tenant-a", LegalEntityID: "entity-a", FormTemplateID: "form-a", FormTemplateVersion: 3,
-		SubjectType: "VENDOR", SubjectID: "subject-a", Title: "Access review", Purpose: "Collect protected evidence.",
+		SubjectType: subjectType, SubjectID: "subject-a", Title: "Access review", Purpose: "Collect protected evidence.",
 		AccessPolicy: policy, EstimatedMinutes: 5, Deadline: now.Add(2 * time.Hour), RouteExpiresAt: now.Add(time.Hour),
 		CreatedBy: "actor-a", Recipients: recipients,
 	})

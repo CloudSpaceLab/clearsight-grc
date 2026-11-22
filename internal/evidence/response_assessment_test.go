@@ -21,6 +21,7 @@ func assessmentFixture(t *testing.T) (*DistributionService, *MemoryDistributionS
 	service := NewDistributionService(store).WithAssessmentAuthorizer(func(context.Context, identity.Actor, CompletedResponseSummary, formcontract.Field) (string, error) {
 		return "route-v3", nil
 	})
+	service.assessmentDecisionsEnabled = true // Exercise the unexposed implementation in isolation.
 	return service, store, ctx
 }
 func TestResponseAssessmentImmutableConflictAndAuthority(t *testing.T) {

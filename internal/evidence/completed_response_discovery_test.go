@@ -11,7 +11,7 @@ import (
 
 func TestRoutedReviewerDiscoversOnlyPermittedSubmittedVendorResponses(t *testing.T) {
 	now := time.Now().UTC()
-	repo := NewMemoryRepositoryWithRecipientCandidates(nil, nil, []RecipientCandidate{{PrincipalID: "owner", TenantID: "bank", Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"VENDOR_RELATIONSHIP:rel": true}}})
+	repo := NewMemoryRepositoryWithRecipientCandidates(nil, nil, []RecipientCandidate{{PrincipalID: "owner", TenantID: "bank", Kind: "PERSON", Active: true, LegalEntityIDs: []string{"entity"}, ReadableSubjects: map[string]bool{"VENDOR_RELATIONSHIP:rel": true}}})
 	store := NewMemoryDistributionStore(repo, nil, nil)
 	field := Field{ID: "report", Label: "Test report", Type: "short_text", Assessment: &formcontract.FieldAssessment{Mode: formcontract.AssessmentManual, Weight: 100, ReviewerRole: "Risk", Rubric: []formcontract.AssessmentOutcome{{ID: "poor", Label: "Incomplete", Points: 80}}}}
 	for i := 1; i <= 4; i++ {
@@ -119,7 +119,7 @@ func TestRoutedReviewerDiscoversOnlyPermittedSubmittedVendorResponses(t *testing
 
 func TestResponseReviewerDiscoversUnscoredVendorResponseWithoutRubric(t *testing.T) {
 	now := time.Now().UTC()
-	repo := NewMemoryRepositoryWithRecipientCandidates(nil, nil, []RecipientCandidate{{PrincipalID: "owner", TenantID: "bank", Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"VENDOR_RELATIONSHIP:rel": true}}})
+	repo := NewMemoryRepositoryWithRecipientCandidates(nil, nil, []RecipientCandidate{{PrincipalID: "owner", TenantID: "bank", Kind: "PERSON", Active: true, LegalEntityIDs: []string{"entity"}, ReadableSubjects: map[string]bool{"VENDOR_RELATIONSHIP:rel": true}}})
 	store := NewMemoryDistributionStore(repo, nil, nil)
 	req := Request{ID: "request", TenantID: "bank", LegalEntityID: "entity", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "rel", FormTemplateID: "form", FormTemplateVersion: 1, Status: RequestSubmitted, Fields: []Field{{ID: "answer", Label: "Answer", Type: "short_text"}}, ScoringMode: formcontract.ScoringNone}
 	repo.requests[req.ID] = req

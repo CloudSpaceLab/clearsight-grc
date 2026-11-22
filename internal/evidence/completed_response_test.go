@@ -114,6 +114,47 @@ func TestCompletedResponseQueryRejectsInvalidScoreBoundsAndCursor(t *testing.T) 
 	}
 }
 
+func TestMemoryCompletedResponsesRequireExplicitSubjectAndEntityAccess(t *testing.T) {
+	const tenant, entity, principal, issue = "bank", "entity", "person", "issue"
+	repo := NewMemoryRepository(nil, nil)
+	store := NewMemoryDistributionStore(repo, nil, nil)
+	store.distributions["distribution"] = FormDistribution{ID: "distribution", TenantID: tenant, LegalEntityID: entity, SubjectType: "MATTER", SubjectID: issue, Title: "Restricted response"}
+	store.responseRevisions["distribution"] = []ResponseRevision{completedRevision("response", tenant, entity, "distribution", time.Now(), 0, formcontract.ConcernLow)}
+	query := CompletedResponseQuery{TenantID: tenant, LegalEntityID: entity, PrincipalID: principal, Limit: 20}
+	assertCount := func(want int) {
+		t.Helper()
+		page, err := store.ListCompletedResponses(context.Background(), query)
+		if err != nil || len(page.Items) != want {
+			t.Fatalf("responses = %+v, err = %v; want %d", page.Items, err, want)
+		}
+	}
+	assertCount(0)
+	if _, _, err := store.GetCompletedResponse(context.Background(), tenant, entity, principal, "response"); err != ErrNotFound {
+		t.Fatalf("unconfigured principal read response detail: %v", err)
+	}
+	repo.candidates[principal] = RecipientCandidate{PrincipalID: principal, TenantID: tenant, Kind: "PERSON", Active: true, LegalEntityIDs: []string{"other"}, ReadableSubjects: map[string]bool{"MATTER:" + issue: true}}
+	assertCount(0)
+	candidate := repo.candidates[principal]
+	candidate.LegalEntityIDs = []string{entity}
+	repo.candidates[principal] = candidate
+	assertCount(1)
+	if _, _, err := store.GetCompletedResponse(context.Background(), tenant, entity, principal, "response"); err != nil {
+		t.Fatalf("authorized principal could not read response: %v", err)
+	}
+	delete(candidate.ReadableSubjects, "MATTER:"+issue)
+	repo.candidates[principal] = candidate
+	assertCount(0)
+}
+
+func TestMemoryResponseSubjectVisibilityRejectsUnknownSubject(t *testing.T) {
+	repo := NewMemoryRepositoryWithRecipientCandidates(nil, nil, []RecipientCandidate{{PrincipalID: "person", TenantID: "bank", Kind: "PERSON", Active: true, LegalEntityIDs: []string{"entity"}, ReadableSubjects: map[string]bool{"UNKNOWN:record": true}}})
+	store := NewMemoryDistributionStore(repo, nil, nil)
+	allowed, err := store.completedResponseSubjectVisible(context.Background(), "bank", "entity", "person", "UNKNOWN", "record")
+	if err != nil || allowed {
+		t.Fatalf("unknown subject granted access: %v %v", allowed, err)
+	}
+}
+
 func completedRevision(id, tenantID, entityID, distributionID string, completedAt time.Time, adverse float64, band formcontract.ConcernBand) ResponseRevision {
 	raw := adverse
 	return ResponseRevision{

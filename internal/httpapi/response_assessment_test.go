@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	"context"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +11,22 @@ import (
 	"testing"
 	"time"
 )
+
+func TestResponseAssessmentPOSTUnavailableForAuthorizedActor(t *testing.T) {
+	service := evidence.NewDistributionService(evidence.NewMemoryDistributionStore(evidence.NewMemoryRepository(nil, nil), nil, nil)).WithAssessmentAuthorizer(func(context.Context, identity.Actor, evidence.CompletedResponseSummary, formcontract.Field) (string, error) {
+		return "route", nil
+	})
+	api := &API{deps: Dependencies{FormDistributions: service}}
+	actor := identity.Actor{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "reviewer", ExpiresAt: time.Now().Add(time.Hour)}
+	r := httptest.NewRequest("POST", "/api/v1/forms/responses/response/assessment", strings.NewReader(`{"expected_version":0,"decisions":[{"field_id":"report","outcome_id":"poor","rationale":"Missing scope."}]}`))
+	r = r.WithContext(identity.WithActor(r.Context(), actor))
+	r.SetPathValue("revision_id", "response")
+	w := httptest.NewRecorder()
+	api.recordResponseAssessment(w, r)
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
 
 func TestResponseAssessmentHandlersRequireVerifiedIdentity(t *testing.T) {
 	api := &API{deps: Dependencies{FormDistributions: evidence.NewDistributionService(evidence.NewMemoryDistributionStore(evidence.NewMemoryRepository(nil, nil), nil, nil))}}

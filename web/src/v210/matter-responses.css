@@ -1,0 +1,4 @@
+.v-matter-responses { list-style: none; padding: 0; margin: 0; }
+.v-matter-responses li { padding: 14px 0; border-top: 1px solid var(--v-field-border); }
+.v-matter-responses p { margin: 6px 0; }
+.v-matter-responses a { display: inline-flex; align-items: center; min-height: 44px; }

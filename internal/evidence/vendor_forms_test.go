@@ -77,7 +77,7 @@ func TestVendorFormsRejectUnboundedOrUnscopedQueries(t *testing.T) {
 
 func TestVendorFormsApplyAccessBeforePaginationAndCounts(t *testing.T) {
 	now := time.Now().UTC()
-	repo := NewMemoryRepositoryWithRecipientCandidates(nil, nil, []RecipientCandidate{{PrincipalID: "owner", TenantID: "bank", Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"VENDOR_RELATIONSHIP:allowed": true}}})
+	repo := NewMemoryRepositoryWithRecipientCandidates(nil, nil, []RecipientCandidate{{PrincipalID: "owner", TenantID: "bank", Kind: "PERSON", Active: true, LegalEntityIDs: []string{"entity"}, ReadableSubjects: map[string]bool{"VENDOR_RELATIONSHIP:allowed": true}}})
 	store := NewMemoryDistributionStore(repo, nil, nil)
 	for _, v := range []struct {
 		id, rel string

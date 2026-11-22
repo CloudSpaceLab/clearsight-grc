@@ -345,12 +345,13 @@ func TestResponseWorkspaceRejectsDuplicateFieldReplacement(t *testing.T) {
 
 func newTwoRecipientWorkspaceFixture(t *testing.T) (memoryAccessFixture, [2]string) {
 	t.Helper()
-	fixture := newMemoryAccessFixture(t, AccessSharedEmailOTP, []DistributionRecipientInput{
+	fixture := newMemoryAccessFixtureForSubject(t, AccessSharedEmailOTP, []DistributionRecipientInput{
 		{Role: RecipientTo, Type: RecipientExternalAudience, Address: "alpha@example.test", AudienceHint: "a***@example.test", ContactLabel: "Alpha"},
 		{Role: RecipientTo, Type: RecipientExternalAudience, Address: "beta@example.test", AudienceHint: "b***@example.test", ContactLabel: "Beta"},
-	})
+	}, "VENDOR_RELATIONSHIP")
 	store := fixture.access.store.(*MemoryDistributionAccessStore)
 	store.distributions.repo.mu.Lock()
+	store.distributions.repo.candidates["actor-a"] = RecipientCandidate{PrincipalID: "actor-a", TenantID: "tenant-a", LegalEntityIDs: []string{"entity-a"}, Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"VENDOR_RELATIONSHIP:subject-a": true}}
 	for requestID, request := range store.distributions.repo.requests {
 		if request.TenantID != "tenant-a" {
 			continue

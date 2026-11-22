@@ -63,10 +63,13 @@ type DistributionService struct {
 	responseDiscoveryAuthorizer ResponseDiscoveryAuthorizer
 	responseReviewAuthorizer    ResponseReviewAuthorizer
 	demoResponseReviewDecisions bool
-	store                       distributionLifecycleStore
-	now                         func() time.Time
-	demoSamplePreview           bool
-	demoUnscannedAllowed        bool
+	// Private test seam; production assessment commands stay unavailable until
+	// authority and session checks share the write boundary.
+	assessmentDecisionsEnabled bool
+	store                      distributionLifecycleStore
+	now                        func() time.Time
+	demoSamplePreview          bool
+	demoUnscannedAllowed       bool
 }
 
 func NewDistributionService(store distributionLifecycleStore) *DistributionService {

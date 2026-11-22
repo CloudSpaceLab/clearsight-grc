@@ -65,7 +65,7 @@ func (s *MemoryDistributionStore) ListDocuments(ctx context.Context, q DocumentQ
 			default:
 				continue
 			}
-			allowed, accessErr := s.completedResponseSubjectVisible(ctx, q.TenantID, q.PrincipalID, d.SubjectType, d.SubjectID)
+			allowed, accessErr := s.completedResponseSubjectVisible(ctx, q.TenantID, q.LegalEntityID, q.PrincipalID, d.SubjectType, d.SubjectID)
 			if accessErr != nil {
 				return DocumentPage{}, accessErr
 			}

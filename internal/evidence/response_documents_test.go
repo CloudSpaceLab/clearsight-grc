@@ -48,7 +48,7 @@ func TestDocumentReviewOmitsUnperformedReviewTime(t *testing.T) {
 
 func documentMemoryFixture() (*MemoryDistributionStore, DocumentQuery) {
 	repo := NewMemoryRepository(nil, nil)
-	repo.candidates["reader"] = RecipientCandidate{PrincipalID: "reader", TenantID: "tenant", Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program": true}}
+	repo.candidates["reader"] = RecipientCandidate{PrincipalID: "reader", TenantID: "tenant", Kind: "PERSON", Active: true, LegalEntityIDs: []string{"entity"}, ReadableSubjects: map[string]bool{"PROGRAM:program": true}}
 	store := NewMemoryDistributionStore(repo, nil, nil)
 	store.distributions["distribution"] = FormDistribution{ID: "distribution", TenantID: "tenant", LegalEntityID: "entity", SubjectType: "PROGRAM", SubjectID: "program", Title: "Annual review", FormTemplateID: "form", FormTemplateVersion: 1}
 	store.requestDistribution["request"] = "distribution"

@@ -37,6 +37,24 @@ func (r *MemoryRepository) CanReadSubject(_ context.Context, tenant, principalID
 	return strings.TrimSpace(tenant) != "" && strings.TrimSpace(principalID) != "" && strings.TrimSpace(subjectType) != "" && strings.TrimSpace(subjectID) != "", nil
 }
 
+// canReadResponseSubject requires explicit entity and subject access for
+// protected response reads; the permissive unseeded fixture fallback in
+// CanReadSubject cannot establish that authority.
+func (r *MemoryRepository) canReadResponseSubject(tenant, entity, principalID, subjectType, subjectID string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	candidate, ok := r.candidates[principalID]
+	if !ok || candidate.TenantID != tenant || candidate.Kind != "PERSON" || !candidate.Active || !candidate.ReadableSubjects[strings.ToUpper(strings.TrimSpace(subjectType))+":"+strings.TrimSpace(subjectID)] {
+		return false
+	}
+	for _, id := range candidate.LegalEntityIDs {
+		if id == entity && entity != "" {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *MemoryRepository) CreateRequestWithRecipient(_ context.Context, value Request) (Request, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

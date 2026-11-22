@@ -86,7 +86,7 @@ func (s *MemoryDistributionStore) vendorRows(ctx context.Context, q VendorFormsQ
 				return nil, err
 			}
 		} else {
-			allowed, err := s.completedResponseSubjectVisible(ctx, q.TenantID, q.PrincipalID, req.SubjectType, req.SubjectID)
+			allowed, err := s.completedResponseSubjectVisible(ctx, q.TenantID, q.LegalEntityID, q.PrincipalID, req.SubjectType, req.SubjectID)
 			if err != nil {
 				return nil, err
 			}

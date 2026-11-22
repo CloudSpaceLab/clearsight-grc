@@ -130,7 +130,7 @@ func (s *MemoryDistributionStore) completedResponseVisible(ctx context.Context, 
 			return err == nil, err
 		}
 	}
-	return s.completedResponseSubjectVisible(ctx, d.TenantID, principal, d.SubjectType, d.SubjectID)
+	return s.completedResponseSubjectVisible(ctx, d.TenantID, d.LegalEntityID, principal, d.SubjectType, d.SubjectID)
 }
 
 func (s *MemoryDistributionStore) GetCompletedResponseForExecution(_ context.Context, tenantID, revisionID string) (CompletedResponseSummary, error) {
@@ -155,15 +155,15 @@ func (s *MemoryDistributionStore) GetCompletedResponseForExecution(_ context.Con
 	return CompletedResponseSummary{}, ErrNotFound
 }
 
-func (s *MemoryDistributionStore) completedResponseSubjectVisible(ctx context.Context, tenantID, principalID, subjectType, subjectID string) (bool, error) {
+func (s *MemoryDistributionStore) completedResponseSubjectVisible(_ context.Context, tenantID, entityID, principalID, subjectType, subjectID string) (bool, error) {
 	switch strings.ToUpper(strings.TrimSpace(subjectType)) {
 	case "PROGRAM", "MATTER", "VENDOR_RELATIONSHIP":
 		if s.repo == nil {
 			return false, nil
 		}
-		return s.repo.CanReadSubject(ctx, tenantID, principalID, subjectType, subjectID)
+		return s.repo.canReadResponseSubject(tenantID, entityID, principalID, subjectType, subjectID), nil
 	default:
-		return true, nil
+		return false, nil
 	}
 }
 

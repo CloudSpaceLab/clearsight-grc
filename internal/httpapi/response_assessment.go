@@ -70,6 +70,8 @@ func (a *API) recordResponseAssessment(w http.ResponseWriter, r *http.Request) {
 }
 func writeResponseAssessmentError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, evidence.ErrAssessmentUnavailable):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "assessment_unavailable", "Assessment unavailable. Try again.")
 	case errors.Is(err, evidence.ErrAssessmentConflict):
 		httpx.WriteError(w, http.StatusConflict, "assessment_changed", "This response or assessment has changed. Reload before saving.")
 	case errors.Is(err, evidence.ErrAssessmentForbidden):

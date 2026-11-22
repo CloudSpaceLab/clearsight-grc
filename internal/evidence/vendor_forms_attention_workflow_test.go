@@ -73,6 +73,7 @@ func TestVendorCustomFormDistributionSubmissionShowsFailuresBeforeReview(t *test
 	if submitted.Revision.Score == nil || submitted.Revision.Score.AssessmentReviewCount != 2 {
 		t.Fatalf("submission failed to retain configured review %+v", submitted.Revision)
 	}
+	repo.candidates["bank-owner"] = RecipientCandidate{PrincipalID: "bank-owner", TenantID: form.TenantID, LegalEntityIDs: []string{form.LegalEntityID}, Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"VENDOR_RELATIONSHIP:custom-vendor-relationship": true}}
 	q := VendorFormsQuery{TenantID: form.TenantID, LegalEntityID: form.LegalEntityID, PrincipalID: "bank-owner", RelationshipIDs: []string{"custom-vendor-relationship"}, Limit: 25}
 	page, err := service.ListVendorForms(ctx, q)
 	if err != nil || len(page.Items) != 1 {

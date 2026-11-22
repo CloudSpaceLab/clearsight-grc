@@ -27,6 +27,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	prefix := "bank-assessment-" + tenant
 	setupResponseWorkspaceFixture(t, ctx, pool, tenant, prefix, entity, actor, form, now)
 	seedCompletedResponseRows(t, ctx, pool, tenant, entity, actor, form, prefix, 1, now)
+	makeSeededResponsesVisible(t, ctx, pool, tenant, entity, actor, prefix, now)
 	t.Cleanup(func() {
 		tx, err := pool.Begin(context.Background())
 		if err == nil {
@@ -40,9 +41,15 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 			}
 		}
 		cleanupResponseWorkspaceTenant(context.Background(), pool, tenant)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM third_party_relationships WHERE tenant_id=$1::uuid; DELETE FROM third_parties WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenant)
+		cleanupResponseWorkspaceTenant(context.Background(), pool, tenant)
 	})
 	_, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$2::uuid,'PERSON','Bank reviewer','ACTIVE',$3); UPDATE capture_requests SET fields='[{"id":"score","section_id":"general","label":"Evidence quality","type":"short_text","assessment":{"mode":"MANUAL","required":true,"weight":100,"reviewer_role":"RISK","rubric":[{"id":"poor","label":"Incomplete","points":80},{"id":"good","label":"Sufficient","points":10}]}}]'::jsonb WHERE tenant_id=$2::uuid; UPDATE capture_requests req SET subject_id=d.subject_id::text FROM capture_form_distributions d WHERE req.distribution_id=d.id AND req.tenant_id=$2::uuid; UPDATE capture_submissions SET answers='{"score":{"text":"Report supplied"}}'::jsonb WHERE tenant_id=$2::uuid`, pgx.QueryExecModeSimpleProtocol, reviewer, tenant, now)
 	if err != nil {
+		t.Fatal(err)
+	}
+	// The reviewer retains relationship visibility after assessment authority is revoked.
+	if _, err = pool.Exec(ctx, `UPDATE third_party_relationships SET business_owner_principal_id=$1::uuid WHERE tenant_id=$2::uuid`, reviewer, tenant); err != nil {
 		t.Fatal(err)
 	}
 	var response string
@@ -76,6 +83,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 		}
 		return route.PolicyVersion + ":" + route.RuleID, nil
 	})
+	service.assessmentDecisionsEnabled = true // Exercise the unexposed transaction in isolation.
 	ctx = identity.WithActor(ctx, identity.Actor{TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: now.Add(time.Hour)})
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -187,6 +195,7 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 	service := NewDistributionService(NewPostgresDistributionStore(NewPostgresRepository(pool), nil)).WithAssessmentAuthorizer(func(context.Context, identity.Actor, CompletedResponseSummary, formcontract.Field) (string, error) {
 		return "current-reviewer-route", nil
 	})
+	service.assessmentDecisionsEnabled = true // Exercise the unexposed transaction in isolation.
 	ctx = identity.WithActor(ctx, identity.Actor{TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: now.Add(time.Hour)})
 	assessment, err := service.GetResponseAssessment(ctx, tenant, entity, reviewer, response)
 	if err != nil || !assessment.MayReview {

@@ -1,0 +1,7 @@
+# Field assessment decision containment
+
+Field-level assessment history remains available under the existing scoped read authorization. New assessment decisions are unavailable, and assessment reads report `may_review: false`. The registered POST returns 503 after verified identity and scope checks. The service also rejects the command, including direct callers, before reading assessment material or writing events.
+
+The previous command resolves reviewer authority through a separate resolver during the transaction callback. The resolver is not bound to the write transaction's statement snapshot; a revoked route or expired session can therefore be accepted across the lock. Its expected-version conflict handling also does not establish whether a request committed after a lost response. The private test seam exercises historical store behavior only; production composition does not enable it.
+
+Before enabling decisions, bind verified session, subject visibility, respondent separation and current field reviewer route to the same database statement snapshot as the conditional versioned write. Persist the route source, decision, event and outbox atomically. Add a stable request key with authorized exact-input replay and test concurrent revocation, session expiry, conflict, lost response, cross-scope and repeated requests in PostgreSQL. Independently review the route and receipt before exposing controls.

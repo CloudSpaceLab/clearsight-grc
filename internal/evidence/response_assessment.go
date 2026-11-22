@@ -14,9 +14,10 @@ import (
 )
 
 var (
-	ErrAssessmentConflict  = errors.New("response assessment has changed")
-	ErrAssessmentForbidden = errors.New("response assessment authority is unavailable")
-	ErrAssessmentInvalid   = errors.New("response assessment is invalid")
+	ErrAssessmentConflict    = errors.New("response assessment has changed")
+	ErrAssessmentForbidden   = errors.New("response assessment authority is unavailable")
+	ErrAssessmentUnavailable = errors.New("response assessment decisions are unavailable")
+	ErrAssessmentInvalid     = errors.New("response assessment is invalid")
 )
 
 type FieldAssessmentInput struct {
@@ -138,6 +139,9 @@ func (s *DistributionService) RecordResponseAssessment(ctx context.Context, tena
 	actor, ok := identity.FromContext(ctx)
 	if s == nil || !ok || actor.Valid(s.currentTime()) != nil || actor.TenantID != tenant || (actor.LegalEntityID != entity && actor.LegalEntityID != "*") || s.assessmentAuthorizer == nil {
 		return ResponseAssessment{}, ErrAssessmentForbidden
+	}
+	if !s.assessmentDecisionsEnabled {
+		return ResponseAssessment{}, ErrAssessmentUnavailable
 	}
 	if input.ExpectedVersion < 0 || len(input.Decisions) < 1 || len(input.Decisions) > formcontract.MaxFields {
 		return ResponseAssessment{}, ErrAssessmentInvalid
@@ -386,6 +390,9 @@ func (s *DistributionService) assessmentReadAuthority(ctx context.Context, tenan
 	}
 }
 func (s *DistributionService) applyAssessmentPermissions(ctx context.Context, m assessmentMaterial, v *ResponseAssessment) {
+	if !s.assessmentDecisionsEnabled {
+		return
+	}
 	actor, ok := identity.FromContext(ctx)
 	if !ok || actor.Valid(s.currentTime()) != nil || actor.TenantID != m.Summary.TenantID || (actor.LegalEntityID != m.Summary.LegalEntityID && actor.LegalEntityID != "*") || s.assessmentAuthorizer == nil || assessmentRespondentConflict(m, actor.PrincipalID) || !v.Current {
 		return

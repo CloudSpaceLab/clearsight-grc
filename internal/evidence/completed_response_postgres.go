@@ -235,7 +235,7 @@ func completedResponseSubjectVisibilitySQL(principalPlaceholder, atPlaceholder s
 			  AND visible_relationship.id=d.subject_id
 			  AND (visible_relationship.business_owner_principal_id::text=` + principalPlaceholder + ` OR ` + readAllCapabilitySQL(principalPlaceholder, atPlaceholder) + `)
 		)
-		ELSE true
+		ELSE false
 	END`
 }
 

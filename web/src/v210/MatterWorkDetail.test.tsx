@@ -3,10 +3,12 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { MatterWorkDetail } from "./MatterWorkDetail";
 
 const api = vi.hoisted(() => ({ loadMatter: vi.fn() }));
+const responses = vi.hoisted(() => ({ loadCompletedResponses: vi.fn() }));
 vi.mock("../api", () => api);
+vi.mock("../formsDistributionApi", () => responses);
 const context = { tenant: { id: "bank", name: "Bank" }, legal_entity: { id: "entity", name: "Bank" }, actor: { id: "person", name: "Person" }, mode: "LIVE" };
 const matter = { matter: { id: "issue-1", tenant_id: "bank", legal_entity_id: "entity", title: "Review access exception", summary: "Access needs review.", reference: "ISS-1", status: "DECISION_REQUIRED", version: 2 }, scope: { tenant_id: "bank", legal_entity_id: "entity", principal_id: "person", record_tenant_id: "bank", record_legal_entity_id: "entity" }, status_label: "Decision needed", owner_display_name: "Amina Bello", decisions: [] };
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => { vi.resetAllMocks(); responses.loadCompletedResponses.mockResolvedValue({ items: [] }); });
 
 it("shows the scoped issue and the unavailable decision state", async () => {
   api.loadMatter.mockResolvedValue(matter);
@@ -31,6 +33,7 @@ it.each([
   render(<MatterWorkDetail id="issue-1" context={context}/>);
   expect(await screen.findByRole("alert")).toBeTruthy();
   expect(screen.queryByText("Access needs review.")).toBeNull();
+  expect(responses.loadCompletedResponses).not.toHaveBeenCalled();
 });
 
 it("accepts a verified alias scope with canonical record identifiers", async () => {

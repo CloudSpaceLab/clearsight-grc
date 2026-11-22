@@ -4,6 +4,7 @@ package evidence
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -24,7 +25,11 @@ func TestPostgresCompletedResponsesUseBoundedScoreIndexAndEntityScope(t *testing
 	)
 	now := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
 	cleanupResponseWorkspaceTenant(ctx, pool, tenantID)
-	defer cleanupResponseWorkspaceTenant(context.Background(), pool, tenantID)
+	defer func() {
+		cleanupResponseWorkspaceTenant(context.Background(), pool, tenantID)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM third_party_relationships WHERE tenant_id=$1::uuid; DELETE FROM third_parties WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenantID)
+		cleanupResponseWorkspaceTenant(context.Background(), pool, tenantID)
+	}()
 	setupResponseWorkspaceFixture(t, ctx, pool, tenantID, "completed-response-load", entityID, actorID, formID, now)
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from)
@@ -41,6 +46,8 @@ func TestPostgresCompletedResponsesUseBoundedScoreIndexAndEntityScope(t *testing
 	}
 	seedCompletedResponseRows(t, ctx, pool, tenantID, entityID, actorID, formID, "primary", 10000, now)
 	seedCompletedResponseRows(t, ctx, pool, tenantID, otherEntityID, actorID, otherFormID, "other", 12, now.Add(time.Hour))
+	makeSeededResponsesVisible(t, ctx, pool, tenantID, entityID, actorID, "primary", now)
+	makeSeededResponsesVisible(t, ctx, pool, tenantID, otherEntityID, actorID, "other", now)
 	if _, err := pool.Exec(ctx, `ANALYZE capture_response_revisions; ANALYZE capture_form_distributions`, pgx.QueryExecModeSimpleProtocol); err != nil {
 		t.Fatal(err)
 	}
@@ -82,6 +89,19 @@ func TestPostgresCompletedResponsesUseBoundedScoreIndexAndEntityScope(t *testing
 	}
 	if len(first.Items) != query.Limit || first.NextCursor == "" {
 		t.Fatalf("first page was not bounded: items=%d cursor=%q", len(first.Items), first.NextCursor)
+	}
+	// Legacy VENDOR lacks an approved subject-visibility rule and must fail closed.
+	legacyID := first.Items[0].ID
+	_, err = pool.Exec(ctx, `UPDATE capture_form_distributions SET subject_type='VENDOR' WHERE id=(SELECT distribution_id FROM capture_response_revisions WHERE id=$1::uuid)`, legacyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err = store.GetCompletedResponse(ctx, tenantID, entityID, actorID, legacyID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("legacy VENDOR visibility = %v", err)
+	}
+	_, err = pool.Exec(ctx, `UPDATE capture_form_distributions SET subject_type='VENDOR_RELATIONSHIP' WHERE id=(SELECT distribution_id FROM capture_response_revisions WHERE id=$1::uuid)`, legacyID)
+	if err != nil {
+		t.Fatal(err)
 	}
 	seen := make(map[string]struct{}, len(first.Items))
 	for _, item := range first.Items {
@@ -192,5 +212,17 @@ func TestPostgresCompletedResponseScoreStateIndexPredicateIsClosed(t *testing.T)
 	}
 	if got := postgresCompletedResponseScoreStateIndexPredicate([]ResponseScoreState{ResponseScoreFailed}); got != "" {
 		t.Fatalf("failed score state generated an unsafe index predicate: %q", got)
+	}
+}
+
+// Use a supported exact relationship and its owner for response visibility tests.
+func makeSeededResponsesVisible(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenant, entity, owner, prefix string, now time.Time) {
+	t.Helper()
+	_, err := pool.Exec(ctx, `INSERT INTO third_parties(id,tenant_id,legal_name,status,created_at,updated_at,version) VALUES(md5($4||':vendor')::uuid,$1::uuid,'Sample vendor','ACTIVE',$5,$5,1);
+ INSERT INTO third_party_relationships(id,tenant_id,legal_entity_id,vendor_id,service_name,business_owner_principal_id,criticality,privacy_role,status,created_at,updated_at,version) VALUES(md5($4||':relationship')::uuid,$1::uuid,$2::uuid,md5($4||':vendor')::uuid,'Sample service',$3::uuid,'IMPORTANT','PROCESSOR','ACTIVE',$5,$5,1);
+ UPDATE capture_form_distributions SET subject_type='VENDOR_RELATIONSHIP',subject_id=md5($4||':relationship')::uuid WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND title LIKE $4||' scored response %';
+ UPDATE capture_requests req SET subject_type='VENDOR_RELATIONSHIP',subject_id=md5($4||':relationship') FROM capture_form_distributions d WHERE req.distribution_id=d.id AND d.tenant_id=$1::uuid AND d.legal_entity_id=$2::uuid AND d.title LIKE $4||' scored response %'`, pgx.QueryExecModeSimpleProtocol, tenant, entity, owner, prefix, now)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
