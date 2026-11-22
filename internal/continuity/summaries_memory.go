@@ -99,7 +99,7 @@ func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant stri
 }
 
 func (r *MemoryRepository) visibleProgramMatterVisibilityForProgramLocked(ctx context.Context, tenant, programID, programEntity, principalID string) programMatterVisibility {
-	targets := map[string]struct{}{programID: {}}
+	targets := map[string]string{programID: programEntity}
 	visibility := map[string]programMatterVisibility{}
 	for _, aggregate := range r.matters[tenant] {
 		if aggregate.Matter.LegalEntityID != programEntity || !r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) {

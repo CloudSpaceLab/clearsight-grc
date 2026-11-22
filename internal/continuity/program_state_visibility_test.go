@@ -145,7 +145,7 @@ func TestMemoryProgramForPrincipalTracksOnlyReadableMatterTiming(t *testing.T) {
 	service := NewService(repo)
 	now := time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)
 
-	program := Program{ID: "program-1", TenantID: "bank", Status: ProgramActive, Version: 1, UpdatedAt: now}
+	program := Program{ID: "program-1", TenantID: "bank", LegalEntityID: "entity-a", Status: ProgramActive, Version: 1, UpdatedAt: now}
 	state := ProgramStateSnapshot{TenantID: "bank", ProgramID: program.ID, ProgramVersion: 1, ProjectionVersion: 1, Overall: StateAtRisk, Dimensions: allCurrentDimensions(), OpenMatterCount: 2, Reasons: []StateReason{{Code: "OPEN_MATTERS", Summary: "2 open issue(s) or change(s) affect this program."}}}
 	state.Dimensions.Exception = StateAtRisk
 	aggregate := ProgramAggregate{Program: program, CurrentState: &state}
@@ -155,14 +155,17 @@ func TestMemoryProgramForPrincipalTracksOnlyReadableMatterTiming(t *testing.T) {
 	hiddenAt := now.Add(2 * time.Minute)
 	repo.matters["bank"] = map[string]MatterAggregate{
 		"visible": {
-			Matter: Matter{ID: "visible", TenantID: "bank", Status: MatterAssessment, Scope: json.RawMessage(`{"access":"INTERNAL"}`), Version: 1, UpdatedAt: visibleAt},
+			Matter: Matter{ID: "visible", TenantID: "bank", LegalEntityID: "entity-a", Status: MatterAssessment, Scope: json.RawMessage(`{"access":"INTERNAL"}`), Version: 1, UpdatedAt: visibleAt},
 			Links:  []MatterLink{{MatterID: "visible", ProgramID: program.ID}},
 		},
 		"hidden": {
-			Matter: Matter{ID: "hidden", TenantID: "bank", Status: MatterAssessment, Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["person-b"]}`), Version: 1, UpdatedAt: hiddenAt},
+			Matter: Matter{ID: "hidden", TenantID: "bank", LegalEntityID: "entity-a", Status: MatterAssessment, Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["person-b"]}`), Version: 1, UpdatedAt: hiddenAt},
 			Links:  []MatterLink{{MatterID: "hidden", ProgramID: program.ID}},
 		},
 	}
+	retiredAt := now.Add(-time.Minute)
+	repo.matters["bank"]["retired"] = MatterAggregate{Matter: Matter{ID: "retired", TenantID: "bank", LegalEntityID: "entity-a", Status: MatterAssessment, Scope: json.RawMessage(`{"access":"INTERNAL"}`)}, Links: []MatterLink{{MatterID: "retired", ProgramID: program.ID, RetiredAt: &retiredAt}}}
+	repo.matters["bank"]["other-entity"] = MatterAggregate{Matter: Matter{ID: "other-entity", TenantID: "bank", LegalEntityID: "entity-b", Status: MatterAssessment, Scope: json.RawMessage(`{"access":"INTERNAL"}`)}, Links: []MatterLink{{MatterID: "other-entity", ProgramID: program.ID}}}
 
 	forA, err := service.ProgramForPrincipal(ctx, aggregate, "person-a", nil)
 	if err != nil {

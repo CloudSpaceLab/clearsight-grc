@@ -61,7 +61,7 @@ func (r *MemoryRepository) RecordProgramReview(_ context.Context, checkpoint Pro
 	}
 	values := reviews.checkpoints[checkpoint.TenantID][checkpoint.ProgramID][checkpoint.PrincipalID]
 	for _, existing := range values {
-		if existing.ProgramVersion == checkpoint.ProgramVersion && existing.ProjectionVersion == checkpoint.ProjectionVersion {
+		if existing.ProgramVersion == checkpoint.ProgramVersion && existing.ProjectionVersion == checkpoint.ProjectionVersion && existing.visibleReceiptPresent && checkpoint.visibleReceiptPresent && existing.visibleProjectionVersion == checkpoint.visibleProjectionVersion {
 			return existing, nil
 		}
 	}

@@ -30,7 +30,7 @@ func TestProgramReviewDigestIgnoresHiddenMatterOnlyProjectionChange(t *testing.T
 		t.Fatal(err)
 	}
 	for _, principalID := range []string{"person-a", "person-b"} {
-		checkpoint := ProgramReviewCheckpoint{ID: "checkpoint-" + principalID, TenantID: "bank", ProgramID: program.ID, PrincipalID: principalID, ProgramVersion: 1, ProjectionVersion: 1, AcceptedAt: t1}
+		checkpoint := ProgramReviewCheckpoint{ID: "checkpoint-" + principalID, TenantID: "bank", ProgramID: program.ID, PrincipalID: principalID, ProgramVersion: 1, ProjectionVersion: 1, AcceptedAt: t1, visibleReceiptPresent: true, visibleProjectionVersion: programStateForVisibleMatters(baseline, 0).ProjectionVersion}
 		reviewEvent, err := newEvent("bank", "PROGRAM_REVIEW", checkpoint.ID, 1, EventProgramReviewAccepted, checkpoint, actorFor(principalID), principalID, t1)
 		if err != nil {
 			t.Fatal(err)

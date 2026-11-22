@@ -22,6 +22,15 @@ type ProgramReviewCheckpoint struct {
 	ProgramVersion    int64     `json:"program_version"`
 	ProjectionVersion int64     `json:"projection_version"`
 	AcceptedAt        time.Time `json:"accepted_at"`
+	// The actor-visible fingerprint depends on the current visible Matter count.
+	// It is checked at the write boundary, not persisted as a canonical version.
+	visibleOpenMatterCount   int
+	visibleProjectionVersion int64
+	visibleReceiptPresent    bool
+	authoritySourceType      string
+	authoritySourceID        string
+	authorityRuleID          string
+	authorityPolicyVersion   string
 }
 
 type ProgramReviewChange struct {
@@ -111,7 +120,7 @@ func (s *Service) ProgramReviewDigest(ctx context.Context, tenant, programID, pr
 		NewExceptions:            []StateReason{},
 		ResolvedExceptions:       []StateReason{},
 	}
-	if checkpoint == nil {
+	if checkpoint == nil || !checkpoint.visibleReceiptPresent {
 		return digest, nil
 	}
 
@@ -122,10 +131,9 @@ func (s *Service) ProgramReviewDigest(ctx context.Context, tenant, programID, pr
 	if baseline == nil || baseline.ProgramVersion != checkpoint.ProgramVersion {
 		return ProgramReviewDigest{}, fmt.Errorf("%w: accepted Program review baseline is unavailable", ErrInvalidState)
 	}
-	baselineAt := baseline.GeneratedAt
-	baselineValue, err := s.programStateForPrincipal(ctx, tenant, programID, principalID, *baseline, &baselineAt)
-	if err != nil {
-		return ProgramReviewDigest{}, err
+	baselineValue := programStateForVisibleMatters(*baseline, checkpoint.visibleOpenMatterCount)
+	if baselineValue.ProjectionVersion != checkpoint.visibleProjectionVersion {
+		return ProgramReviewDigest{}, fmt.Errorf("%w: accepted Program review baseline is unavailable", ErrInvalidState)
 	}
 	baseline = &baselineValue
 	visibleCheckpoint := *checkpoint
@@ -195,15 +203,18 @@ func (s *Service) AcceptProgramReview(ctx context.Context, input AcceptProgramRe
 		return ProgramReviewDigest{}, err
 	}
 	checkpoint := ProgramReviewCheckpoint{
-		ID:                checkpointID,
-		TenantID:          input.TenantID,
-		ProgramID:         input.ProgramID,
-		PrincipalID:       input.PrincipalID,
-		ProgramVersion:    input.ExpectedProgramVersion,
-		ProjectionVersion: canonicalCurrent.ProjectionVersion,
-		AcceptedAt:        s.now().UTC(),
+		ID:                       checkpointID,
+		TenantID:                 input.TenantID,
+		ProgramID:                input.ProgramID,
+		PrincipalID:              input.PrincipalID,
+		ProgramVersion:           input.ExpectedProgramVersion,
+		ProjectionVersion:        canonicalCurrent.ProjectionVersion,
+		AcceptedAt:               s.now().UTC(),
+		visibleOpenMatterCount:   visibleCurrent.OpenMatterCount,
+		visibleProjectionVersion: visibleCurrent.ProjectionVersion,
+		visibleReceiptPresent:    true,
 	}
-	event, err := newEvent(input.TenantID, "PROGRAM_REVIEW", checkpoint.ID, 1, EventProgramReviewAccepted, checkpoint, actorFor(input.PrincipalID), input.PrincipalID, checkpoint.AcceptedAt)
+	event, err := newEvent(input.TenantID, "PROGRAM_REVIEW", checkpoint.ID, 1, EventProgramReviewAccepted, programReviewEventValue(checkpoint), actorFor(input.PrincipalID), input.PrincipalID, checkpoint.AcceptedAt)
 	if err != nil {
 		return ProgramReviewDigest{}, err
 	}
@@ -212,6 +223,18 @@ func (s *Service) AcceptProgramReview(ctx context.Context, input AcceptProgramRe
 		return ProgramReviewDigest{}, err
 	}
 	return acceptedProgramReviewDigest(recorded, aggregate, visibleCurrent), nil
+}
+
+func programReviewEventValue(checkpoint ProgramReviewCheckpoint) any {
+	return struct {
+		ProgramReviewCheckpoint
+		VisibleProjectionVersion int64  `json:"visible_projection_version"`
+		VisibleOpenMatterCount   int    `json:"visible_open_matter_count"`
+		AuthoritySourceType      string `json:"authority_source_type,omitempty"`
+		AuthoritySourceID        string `json:"authority_source_id,omitempty"`
+		AuthorityRuleID          string `json:"authority_rule_id,omitempty"`
+		AuthorityPolicyVersion   string `json:"authority_policy_version,omitempty"`
+	}{checkpoint, checkpoint.visibleProjectionVersion, checkpoint.visibleOpenMatterCount, checkpoint.authoritySourceType, checkpoint.authoritySourceID, checkpoint.authorityRuleID, checkpoint.authorityPolicyVersion}
 }
 
 func acceptedProgramReviewDigest(checkpoint ProgramReviewCheckpoint, aggregate ProgramAggregate, current ProgramStateSnapshot) ProgramReviewDigest {

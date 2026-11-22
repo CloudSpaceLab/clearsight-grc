@@ -221,14 +221,16 @@ func programReviewEventsForPrincipal(events []Event, principalID string) ([]Even
 }
 
 func (r *MemoryRepository) VisibleProgramMatterVisibility(_ context.Context, tenant string, programIDs []string, principalID string, at *time.Time) (map[string]programMatterVisibility, error) {
-	targets := make(map[string]struct{}, len(programIDs))
-	for _, programID := range programIDs {
-		targets[programID] = struct{}{}
-	}
 	visibility := make(map[string]programMatterVisibility, len(programIDs))
 
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	targets := make(map[string]string, len(programIDs))
+	for _, programID := range programIDs {
+		if program, ok := r.programs[tenant][programID]; ok {
+			targets[programID] = program.Program.LegalEntityID
+		}
+	}
 	if at == nil {
 		for _, aggregate := range r.matters[tenant] {
 			collectVisibleMatterPrograms(aggregate, aggregate.Matter.UpdatedAt, principalID, targets, visibility)
@@ -254,13 +256,13 @@ func (r *MemoryRepository) VisibleProgramMatterVisibility(_ context.Context, ten
 	return visibility, nil
 }
 
-func collectVisibleMatterPrograms(aggregate MatterAggregate, activityAt time.Time, principalID string, targets map[string]struct{}, visibility map[string]programMatterVisibility) {
+func collectVisibleMatterPrograms(aggregate MatterAggregate, activityAt time.Time, principalID string, targets map[string]string, visibility map[string]programMatterVisibility) {
 	if aggregate.Matter.Status == MatterClosed || aggregate.Matter.Status == MatterCancelled || !MatterVisibleTo(aggregate.Matter, principalID) {
 		return
 	}
 	seen := make(map[string]struct{})
 	for _, link := range aggregate.Links {
-		if _, wanted := targets[link.ProgramID]; !wanted {
+		if entity, wanted := targets[link.ProgramID]; !wanted || entity == "" || entity != aggregate.Matter.LegalEntityID || link.RetiredAt != nil {
 			continue
 		}
 		if _, duplicate := seen[link.ProgramID]; duplicate {
