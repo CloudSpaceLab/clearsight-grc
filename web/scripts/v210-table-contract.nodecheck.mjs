@@ -10,7 +10,9 @@ function inspectTables(source, filename) {
     const tables = [...line.matchAll(/<table(?:\s|>)/g)].length;
     if (!tables) continue;
     count += tables;
-    const wrapped = [...line.matchAll(/<div\s+className=["'](?:[^"']*\s)?v-program-table(?:\s[^"']*)?["'][^>]*>[^\n]*?<table(?:\s|>)/g)].length;
+    let wrapped = [...line.matchAll(/<div\s+className=["'](?:[^"']*\s)?v-program-table(?:\s[^"']*)?["'][^>]*>[^\n]*?<table(?:\s|>)/g)].length;
+    // Indicator history has one named table and a separately tested stacked layout.
+    if (filename === "IndicatorDetail.tsx" && /<div className="v-indicator-history-wrap"><table aria-label=/.test(line)) wrapped++;
     if (wrapped !== tables) missing.push(`${filename}:${index + 1}`);
   }
   return { count, missing };
@@ -27,4 +29,20 @@ test("every v2.10 data table uses the responsive wrapping contract", async () =>
 
 test("a newly introduced table without the responsive wrapper is rejected", () => {
   assert.deepEqual(inspectTables("export const Page = () => <div><table><tbody /></table></div>", "example.tsx").missing, ["example.tsx:1"]);
+});
+
+
+test("indicator history has labelled cells and a stacked responsive contract", async () => {
+  const component = await readFile(new URL("../src/v210/IndicatorDetail.tsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("../src/v210/indicator-detail.css", import.meta.url), "utf8");
+  assert.equal(inspectTables(component, "IndicatorDetail.tsx").missing.length, 0);
+  assert.equal((component.match(/<table(?:\s|>)/g) ?? []).length, 1);
+  for (const label of ["Evaluated", "Value", "Limit", "Result", "Concern"]) assert.match(component, new RegExp(`<td data-label="${label}">`));
+  assert.ok(component.includes('<td><button type="button" onClick='));
+  assert.match(component, /View evaluation for/);
+  assert.match(css, /\.v-indicator-history-wrap table,[^{]*tbody,[^{]*tr,[^{]*td\s*\{[^}]*display:\s*block;[^}]*width:\s*100%/s);
+  assert.match(css, /\.v-indicator-history-wrap thead\s*\{[^}]*clip-path:\s*inset\(50%\)/s);
+  assert.match(css, /\.v-indicator-history-wrap td\s*\{[^}]*overflow-wrap:\s*anywhere/s);
+  assert.match(css, /\.v-indicator-history-wrap td::before\s*\{[^}]*content:\s*attr\(data-label\)/s);
+  assert.deepEqual(inspectTables('<div className="v-indicator-history-wrap"><table aria-label="x"/></div>', 'Other.tsx').missing, ['Other.tsx:1']);
 });
