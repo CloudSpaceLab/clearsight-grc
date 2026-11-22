@@ -3,7 +3,7 @@ import type { ResponseScore } from "./formsDistributionApi";
 import type { CaptureAnswerValue } from "./types";
 import { requestJSON } from "./http";
 
-export type FieldAssessmentDecision = { id: string; field_id: string; outcome_id: string; points: number; rationale: string; reviewer_id: string; reviewer_display_name?: string; assessed_at: string; supersedes_id?: string };
+export type FieldAssessmentDecision = { id: string; response_id: string; response_revision: number; form_template_id: string; form_template_version: number; field_id: string; outcome_id: string; points: number; rationale: string; reviewer_id: string; reviewer_display_name?: string; assessed_at: string; supersedes_id?: string };
 export type ResponseFieldAssessment = { field: FormTemplateField; answer: CaptureAnswerValue; decision?: FieldAssessmentDecision; may_review?: boolean };
 export type ResponseAssessmentDetail = {
   submitted_by?: string; submitted_by_display_name?: string;
@@ -19,8 +19,8 @@ const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 export function loadResponseAssessment(responseID: string): Promise<ResponseAssessmentDetail> {
   return requestJSON(apiBase, `/api/v1/forms/responses/${encodeURIComponent(responseID)}/assessment`);
 }
-export function recordResponseAssessment(responseID: string, input: RecordResponseAssessmentInput): Promise<ResponseAssessmentDetail> {
+export function recordResponseAssessment(responseID: string, input: RecordResponseAssessmentInput, requestKey: string): Promise<ResponseAssessmentDetail> {
   return requestJSON(apiBase, `/api/v1/forms/responses/${encodeURIComponent(responseID)}/assessment`, {
-    method: "POST", body: JSON.stringify({ expected_version: input.expected_version, decisions: input.decisions.map(({ field_id, outcome_id, rationale }) => ({ field_id, outcome_id, rationale })) }),
+    method: "POST", headers: { "Idempotency-Key": requestKey }, body: JSON.stringify({ expected_version: input.expected_version, decisions: input.decisions.map(({ field_id, outcome_id, rationale }) => ({ field_id, outcome_id, rationale })) }),
   });
 }

@@ -9,7 +9,10 @@
 .v-response-list > button { margin-top: 28px; }
 .v-response-meta { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-bottom: 20px; color: #627b9f; font-size: 12px; }
 .v-response-meta strong { color: #18335e; }
-.v-response-result, .v-response-answers, .v-response-documents, .v-response-review { margin-bottom: 20px; }
+.v-response-result, .v-response-answers, .v-response-documents, .v-response-review, .v-field-assessment { margin-bottom: 20px; }
+.v-assessment-field { border-top: 1px solid #e5edf7; margin-top: 16px; padding-top: 16px; overflow-wrap: anywhere; }
+.v-field-assessment select, .v-field-assessment textarea { min-width: 0; }
+.v-field-assessment > div > button { margin-top: 12px; }
 .v-response-documents ul { margin: 16px 0 0; padding: 0; list-style: none; }
 .v-response-documents li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid #e5edf7; color: #18335e; font-size: 13px; overflow-wrap: anywhere; }
 .v-response-documents li a { color: #246cf0; font-weight: 700; }
@@ -19,11 +22,11 @@
 .v-response-answers dt { color: #18335e; font-size: 13px; font-weight: 700; }
 .v-response-answers dd { margin: 8px 0 0; color: #536c90; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .v-answer-document, .v-answer-document > span { display: block; }
-.v-response-review form { display: grid; gap: 14px; max-width: 640px; margin-top: 16px; }
-.v-response-review label { display: grid; gap: 7px; color: #536c90; font-size: 12px; font-weight: 700; }
-.v-response-review select, .v-response-review textarea { min-height: 44px; width: 100%; padding: 10px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: white; color: #18335e; }
-.v-response-review textarea { min-height: 90px; resize: vertical; }
-.v-response-review form button { justify-self: start; }
+.v-response-review form, .v-field-assessment form { display: grid; gap: 14px; max-width: 640px; margin-top: 16px; }
+.v-response-review label, .v-field-assessment label { display: grid; gap: 7px; color: #536c90; font-size: 12px; font-weight: 700; }
+.v-response-review select, .v-response-review textarea, .v-field-assessment select, .v-field-assessment textarea { min-height: 44px; width: 100%; padding: 10px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: white; color: #18335e; }
+.v-response-review textarea, .v-field-assessment textarea { min-height: 90px; resize: vertical; }
+.v-response-review form button, .v-field-assessment form button { justify-self: start; }
 .v-response-review h3 { margin-top: 24px; font-size: 14px; }
 .v-review-history { margin: 0; padding: 0; list-style: none; }
 .v-review-history li { padding: 12px 0; border-top: 1px solid #e5edf7; font-size: 13px; }
