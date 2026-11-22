@@ -40,7 +40,7 @@ it("retains form records and retries after a temporary pagination failure", asyn
   expect(screen.getByText("First form")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Load more" }));
   expect(await screen.findByText("Second form")).toBeTruthy();
-  expect(forms.loadFormTemplatePage).toHaveBeenLastCalledWith({ search: "", limit: 20, cursor: "next" });
+  expect(forms.loadFormTemplatePage).toHaveBeenLastCalledWith({ limit: 20, cursor: "next" }, undefined, { statusFacets: true });
 });
 
 it("removes program records when access is denied while loading another page", async () => {
@@ -472,4 +472,36 @@ it("labels Home as Dashboard for a verified administrative role", async () => {
   render(<FreshApp/>);
   expect(await screen.findByRole("link", { name: "Dashboard" })).toBeTruthy();
   expect(await screen.findByRole("heading", { name: "Dashboard" })).toBeTruthy();
+});
+
+
+it("applies status and tag filters through authorized Forms reads", async () => {
+  window.location.hash = "#/forms"; forms.loadFormTemplatePage.mockReset();
+  forms.loadFormTemplatePage.mockResolvedValue({items:[{template:{id:"f1",name:"Vendor review",status:"ACTIVE",version:1}}],next_cursor:"next",facets:{status:{ACTIVE:5,DRAFT:3}}});
+  render(<FreshApp/>); expect(await screen.findByRole("button",{name:"All 8"})).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Tag"),{target:{value:"vendor"}}); fireEvent.click(screen.getByRole("button",{name:"Search"}));
+  await vi.waitFor(()=>expect(forms.loadFormTemplatePage).toHaveBeenLastCalledWith({limit:20,tag:"vendor",search:undefined,cursor:undefined},undefined,{statusFacets:true}));
+  fireEvent.click(await screen.findByRole("button",{name:"Draft 3"}));
+  await vi.waitFor(()=>expect(forms.loadFormTemplatePage).toHaveBeenLastCalledWith({limit:20,tag:"vendor",search:undefined,status:"DRAFT",cursor:undefined},undefined,{statusFacets:true}));
+  fireEvent.click(await screen.findByRole("button",{name:"Load more"}));
+  await vi.waitFor(()=>expect(forms.loadFormTemplatePage).toHaveBeenLastCalledWith({limit:20,tag:"vendor",search:undefined,status:"DRAFT",cursor:"next"},undefined,{statusFacets:true}));
+});
+it("clears stale Forms counts while a new filter is loading", async () => {
+  window.location.hash="#/forms"; forms.loadFormTemplatePage.mockReset();
+  forms.loadFormTemplatePage.mockResolvedValueOnce({items:[],facets:{status:{ACTIVE:8}}}); let finish!: (value: unknown)=>void;
+  forms.loadFormTemplatePage.mockReturnValueOnce(new Promise((resolve)=>{finish=resolve})); render(<FreshApp/>);
+  expect(await screen.findByRole("button",{name:"All 8"})).toBeTruthy(); fireEvent.change(screen.getByLabelText("Tag"),{target:{value:"privacy"}}); fireEvent.click(screen.getByRole("button",{name:"Search"}));
+  await vi.waitFor(()=>expect(screen.queryByRole("button",{name:"All 8"})).toBeNull()); expect(screen.getByRole("button",{name:"All"})).toBeTruthy();
+  await act(async()=>{finish({items:[],facets:{status:{DRAFT:2}}});}); expect(await screen.findByRole("button",{name:"All 2"})).toBeTruthy();
+});
+it("offers to clear filters when no forms match", async () => {
+  window.location.hash="#/forms"; forms.loadFormTemplatePage.mockReset(); forms.loadFormTemplatePage.mockResolvedValue({items:[],facets:{status:{}}}); render(<FreshApp/>);
+  expect(await screen.findByText("No forms found.")).toBeTruthy(); fireEvent.change(screen.getByLabelText("Tag"),{target:{value:"privacy"}}); fireEvent.click(screen.getByRole("button",{name:"Search"}));
+  expect(await screen.findByText("No forms match these filters.")).toBeTruthy(); fireEvent.click(screen.getByRole("button",{name:"Clear filters"})); await vi.waitFor(()=>expect(forms.loadFormTemplatePage).toHaveBeenLastCalledWith({limit:20},undefined,{statusFacets:true}));
+});
+it("rejects a Forms cursor cycle before appending repeated data", async () => {
+ window.location.hash="#/forms"; forms.loadFormTemplatePage.mockReset();
+ const row=(id:string)=>({template:{id,name:id,status:"ACTIVE",version:1}});
+ forms.loadFormTemplatePage.mockResolvedValueOnce({items:[row("first")],next_cursor:"A"}).mockResolvedValueOnce({items:[row("second")],next_cursor:"B"}).mockResolvedValueOnce({items:[row("repeated")],next_cursor:"A"});
+ render(<FreshApp/>); await screen.findByText("first"); fireEvent.click(screen.getByRole("button",{name:"Load more"})); await screen.findByText("second"); fireEvent.click(screen.getByRole("button",{name:"Load more"})); expect((await screen.findByRole("alert")).textContent).toContain("More forms unavailable."); expect(screen.queryByText("repeated")).toBeNull();
 });

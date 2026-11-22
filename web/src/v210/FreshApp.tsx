@@ -4,7 +4,8 @@ import { apiErrorKind, SESSION_ENDED_EVENT } from "../http";
 import type { ProgramSummary } from "../summaryTypes";
 import type { ProgramAggregate } from "../types";
 import { loadFormTemplateItem, loadFormTemplatePage } from "../formsApi";
-import type { FormLibraryItem } from "../formsTypes";
+import type { FormLibraryFacets, FormLibraryItem, FormTemplateQuery } from "../formsTypes";
+import { FormFilters } from "./FormFilters";
 import { Documents } from "./Documents";
 import { Vendors } from "./Vendors";
 import { Responses } from "./Responses";
@@ -151,8 +152,8 @@ export function FreshApp() {
 }
 
 function Forms() {
-  const [draft, setDraft] = useState("");
-  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState<FormTemplateQuery>({limit:20});
+  const [facets, setFacets] = useState<FormLibraryFacets>();
   const [items, setItems] = useState<FormLibraryItem[]>([]);
   const [cursor, setCursor] = useState<string>();
   const [status, setStatus] = useState<"loading" | "live" | "error">("loading");
@@ -161,29 +162,30 @@ function Forms() {
   const [retry, setRetry] = useState(0);
   const generation = useRef(0);
   const moreLock = useRef(false);
+  const seenCursors = useRef(new Set<string>());
   useEffect(() => {
-    let active = true; generation.current++; moreLock.current = false; setStatus("loading"); setItems([]); setCursor(undefined); setBusy(false); setMoreError(false);
-    loadFormTemplatePage({ search, limit: 20 }).then((page) => { if (active) { setItems(page.items); setCursor(page.next_cursor); setStatus("live"); } }).catch(() => { if (active) setStatus("error"); });
+    let active = true; generation.current++; moreLock.current = false; seenCursors.current.clear(); setStatus("loading"); setItems([]); setCursor(undefined); setFacets(undefined); setBusy(false); setMoreError(false);
+    loadFormTemplatePage(query, undefined, {statusFacets:true}).then((page) => { if (active) { setItems(page.items); setCursor(page.next_cursor); if (page.next_cursor) seenCursors.current.add(page.next_cursor); setFacets(page.facets); setStatus("live"); } }).catch(() => { if (active) setStatus("error"); });
     return () => { active = false; };
-  }, [search, retry]);
+  }, [query, retry]);
   async function more() {
     if (!cursor || moreLock.current) return;
     moreLock.current = true; const request = generation.current; setBusy(true); setMoreError(false);
-    try { const page = await loadFormTemplatePage({ search, limit: 20, cursor }); if (generation.current === request) { if (page.next_cursor === cursor) { setMoreError(true); return; } setItems((previous) => [...previous, ...page.items]); setCursor(page.next_cursor); } }
+    try { const page = await loadFormTemplatePage({ ...query, cursor }, undefined, {statusFacets:true}); if (generation.current === request) { if (page.next_cursor && seenCursors.current.has(page.next_cursor)) { setMoreError(true); return; } if (page.next_cursor) seenCursors.current.add(page.next_cursor); setItems((previous) => [...previous, ...page.items]); setCursor(page.next_cursor); } }
     catch (error) {
       if (generation.current === request) {
         if (["unauthorized", "forbidden"].includes(apiErrorKind(error))) {
-          setItems([]); setCursor(undefined); setStatus("error");
+          setItems([]); setCursor(undefined); setFacets(undefined); setStatus("error");
         } else setMoreError(true);
       }
     } finally { if (generation.current === request) { moreLock.current = false; setBusy(false); } }
   }
   return <section><header className="v-page-heading"><div><p className="v-eyebrow">Forms</p><h1>Forms & assessments</h1></div><a className="v-primary" href="#/forms/new">Create form</a></header>
     <nav className="v-local-nav" aria-label="Forms views"><a href="#/forms" aria-current="page">Forms</a><a href="#/forms/responses">Responses</a><a href="#/documents">Documents</a></nav>
-    <form className="v-program-search" onSubmit={(event) => { event.preventDefault(); setSearch(draft.trim()); }}><label htmlFor="v-form-search">Find a form</label><div><input id="v-form-search" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Form name"/><button>Search</button></div></form>
+    <FormFilters query={query} facets={facets} onChange={setQuery}/>
     {status === "loading" && <p role="status">Loading forms…</p>}
     {status === "error" && <div className="v-panel"><p role="alert">Forms unavailable.</p><button onClick={() => setRetry(retry + 1)}>Try again</button></div>}
-    {status === "live" && <div className="v-panel v-program-table">{items.length === 0 ? <p>No forms match this search.</p> : <table><thead><tr><th>Form</th><th>Questions</th><th>Status</th><th>Version</th></tr></thead><tbody>{items.map(({ template }) => <tr key={template.id}><td><a href={`#/forms/${encodeURIComponent(template.id)}`}>{template.name}</a><small>{template.purpose}</small></td><td><span className="v-mobile-label">Questions</span>{template.fields?.length ?? "Unknown"}</td><td><span className="v-mobile-label">Status</span>{template.status.toLowerCase().replaceAll("_", " ")}</td><td><span className="v-mobile-label">Version</span>{template.version}</td></tr>)}</tbody></table>}{moreError && <p role="alert">More forms unavailable.</p>}{cursor && <button disabled={busy} onClick={() => void more()}>{busy ? "Loading…" : "Load more"}</button>}</div>}
+    {status === "live" && <div className="v-panel v-program-table">{items.length === 0 ? <>{query.search || query.tag || query.status ? <><p>No forms match these filters.</p><button type="button" onClick={() => setQuery({limit:20})}>Clear filters</button></> : <p>No forms found.</p>}</> : <table><thead><tr><th>Form</th><th>Questions</th><th>Status</th><th>Version</th></tr></thead><tbody>{items.map(({ template }) => <tr key={template.id}><td><a href={`#/forms/${encodeURIComponent(template.id)}`}>{template.name}</a><small>{template.purpose}</small></td><td><span className="v-mobile-label">Questions</span>{template.fields?.length ?? "Unknown"}</td><td><span className="v-mobile-label">Status</span>{template.status.toLowerCase().replaceAll("_", " ")}</td><td><span className="v-mobile-label">Version</span>{template.version}</td></tr>)}</tbody></table>}{moreError && <p role="alert">More forms unavailable.</p>}{cursor && <button disabled={busy} onClick={() => void more()}>{busy ? "Loading…" : "Load more"}</button>}</div>}
   </section>;
 }
 
