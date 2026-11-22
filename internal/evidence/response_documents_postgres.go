@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -45,7 +46,21 @@ func (s *PostgresDistributionStore) ListExactDocuments(ctx context.Context, q Do
 	return s.listDocuments(ctx, q, true)
 }
 
+// documentRowsQuerier supports both ordinary reads and transaction-bound reads.
+// The query alone is not a complete transaction authorization boundary: callers
+// must also establish current identity, route, session and revocation semantics.
+type documentRowsQuerier interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
 func (s *PostgresDistributionStore) listDocuments(ctx context.Context, q DocumentQuery, exact bool) (DocumentPage, error) {
+	return listDocumentsWithQuerier(ctx, s.repo.pool, q, exact)
+}
+
+func listDocumentsWithQuerier(ctx context.Context, db documentRowsQuerier, q DocumentQuery, exact bool) (DocumentPage, error) {
+	if exact && (q.SubmissionID == "" || q.FieldID == "" || len(q.FieldID) > 80 || q.ArtifactID == "" || q.Limit != 1) {
+		return DocumentPage{}, ErrDistributionInvalid
+	}
 	cursor, err := normalizeDocumentQuery(&q)
 	if err != nil {
 		return DocumentPage{}, err
@@ -66,7 +81,7 @@ func (s *PostgresDistributionStore) listDocuments(ctx context.Context, q Documen
 			return DocumentPage{}, ErrDistributionInvalid
 		}
 	}
-	rows, err := s.repo.pool.Query(ctx, sql, q.TenantID, q.LegalEntityID, q.PrincipalID, time.Now().UTC(), q.FormTemplateID, q.RelationshipID, q.ResponseRevisionID, q.CurrentOnly, string(q.FileKind), q.Query, cursor.SubmittedAt, cursor.ID, q.SubmissionID, q.FieldID, q.ArtifactID, q.Limit+1, q.assessmentRead, q.ProgramID, string(q.View))
+	rows, err := db.Query(ctx, sql, q.TenantID, q.LegalEntityID, q.PrincipalID, time.Now().UTC(), q.FormTemplateID, q.RelationshipID, q.ResponseRevisionID, q.CurrentOnly, string(q.FileKind), q.Query, cursor.SubmittedAt, cursor.ID, q.SubmissionID, q.FieldID, q.ArtifactID, q.Limit+1, q.assessmentRead, q.ProgramID, string(q.View))
 	if err != nil {
 		return DocumentPage{}, err
 	}
