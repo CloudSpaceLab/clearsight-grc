@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
+import { ApiError } from "../http";
 import { VendorCollection } from "./VendorCollection";
 
 const collection = vi.hoisted(() => ({ loadVendorCollection: vi.fn(), reconcileVendorEvidence: vi.fn() }));
@@ -119,4 +120,15 @@ it("confirms a link only when the selected response revision is returned", async
   expect(await screen.findByText("Document linked. Review is still required.")).toBeTruthy();
   expect(collection.reconcileVendorEvidence).toHaveBeenCalledWith("assessment", "field", expect.objectContaining({ source_response_revision_id: "source-revision-2" }));
   expect(changed).toHaveBeenCalledOnce();
+});
+
+it("clears selected documents and blocks linking when continuation loses access",async()=>{
+  documents.loadDocuments.mockResolvedValueOnce({items:[file],next_cursor:'next'}).mockRejectedValueOnce(new ApiError(403,'Denied'));
+  render(<VendorCollection assessmentId="assessment" relationshipId="vendor" onChanged={()=>{}} onUncertain={()=>{}}/>);
+  fireEvent.click(await screen.findByRole('button',{name:'Select document for Audit report'}));fireEvent.click(await screen.findByLabelText(/Audit report.pdf/));fireEvent.change(screen.getByLabelText('Reason'),{target:{value:'Same service'}});fireEvent.click(screen.getByRole('button',{name:'Load more documents'}));
+  expect(await screen.findByText('Documents unavailable. Close and try again.')).toBeTruthy();expect(screen.queryByText('Audit report.pdf')).toBeNull();expect((screen.getByRole('button',{name:'Link document'}) as HTMLButtonElement).disabled).toBe(true);expect(collection.reconcileVendorEvidence).not.toHaveBeenCalled();
+});
+it("rejects cursor cycles and duplicate occurrences without appending the cyclic page",async()=>{
+  documents.loadDocuments.mockResolvedValueOnce({items:[file],next_cursor:'a'}).mockResolvedValueOnce({items:[{...file,id:'second',file_name:'Second.pdf'},{...file,id:'second',file_name:'Second.pdf'}],next_cursor:'b'}).mockResolvedValueOnce({items:[{...file,id:'third',file_name:'Third.pdf'}],next_cursor:'a'});
+  render(<VendorCollection assessmentId="assessment" relationshipId="vendor" onChanged={()=>{}} onUncertain={()=>{}}/>);fireEvent.click(await screen.findByRole('button',{name:'Select document for Audit report'}));fireEvent.click(await screen.findByRole('button',{name:'Load more documents'}));expect(await screen.findByText('Second.pdf')).toBeTruthy();expect(screen.getAllByText('Second.pdf')).toHaveLength(1);fireEvent.click(screen.getByRole('button',{name:'Load more documents'}));expect(await screen.findByText('More documents unavailable.')).toBeTruthy();expect(screen.queryByText('Third.pdf')).toBeNull();expect(screen.queryByRole('button',{name:'Load more documents'})).toBeNull();
 });
