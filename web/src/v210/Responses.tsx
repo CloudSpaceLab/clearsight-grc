@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { loadCompletedResponse, loadCompletedResponses, type CompletedResponseDetail, type CompletedResponseSummary } from "../formsDistributionApi";
+import { loadCompletedResponse, loadCompletedResponses, type CompletedResponseDetail, type CompletedResponseSummary, type ResponseConcernBand, type ResponseScore, type ResponseSort } from "../formsDistributionApi";
 import { loadResponseReviews, recordResponseReview, type ResponseReviewDecision, type ResponseReviewPage, type RecordResponseReviewInput } from "../responseReviewApi";
 import type { CaptureAnswerValue } from "../types";
 import { documentContentURL, loadDocuments } from "../submittedDocumentApi";
@@ -17,28 +17,35 @@ export function Responses({ id, reviewScope }: { id?: string; reviewScope?: Revi
 function ResponseList() {
   const [items, setItems] = useState<CompletedResponseSummary[]>([]);
   const [cursor, setCursor] = useState<string>();
-  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
-  const [search, setSearch] = useState(""); const [draft, setDraft] = useState("");
+  const [state, setState] = useState<"loading" | "ready" | "error" | "invalid">("loading");
+  const initial = responseFilters();
+  const [search, setSearch] = useState(initial.search); const [draft, setDraft] = useState(initial.search);
+  const [concern, setConcern] = useState<"" | ResponseConcernBand>(initial.concern);
+  const [sort, setSort] = useState<ResponseSort>(initial.sort);
   const [retry, setRetry] = useState(0); const [moreBusy, setMoreBusy] = useState(false); const [moreError, setMoreError] = useState(false);
   const generation = useRef(0);
   const moreLock = useRef<number | null>(null);
   useEffect(() => {
-    const token = ++generation.current; moreLock.current = null; setState("loading"); setItems([]); setCursor(undefined); setMoreBusy(false); setMoreError(false);
-    loadCompletedResponses({ search, current_only: false, limit: 25, sort: "COMPLETED_DESC" }).then((page) => { if (token === generation.current) { setItems(page.items); setCursor(page.next_cursor); setState("ready"); } }).catch(() => { if (token === generation.current) setState("error"); });
+    const token = ++generation.current; moreLock.current = null; setItems([]); setCursor(undefined); setMoreBusy(false); setMoreError(false);
+    if (new TextEncoder().encode(search.trim()).length > 200) { setState("invalid"); return () => { generation.current++; }; }
+    setState("loading");
+    loadCompletedResponses({ search, current_only: false, limit: 25, sort, ...(concern ? {bands: [concern]} : {}) }).then((page) => { if (token === generation.current) { setItems(page.items); setCursor(page.next_cursor); setState("ready"); } }).catch(() => { if (token === generation.current) setState("error"); });
     return () => { generation.current++; };
-  }, [search, retry]);
+  }, [search, concern, sort, retry]);
   async function more() {
     if (!cursor || moreBusy || moreLock.current !== null) return; const token = generation.current; moreLock.current = token; setMoreBusy(true); setMoreError(false);
-    try { const page = await loadCompletedResponses({ search, current_only: false, limit: 25, sort: "COMPLETED_DESC", cursor }); if (token === generation.current) { setItems((value) => [...value, ...page.items]); setCursor(page.next_cursor); } }
+    try { const page = await loadCompletedResponses({ search, current_only: false, limit: 25, sort, ...(concern ? {bands: [concern]} : {}), cursor }); if (page.next_cursor === cursor) throw new Error("Response page unavailable"); if (token === generation.current) { setItems((value) => [...value, ...page.items]); setCursor(page.next_cursor); } }
     catch (error) { if (token === generation.current) { if (accessDenied(error)) { setItems([]); setCursor(undefined); setState("error"); } else setMoreError(true); } }
     finally { if (moreLock.current === token) moreLock.current = null; if (token === generation.current) setMoreBusy(false); }
   }
   return <section className="v-responses"><header className="v-page-heading"><div><p className="v-eyebrow">Forms</p><h1>Responses</h1></div></header>
     <nav className="v-local-nav" aria-label="Form views"><a href="#/forms">Forms</a><a href="#/forms/responses" aria-current="page">Responses</a></nav>
     <form className="v-program-search" onSubmit={(event) => { event.preventDefault(); setSearch(draft.trim()); }}><label htmlFor="v-response-search">Find a response</label><div><input id="v-response-search" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Form title"/><button>Search</button></div></form>
+    <div className="v-response-filters"><label>Concern<select value={concern} onChange={(event) => setConcern(event.target.value as "" | ResponseConcernBand)}><option value="">All concern levels</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MODERATE">Moderate</option><option value="LOW">Low</option></select></label><label>Sort responses<select value={sort} onChange={(event) => setSort(event.target.value as ResponseSort)}><option value="COMPLETED_DESC">Recently submitted</option><option value="CONCERN_DESC">Highest concern</option></select></label></div>
     {state === "loading" && <p role="status">Loading responses…</p>}
+    {state === "invalid" && <p role="alert">Search is too long. Shorten the form title.</p>}
     {state === "error" && <div className="v-panel"><p role="alert">Responses unavailable.</p><button onClick={() => setRetry(retry + 1)}>Try again</button></div>}
-    {state === "ready" && <div className="v-panel v-response-list">{items.length === 0 ? <p>No responses match this search.</p> : <ul>{items.map((item) => <li key={item.id}><div><a href={`#/forms/responses/${encodeURIComponent(item.id)}`}>{item.title}</a><small>{submitter(item)} · {timestampLabel(item.completed_at)}</small></div><span className="v-status">{item.current ? "Current response" : "Earlier response"}</span></li>)}</ul>}{moreError && <p role="alert">More responses unavailable.</p>}{cursor && <button onClick={() => void more()} disabled={moreBusy}>{moreBusy ? "Loading…" : "Load more"}</button>}</div>}
+    {state === "ready" && <div className="v-panel v-response-list">{items.length === 0 ? <p>No responses match this search.</p> : <ul>{items.map((item) => <li key={item.id}><div><a href={`#/forms/responses/${encodeURIComponent(item.id)}${responseFilterQuery({search,concern,sort})}`}>{item.title}</a><small>{submitter(item)} · {timestampLabel(item.completed_at)}</small>{responseScoreLabel(item.score) && <small>{responseScoreLabel(item.score)}</small>}</div><div className="v-response-state"><span className={`v-status${responseConcern(item.score).high ? " v-status--high" : ""}`}>{responseConcern(item.score).label}</span><span className="v-status">{item.current ? "Current response" : "Earlier response"}</span></div></li>)}</ul>}{moreError && <p role="alert">More responses unavailable.</p>}{cursor && <button onClick={() => void more()} disabled={moreBusy}>{moreBusy ? "Loading…" : "Load more"}</button>}</div>}
   </section>;
 }
 
@@ -46,7 +53,7 @@ type Details = { response: CompletedResponseDetail; review?: ResponseReviewPage 
 function ResponseDetail({ id, reviewScope }: { id: string; reviewScope?: ReviewScope }) {
  const storageKey = reviewScope && reviewScope.tenant && reviewScope.entity && reviewScope.actor ? "clearsight:review:" + JSON.stringify([reviewScope.tenant,reviewScope.entity,reviewScope.actor,id]) : undefined;
  const [pending, setPending] = useState<PendingReview | null | undefined>(() => readPendingReview(storageKey));
-  const [data, setData] = useState<Details>(); const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [data, setData] = useState<Details>(); const [state, setState] = useState<"loading" | "ready" | "error" | "invalid">("loading");
   const [attempt, setAttempt] = useState(0); const [decision, setDecision] = useState<"" | ResponseReviewDecision>(""); const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false); const [saveError, setSaveError] = useState<"" | "validation" | "conflict" | "forbidden" | "unknown" | "committed" | "storage">(""); const [saved, setSaved] = useState(false);
   const [historyBusy, setHistoryBusy] = useState(false); const [historyError, setHistoryError] = useState(false);
@@ -116,8 +123,8 @@ function ResponseDetail({ id, reviewScope }: { id: string; reviewScope?: ReviewS
   const commentTooLong = new TextEncoder().encode(comment.trim()).length > 4000;
   const returnToDocuments = documentReturnDestination();
   const previousHref = revision.supersedes_revision_id ? previousResponseHref(revision.supersedes_revision_id, response.distribution_id) : undefined;
-  const documentHref = scopedDocumentsHref("response", id, undefined, response.distribution_id || undefined);
-  return <section className="v-responses"><a className="v-back" href={returnToDocuments ?? "#/forms/responses"}>{returnToDocuments ? "← Documents" : "← Responses"}</a><header className="v-page-heading"><div><p className="v-eyebrow">Response · Version {response.revision}</p><h1>{response.title}</h1></div><span className="v-status">{isCurrent ? "Current response" : "Earlier response"}</span></header>
+  const documentHref = scopedDocumentsHref("response", id, undefined, response.distribution_id || undefined, responseFilterQuery(responseFilters()));
+  return <section className="v-responses"><a className="v-back" href={returnToDocuments ?? `#/forms/responses${responseFilterQuery(responseFilters())}`}>{returnToDocuments ? "← Documents" : "← Responses"}</a><header className="v-page-heading"><div><p className="v-eyebrow">Response · Version {response.revision}</p><h1>{response.title}</h1></div><span className="v-status">{isCurrent ? "Current response" : "Earlier response"}</span></header>
     <div className="v-response-meta"><span>Submitted by <strong>{submitter(response)}</strong></span>{response.submission_recipient?.label && <span><span>Access recipient</span> <strong>{response.submission_recipient.label}</strong></span>}<span>Submitted <strong>{timestampLabel(response.completed_at)}</strong></span><span>Form version <strong>{response.form_template_version}</strong></span></div>
     {response.submission_recipient?.label && <p>Access recipient does not confirm who submitted the response.</p>}
     {revision.supersedes_revision_id && <p>{previousHref ? <a href={previousHref}>Previous response</a> : "Earlier response unavailable."}</p>}
@@ -146,6 +153,36 @@ function readPendingReview(key?: string): PendingReview | null | undefined {
   return {...item, input: {...input, comment: ""}, needsComment: true};
  } catch { return null; }
 }
+function responseFilters(): {search: string; concern: "" | ResponseConcernBand; sort: ResponseSort} {
+ const params = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
+ const band = params.get("response_concern"); const order = params.get("response_sort");
+ return { search: (params.get("response_search") ?? ""), concern: band === "LOW" || band === "MODERATE" || band === "HIGH" || band === "CRITICAL" ? band : "", sort: order === "CONCERN_DESC" ? order : "COMPLETED_DESC" };
+}
+function responseFilterQuery(filters: {search: string; concern: "" | ResponseConcernBand; sort: ResponseSort}) {
+ const params = new URLSearchParams();
+ if (filters.search) params.set("response_search", filters.search);
+ if (filters.concern) params.set("response_concern", filters.concern);
+ if (filters.sort !== "COMPLETED_DESC") params.set("response_sort", filters.sort);
+ const query = params.toString(); return query ? `?${query}` : "";
+}
+function responseConcern(score?: ResponseScore): {label: string; high: boolean} {
+ const valid = responseScoreLabel(score);
+ if (!score || !valid || valid === "Score unavailable") return {label:"Concern unknown",high:false};
+ switch (score.band) {
+  case "CRITICAL": return {label:"Critical concern",high:true};
+  case "HIGH": return {label:"High concern",high:true};
+  case "MODERATE": return {label:"Moderate concern",high:false};
+  case "LOW": return {label:"Low concern",high:false};
+  default: return {label:"Concern unknown",high:false};
+ }
+}
+function responseScoreLabel(score?: ResponseScore): string | undefined {
+ if (!score || score.state === "NOT_CONFIGURED") return undefined;
+ if ((score.state === "FINAL" && score.final === false) || (score.state === "PROVISIONAL" && score.final === true) || (score.state !== "FINAL" && score.state !== "PROVISIONAL") || (score.mode !== "COMPLIANCE" && score.mode !== "RISK") || typeof score.raw_score !== "number" || !Number.isFinite(score.raw_score) || score.raw_score < 0 || score.raw_score > 100) return "Score unavailable";
+ const label = score.mode === "COMPLIANCE" ? "Form compliance score" : "Form risk score";
+ const value = String(score.raw_score);
+ return `${label}: ${value} / 100 · ${score.state === "PROVISIONAL" ? "Provisional" : "Final"}`;
+}
 function submitter(item: CompletedResponseSummary) { return item.submitted_by_display_name || (item.submitted_by ? "Submitter name unavailable" : "Submitter not identified"); }
 function matchesResponseScope(value: CompletedResponseDetail, id: string) {
   const params = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
@@ -154,7 +191,7 @@ function matchesResponseScope(value: CompletedResponseDetail, id: string) {
 }
 function previousResponseHref(id: string, distribution: string | undefined) {
   if (!validHistoryIdentifier(id) || !validHistoryIdentifier(distribution)) return undefined;
-  const params = new URLSearchParams();
+  const params = new URLSearchParams(responseFilterQuery(responseFilters()).slice(1));
   params.set("distribution_id", distribution);
   const destination = documentReturnDestination();
   if (destination) params.set("return_to", destination);

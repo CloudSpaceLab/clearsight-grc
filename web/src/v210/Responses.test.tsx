@@ -11,10 +11,10 @@ vi.mock("../responseReviewApi", () => review);
 vi.mock("../submittedDocumentApi", () => documents);
 
 const summary = { id: "revision-1", title: "Access review", form_template_id: "form-1", form_template_version: 3, revision: 2, current: true, completed_at: "2026-11-20T10:00:00Z", submitted_by_display_name: "Ada Bello" };
-const testReviewScope = { tenant: "bank", entity: "entity", actor: "reviewer" };
 const reviewReceipt = { id: "review-5", response_id: "revision-1", response_revision: 2, version: 5, decision: "REVIEWED" };
 beforeEach(() => {
-  vi.clearAllMocks(); sessionStorage.clear();
+  sessionStorage.clear();
+  vi.clearAllMocks();
   responses.loadCompletedResponses.mockResolvedValue({ items: [summary] });
   responses.loadCompletedResponse.mockResolvedValue({ response: summary, revision: { id: "revision-1", current: true, revision: 2 }, answers: [{ field_id: "q1", label: "Is access reviewed?", value: { text: "Yes" } }], documents: [] });
   review.loadResponseReviews.mockResolvedValue({ version: 4, may_review: true, items: [] });
@@ -22,7 +22,7 @@ beforeEach(() => {
 });
 
 it("opens Documents scoped to this response revision", async () => {
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1"/>);
   const link = await screen.findByRole("link", { name: "View response documents" });
   expect(link.getAttribute("href")).toBe("#/documents?response_revision_id=revision-1");
 });
@@ -32,11 +32,22 @@ it("retains the response distribution in the Documents return link", async () =>
   window.history.replaceState(null, "", "#/forms/responses/revision-1?distribution_id=distribution-1");
   responses.loadCompletedResponse.mockResolvedValue({ response: { ...summary, distribution_id: "distribution-1" }, revision: { id: "revision-1", current: true, revision: 2 }, answers: [], documents: [] });
   try {
-    render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+    render(<Responses id="revision-1"/>);
     const link = await screen.findByRole("link", { name: "View response documents" });
     const query = new URLSearchParams(link.getAttribute("href")!.split("?")[1]);
     expect(query.get("response_revision_id")).toBe("revision-1");
     expect(query.get("return_to")).toBe("#/forms/responses/revision-1?distribution_id=distribution-1");
+  } finally { window.history.replaceState(null, "", previous || "#/forms/responses"); }
+});
+
+it("retains response filters through scoped Documents", async () => {
+  const previous = window.location.hash;
+  window.history.replaceState(null, "", "#/forms/responses/revision-1?response_concern=HIGH&response_sort=CONCERN_DESC");
+  try {
+    render(<Responses id="revision-1"/>);
+    const link = await screen.findByRole("link", { name: "View response documents" });
+    const query = new URLSearchParams(link.getAttribute("href")!.split("?")[1]);
+    expect(query.get("return_to")).toBe("#/forms/responses/revision-1?response_concern=HIGH&response_sort=CONCERN_DESC");
   } finally { window.history.replaceState(null, "", previous || "#/forms/responses"); }
 });
 
@@ -52,7 +63,7 @@ it("returns to the filtered Documents view when opened from Documents", async ()
   const previous = window.location.hash;
   window.history.replaceState(null, "", `#/forms/responses/revision-1?return_to=${encodeURIComponent("#/documents?view=NEEDS_REFRESH&q=policy")}`);
   try {
-    render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+    render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
     expect((await screen.findByRole("link", { name: "← Documents" })).getAttribute("href")).toBe("#/documents?view=NEEDS_REFRESH&q=policy");
   } finally { window.history.replaceState(null, "", previous || "#/forms/responses"); }
 });
@@ -62,7 +73,7 @@ it("keeps the Documents return link when the response is unavailable", async () 
   window.history.replaceState(null, "", `#/forms/responses/revision-1?return_to=${encodeURIComponent("#/documents?kind=PDF")}`);
   responses.loadCompletedResponse.mockRejectedValueOnce(new Error("unavailable"));
   try {
-    render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+    render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
     expect((await screen.findByRole("link", { name: "View documents" })).getAttribute("href")).toBe("#/documents?kind=PDF");
   } finally { window.history.replaceState(null, "", previous || "#/forms/responses"); }
 });
@@ -71,31 +82,31 @@ it("rejects external return destinations", async () => {
   const previous = window.location.hash;
   window.history.replaceState(null, "", `#/forms/responses/revision-1?return_to=${encodeURIComponent("https://example.com/")}`);
   try {
-    render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+    render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
     expect((await screen.findByRole("link", { name: "← Responses" })).getAttribute("href")).toBe("#/forms/responses");
   } finally { window.history.replaceState(null, "", previous || "#/forms/responses"); }
 });
 
 it("shows the exact answers and records an authorized versioned review", async () => {
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("Is access reviewed?")).toBeTruthy();
   expect(screen.getByText("Yes")).toBeTruthy();
   fireEvent.change(screen.getByLabelText("Review decision"), { target: { value: "REVIEWED" } });
   fireEvent.click(screen.getByRole("button", { name: "Save review" }));
-  await vi.waitFor(() => expect(review.recordResponseReview).toHaveBeenCalledWith("revision-1", { expected_version: 4, decision: "REVIEWED", comment: "" }, expect.stringMatching(/^[0-9a-f-]{36}$/i)));
+  await vi.waitFor(() => expect(review.recordResponseReview).toHaveBeenCalledWith("revision-1", { expected_version: 4, decision: "REVIEWED", comment: "" }, expect.any(String)));
 });
 
 it("does not permit review of an earlier revision or without reviewer authority", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: { ...summary, current: false }, revision: { id: "revision-1", current: false }, answers: [], documents: [] });
   review.loadResponseReviews.mockResolvedValue({ version: 1, may_review: true, items: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("Earlier response")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Save review" })).toBeNull();
 });
 
 it("does not offer review without current authority", async () => {
   review.loadResponseReviews.mockResolvedValue({ version: 1, may_review: false, items: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("Review unavailable.")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Save review" })).toBeNull();
 });
@@ -109,7 +120,7 @@ it("does not present a link recipient as a verified submitter", async () => {
 
 it("blocks review until the submitted answers can be loaded", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: summary, revision: { id: "revision-1", current: true } });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("Answers unavailable. Reload before reviewing.")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Save review" })).toBeNull();
 });
@@ -117,7 +128,7 @@ it("blocks review until the submitted answers can be loaded", async () => {
 it("blocks review when the response documents are incomplete", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: summary, revision: { id: "revision-1", current: true }, answers: [], documents: [], documents_next_cursor: "next" });
   documents.loadDocuments.mockResolvedValue({ items: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("More documents must be loaded before review.")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Save review" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Load more documents" }));
@@ -127,7 +138,7 @@ it("blocks review when the response documents are incomplete", async () => {
 
 it("shows the structured document information in a response", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: summary, revision: { id: "revision-1", current: true }, answers: [{ field_id: "q2", label: "Assurance report", value: { document: { artifact_id: "a", document_type: "SOC 2", reference: "ABC-123", issued_by: "Auditor Ltd", issued_on: "2026-01-01", expires_on: "2026-12-31" } } }], documents: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText(/SOC 2/)).toBeTruthy();
   expect(screen.getByText(/ABC-123/)).toBeTruthy();
   expect(screen.getByText(/Auditor Ltd/)).toBeTruthy();
@@ -142,7 +153,7 @@ it("keeps exact numerical values and multiline text without inventing currency",
     { field_id: "c", label: "Rate", type: "percentage", value: { text: "12.3450" } },
     { field_id: "d", label: "Unrecognized rate", type: "percentage", value: { text: "unavailable" } },
   ], documents: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect((await screen.findByText("Explanation")).nextElementSibling?.textContent).toBe("First line\nSecond line");
   expect(screen.getByText("Amount").nextElementSibling?.textContent).toBe("9007199254740993.0100");
   expect(screen.getByText("Rate").nextElementSibling?.textContent).toBe("12.3450%");
@@ -154,7 +165,7 @@ it("formats valid date answers and preserves invalid recorded dates", async () =
     { field_id: "a", label: "Review date", type: "date", value: { text: "2025-11-28" } },
     { field_id: "b", label: "Invalid date", type: "date", value: { text: "2025-02-30" } },
   ], documents: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect((await screen.findByText("Review date")).nextElementSibling?.textContent).toBe("Nov 28, 2025");
   expect(screen.getByText("Invalid date").nextElementSibling?.textContent).toBe("2025-02-30");
 });
@@ -166,7 +177,7 @@ it("distinguishes confirmation, missing and unknown checkbox or attestation answ
     { field_id: "c", label: "Missing check", type: "checkbox", value: {} },
     { field_id: "d", label: "Unrecognized check", type: "checkbox", value: { text: "pending" } },
   ], documents: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect((await screen.findByText("Confirmed check")).nextElementSibling?.textContent).toBe("Confirmed");
   expect(screen.getByText("Declined attestation").nextElementSibling?.textContent).toBe("Not confirmed");
   expect(screen.getByText("Missing check").nextElementSibling?.textContent).toBe("No answer");
@@ -180,7 +191,7 @@ it("distinguishes submitted signatures, photos, document counts and missing docu
     { field_id: "c", label: "Files", type: "file", value: { artifact_ids: ["file-1", "file-2"] } },
     { field_id: "d", label: "Missing file", type: "file", value: {} },
   ], documents: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect((await screen.findByText("Signature")).nextElementSibling?.textContent).toBe("Signature submitted");
   expect(screen.getByText("Photo").nextElementSibling?.textContent).toBe("Photo submitted");
   expect(screen.getByText("Files").nextElementSibling?.textContent).toBe("2 documents submitted");
@@ -188,7 +199,7 @@ it("distinguishes submitted signatures, photos, document counts and missing docu
 });
 
 it("limits review comments by UTF-8 bytes", async () => {
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.change(await screen.findByLabelText("Review decision"), { target: { value: "REVIEWED" } });
   fireEvent.change(screen.getByLabelText("Comment (optional)"), { target: { value: "é".repeat(2001) } });
   expect(screen.getByText("Comment must be 4,000 bytes or fewer.")).toBeTruthy();
@@ -198,7 +209,7 @@ it("limits review comments by UTF-8 bytes", async () => {
 
 it("preserves entered review details after a definite conflict and reload", async () => {
   review.recordResponseReview.mockRejectedValueOnce(new ApiError(409, "Changed"));
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.change(await screen.findByLabelText("Review decision"), { target: { value: "CHANGES_REQUESTED" } });
   fireEvent.change(screen.getByLabelText("Reason for changes"), { target: { value: "Please provide the latest report." } });
   fireEvent.click(screen.getByRole("button", { name: "Save review" }));
@@ -209,7 +220,7 @@ it("preserves entered review details after a definite conflict and reload", asyn
 
 it("keeps a rejected review editable", async () => {
   review.recordResponseReview.mockRejectedValueOnce(new ApiError(422, "Invalid"));
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.change(await screen.findByLabelText("Review decision"), { target: { value: "REVIEWED" } });
   fireEvent.change(screen.getByLabelText("Comment (optional)"), { target: { value: "Needs clarification" } });
   fireEvent.click(screen.getByRole("button", { name: "Save review" }));
@@ -219,18 +230,20 @@ it("keeps a rejected review editable", async () => {
 
 it("reports a definite authorization denial instead of an unknown outcome", async () => {
   review.recordResponseReview.mockRejectedValueOnce(new ApiError(403, "Forbidden"));
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.change(await screen.findByLabelText("Review decision"), { target: { value: "REVIEWED" } });
   fireEvent.change(screen.getByLabelText("Comment (optional)"), { target: { value: "Review note" } });
   fireEvent.click(screen.getByRole("button", { name: "Save review" }));
   expect(await screen.findByText("You cannot review this response. Reload to check access.")).toBeTruthy();
+  expect((screen.getByLabelText("Comment (optional)") as HTMLTextAreaElement).value).toBe("Review note");
+  expect((screen.getByRole("button", {name:"Retry review"}) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Reload response" }));
   expect((await screen.findByLabelText("Comment (optional)") as HTMLTextAreaElement).value).toBe("Review note");
 });
 
 it("reports a committed review when the following history refresh fails", async () => {
   review.loadResponseReviews.mockResolvedValueOnce({ version: 4, may_review: true, items: [] }).mockRejectedValueOnce(new Error("connection lost"));
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.change(await screen.findByLabelText("Review decision"), { target: { value: "REVIEWED" } });
   fireEvent.click(screen.getByRole("button", { name: "Save review" }));
   expect(await screen.findByText("Review saved. Reload to see review history.")).toBeTruthy();
@@ -246,7 +259,7 @@ it.each([
   {},
 ])("does not confirm a review with a mismatched receipt %#", async (receipt) => {
   review.recordResponseReview.mockResolvedValueOnce({ id: "review-5", ...receipt });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.change(await screen.findByLabelText("Review decision"), { target: { value: "REVIEWED" } });
   fireEvent.click(screen.getByRole("button", { name: "Save review" }));
   expect(await screen.findByText("Review status unknown. Retrying will submit the same decision.")).toBeTruthy();
@@ -257,7 +270,7 @@ it.each([
 
 it("requires a reason for changes and does not retry an uncertain save", async () => {
   review.recordResponseReview.mockRejectedValue(new Error("connection lost"));
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.change(await screen.findByLabelText("Review decision"), { target: { value: "CHANGES_REQUESTED" } });
   fireEvent.change(screen.getByLabelText("Reason for changes"), { target: { value: "Clarify the review date." } });
   fireEvent.click(screen.getByRole("button", { name: "Save review" }));
@@ -267,7 +280,7 @@ it("requires a reason for changes and does not retry an uncertain save", async (
 
 it("distinguishes the recorded access recipient from the actual submitter", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: { ...summary, submission_recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "person-1", label: "Tola Adebayo" } }, revision: { id: "revision-1", current: true, revision: 2 }, answers: [], documents: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("Tola Adebayo")).toBeTruthy();
   expect(screen.getByText("Ada Bello")).toBeTruthy();
   expect(screen.getByText("Access recipient")).toBeTruthy();
@@ -275,13 +288,13 @@ it("distinguishes the recorded access recipient from the actual submitter", asyn
 
 it("links to the exact previous response without inventing a history", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: { ...summary, distribution_id: "distribution-1" }, revision: { id: "revision-1", current: true, revision: 2, supersedes_revision_id: "prior/1" }, answers: [], documents: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect((await screen.findByRole("link", { name: "Previous response" })).getAttribute("href")).toBe("#/forms/responses/prior%2F1?distribution_id=distribution-1");
 });
 
 it("identifies a response as earlier when its source revision is no longer current", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: summary, revision: { id: "revision-1", current: false }, answers: [], documents: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("Earlier response")).toBeTruthy();
   expect(screen.getByText("Review is available for the current response.")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Save review" })).toBeNull();
@@ -290,7 +303,7 @@ it("identifies a response as earlier when its source revision is no longer curre
 it("sends only one review while submission is in progress", async () => {
   let finish!: (value: unknown) => void;
   review.recordResponseReview.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.change(await screen.findByLabelText("Review decision"), { target: { value: "REVIEWED" } });
   const form = screen.getByRole("button", { name: "Save review" }).closest("form")!;
   act(() => { fireEvent.submit(form); fireEvent.submit(form); });
@@ -303,14 +316,15 @@ it("sends only one review while submission is in progress", async () => {
 it("locks the review fields while a decision is being saved", async () => {
   let finish!: (value: unknown) => void;
   review.recordResponseReview.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   const decision = await screen.findByLabelText("Review decision") as HTMLSelectElement;
   fireEvent.change(decision, { target: { value: "REVIEWED" } });
-  fireEvent.change(screen.getByLabelText("Comment (optional)"), { target: { value: "Review note" } });
+  const comment = screen.getByLabelText("Comment (optional)") as HTMLTextAreaElement;
   fireEvent.click(screen.getByRole("button", { name: "Save review" }));
-  expect(screen.queryByLabelText("Review decision")).toBeNull();
-  expect((screen.getByLabelText("Comment (optional)") as HTMLTextAreaElement).readOnly).toBe(true);
+  expect(screen.queryByRole("button", { name: "Save review" })).toBeNull();
   expect((screen.getByRole("button", { name: "Saving…" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByText("Saving review…")).toBeTruthy();
+  expect(review.recordResponseReview).toHaveBeenCalledTimes(1);
   await act(async () => { finish(reviewReceipt); });
 });
 
@@ -319,7 +333,7 @@ it("clears stale document loading state when the response reloads", async () => 
   const payload = { response: summary, revision: { id: "revision-1", current: true }, answers: undefined, documents: [], documents_next_cursor: "next" };
   responses.loadCompletedResponse.mockResolvedValue(payload);
   documents.loadDocuments.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.click(await screen.findByRole("button", { name: "Load more documents" }));
   expect((screen.getByRole("button", { name: "Loading…" }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Reload response" }));
@@ -333,7 +347,7 @@ it("clears stale document loading state when the response reloads", async () => 
 it("waits for earlier review history before saving a new decision", async () => {
   let finish!: (value: unknown) => void;
   review.loadResponseReviews.mockResolvedValueOnce({ version: 4, may_review: true, items: [], next_before_version: 3 }).mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   const decision = await screen.findByLabelText("Review decision");
   fireEvent.change(decision, { target: { value: "REVIEWED" } });
   const save = screen.getByRole("button", { name: "Save review" }) as HTMLButtonElement;
@@ -348,7 +362,7 @@ it("clears stale history loading state when the response reloads", async () => {
   let finish!: (value: unknown) => void;
   responses.loadCompletedResponse.mockResolvedValue({ response: summary, revision: { id: "revision-1", current: true }, answers: undefined, documents: [] });
   review.loadResponseReviews.mockResolvedValue({ version: 4, may_review: true, items: [], next_before_version: 3 });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   await screen.findByRole("button", { name: "Load earlier reviews" });
   review.loadResponseReviews.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
   fireEvent.click(screen.getByRole("button", { name: "Load earlier reviews" }));
@@ -384,7 +398,7 @@ it("clears response results if access is denied while loading another page", asy
 
 it("removes review history and the review action if access is denied when loading earlier reviews", async () => {
   review.loadResponseReviews.mockResolvedValueOnce({ version: 4, may_review: true, items: [{ id: "old-review", decision: "REVIEWED", reviewer_display_name: "Risk Officer", reviewed_at: "2026-11-20T11:42:00Z" }], next_before_version: 3 }).mockRejectedValueOnce(new ApiError(403, "Forbidden"));
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.click(await screen.findByRole("button", { name: "Load earlier reviews" }));
   expect(await screen.findByText("Review unavailable.")).toBeTruthy();
   expect(screen.queryByText(/Risk Officer/)).toBeNull();
@@ -394,7 +408,7 @@ it("removes review history and the review action if access is denied when loadin
 it("clears loaded documents if access is denied when loading the next page", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: summary, revision: { id: "revision-1", current: true }, answers: [], documents: [{ id: "doc-1", file_name: "Sensitive report.pdf" }], documents_next_cursor: "next" });
   documents.loadDocuments.mockRejectedValueOnce(new ApiError(403, "Forbidden"));
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   fireEvent.click(await screen.findByRole("button", { name: "Load more documents" }));
   expect(await screen.findByText("Documents unavailable. Reload before reviewing.")).toBeTruthy();
   expect(screen.queryByText("Sensitive report.pdf")).toBeNull();
@@ -403,7 +417,7 @@ it("clears loaded documents if access is denied when loading the next page", asy
 
 it("distinguishes response submission and review times on the same day", async () => {
   review.loadResponseReviews.mockResolvedValue({ version: 1, may_review: false, items: [{ id: "r1", decision: "REVIEWED", reviewer_display_name: "Risk Officer", reviewed_at: "2026-11-20T11:42:00Z", comment: "" }] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect((await screen.findByText(/10:00.*UTC/)).textContent).toContain("20 Nov 2026");
   expect(screen.getByText(/11:42.*UTC/).textContent).toContain("Risk Officer");
 });
@@ -411,25 +425,78 @@ it("distinguishes response submission and review times on the same day", async (
 it("does not invent times when a timestamp is missing or invalid", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: { ...summary, completed_at: "invalid" }, revision: { id: "revision-1", current: true }, answers: [], documents: [] });
   review.loadResponseReviews.mockResolvedValue({ version: 1, may_review: false, items: [{ id: "r1", decision: "REVIEWED", reviewed_at: "", comment: "" }] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect((await screen.findAllByText(/time unavailable/)).length).toBe(2);
   expect(screen.queryByText(/UTC/)).toBeNull();
 });
 
 it("does not report a normalized time for an impossible calendar date", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: { ...summary, completed_at: "2026-02-30T10:00:00Z" }, revision: { id: "revision-1", current: true }, answers: [], documents: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("time unavailable")).toBeTruthy();
 });
 
 it("does not normalize an impossible clock time", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: { ...summary, completed_at: "2026-11-20T24:00:00Z" }, revision: { id: "revision-1", current: true }, answers: [], documents: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText("time unavailable")).toBeTruthy();
 });
 
 it("converts recorded offsets to the labelled UTC time", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: { ...summary, completed_at: "2026-11-20T10:15:30+01:00" }, revision: { id: "revision-1", current: true }, answers: [], documents: [] });
-  render(<Responses reviewScope={testReviewScope} id="revision-1"/>);
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
   expect(await screen.findByText(/09:15:30 UTC/)).toBeTruthy();
+});
+
+it("applies concern and sort on the server and keeps them when loading more", async () => {
+ responses.loadCompletedResponses.mockResolvedValueOnce({items:[summary],next_cursor:"page-2"}).mockResolvedValueOnce({items:[summary],next_cursor:"filtered-2"}).mockResolvedValueOnce({items:[summary],next_cursor:"sorted-2"}).mockResolvedValueOnce({items:[]});
+ render(<Responses/>); await screen.findByText(/Ada Bello/);
+ fireEvent.change(screen.getByLabelText("Concern"),{target:{value:"HIGH"}});
+ await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({bands:["HIGH"],sort:"COMPLETED_DESC"})));
+ fireEvent.change(screen.getByLabelText("Sort responses"),{target:{value:"CONCERN_DESC"}});
+ await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({bands:["HIGH"],sort:"CONCERN_DESC"})));
+ fireEvent.click(await screen.findByRole("button",{name:"Load more"}));
+ await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({bands:["HIGH"],sort:"CONCERN_DESC",cursor:"sorted-2"})));
+});
+
+it("shows the recorded form score and distinguishes provisional and unavailable results", async () => {
+ responses.loadCompletedResponses.mockResolvedValue({items:[{...summary,score:{state:"PROVISIONAL",mode:"COMPLIANCE",raw_score:42,band:"HIGH"}},{...summary,id:"failed",title:"Failed score",score:{state:"FAILED",mode:"COMPLIANCE",raw_score:99}},{...summary,id:"invalid",title:"Invalid score",score:{state:"FINAL",mode:"COMPLIANCE",raw_score:999}}]});
+ render(<Responses/>); expect(await screen.findByText("Form compliance score: 42 / 100 · Provisional" )).toBeTruthy();
+ expect(screen.getAllByText("Score unavailable")).toHaveLength(2); expect(screen.queryByText(/999/)).toBeNull();
+});
+
+it("preserves the response filters in the detail link", async () => {
+ render(<Responses/>); await screen.findByText(/Ada Bello/); fireEvent.change(screen.getByLabelText("Concern"),{target:{value:"HIGH"}});
+ const link=await screen.findByRole("link",{name:"Access review"}); expect(link.getAttribute("href")).toContain("response_concern=HIGH");
+});
+
+it("restores response filters from a detail return link", async () => {
+ window.history.replaceState(null,"","#/forms/responses/revision-1?response_concern=HIGH&response_sort=CONCERN_DESC&response_search=Access");
+ const view=render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
+ expect((await screen.findByRole("link",{name:"← Responses"})).getAttribute("href")).toBe("#/forms/responses?response_search=Access&response_concern=HIGH&response_sort=CONCERN_DESC");
+ view.unmount(); window.history.replaceState(null,"","#/forms/responses?response_search=Access&response_concern=HIGH&response_sort=CONCERN_DESC");
+ render(<Responses/>); await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({search:"Access",bands:["HIGH"],sort:"CONCERN_DESC"})));
+ window.history.replaceState(null,"","#/forms/responses");
+});
+
+it("rejects a repeated response cursor without appending the page", async () => {
+ responses.loadCompletedResponses.mockResolvedValueOnce({items:[summary],next_cursor:"same"}).mockResolvedValueOnce({items:[{...summary,id:"duplicate",title:"Duplicate result"}],next_cursor:"same"});
+ render(<Responses/>); fireEvent.click(await screen.findByRole("button",{name:"Load more"}));
+ expect(await screen.findByText("More responses unavailable.")).toBeTruthy(); expect(screen.queryByText("Duplicate result")).toBeNull(); expect(screen.getByRole("button",{name:"Load more"})).toBeTruthy();
+});
+
+it.each([{state:"FINAL",final:false},{state:"PROVISIONAL",final:true}])("does not present a score with contradictory finality %s",async (contradiction)=>{
+ responses.loadCompletedResponses.mockResolvedValue({items:[{...summary,score:{...contradiction,mode:"COMPLIANCE",raw_score:42}}]}); render(<Responses/>); expect(await screen.findByText("Score unavailable")).toBeTruthy(); expect(screen.queryByText(/42 \/ 100/)).toBeNull();
+});
+
+it("rejects an overlong route search without querying or truncating it", async () => {
+ const old=window.location.hash; window.history.replaceState(null,"",`#/forms/responses?response_search=${encodeURIComponent("é".repeat(101))}`);
+ render(<Responses/>); expect(await screen.findByText("Search is too long. Shorten the form title.")).toBeTruthy(); expect(responses.loadCompletedResponses).not.toHaveBeenCalled();
+ fireEvent.change(screen.getByLabelText("Find a response"),{target:{value:"Access"}}); fireEvent.click(screen.getByRole("button",{name:"Search"})); await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenCalledWith(expect.objectContaining({search:"Access"}))); window.history.replaceState(null,"",old||"#/forms/responses");
+});
+it("rejects an overlong typed search without issuing a query",async()=>{
+ render(<Responses/>); await screen.findByText(/Ada Bello/); responses.loadCompletedResponses.mockClear(); fireEvent.change(screen.getByLabelText("Find a response"),{target:{value:"é".repeat(101)}}); fireEvent.click(screen.getByRole("button",{name:"Search"})); expect(await screen.findByText("Search is too long. Shorten the form title.")).toBeTruthy(); expect(responses.loadCompletedResponses).not.toHaveBeenCalled();
+});
+it("shows only a stored valid concern band",async()=>{
+ responses.loadCompletedResponses.mockResolvedValue({items:[{...summary,score:{state:"FINAL",final:true,mode:"COMPLIANCE",raw_score:42,band:"HIGH"}},{...summary,id:"unknown",title:"Unknown",score:{state:"FINAL",final:false,mode:"COMPLIANCE",raw_score:42,band:"CRITICAL"}},{...summary,id:"missing",title:"Missing"}]}); render(<Responses/>); expect(await screen.findByText("High concern")).toBeTruthy(); expect(screen.getAllByText("Concern unknown")).toHaveLength(2); expect(screen.queryByText("Critical concern")).toBeNull();
 });

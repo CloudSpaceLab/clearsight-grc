@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { apiErrorKind, requestBlob } from "../http";
 import { documentContentURL, loadDocuments, type DocumentOccurrence, type DocumentQuery, type FileKind } from "../submittedDocumentApi";
-import { withDocumentReturn } from "./documentReturn";
+import { scopedResponseReturn, withDocumentReturn } from "./documentReturn";
 import { DocumentProvenance } from "./DocumentProvenance";
 import "./documents.css";
 
@@ -27,7 +27,7 @@ function readDocumentRoute(): DocumentRoute {
   const requestedReturn = params.getAll("return_to");
   const vendorBase = `#/vendors/${encodeURIComponent(relationshipId)}`;
   const responseBase = `#/forms/responses/${encodeURIComponent(responseId)}`;
-  const responseReturn = requestedReturn.length === 1 && requestedReturn[0]!.startsWith(`${responseBase}?distribution_id=`) && validID(requestedReturn[0]!.slice(`${responseBase}?distribution_id=`.length)) ? requestedReturn[0]! : responseBase;
+  const responseReturn = requestedReturn.length === 1 ? scopedResponseReturn(requestedReturn[0]!, responseId) ?? responseBase : responseBase;
   const returnTo = relationshipId && requestedReturn.length === 1 && (requestedReturn[0] === vendorBase || (requestedReturn[0]!.startsWith(`${vendorBase}/assessments/`) && validID(requestedReturn[0]!.slice(`${vendorBase}/assessments/`.length)))) ? requestedReturn[0]! : responseId ? responseReturn : relationshipId ? vendorBase : "";
   return {
     view: views.some((item) => item.id === requestedView) ? requestedView as View : "ALL",

@@ -71,6 +71,22 @@ it("preserves the response distribution when returning to a scoped response", as
   expect((await screen.findByRole("link", { name: "← Response" })).getAttribute("href")).toBe(destination);
 });
 
+it("preserves safe response filters when returning to a scoped response", async () => {
+  const destination = "#/forms/responses/revision-1?response_concern=HIGH&response_sort=CONCERN_DESC";
+  window.history.replaceState(null, "", `#/documents?response_revision_id=revision-1&return_to=${encodeURIComponent(destination)}`);
+  documents.loadDocuments.mockResolvedValue({ items: [] });
+  render(<Documents/>);
+  expect((await screen.findByRole("link", { name: "← Response" })).getAttribute("href")).toBe(destination);
+});
+
+it("rejects an untrusted response return query", async () => {
+  const destination = "#/forms/responses/revision-1?response_concern=HIGH&return_to=https://example.test";
+  window.history.replaceState(null, "", `#/documents?response_revision_id=revision-1&return_to=${encodeURIComponent(destination)}`);
+  documents.loadDocuments.mockResolvedValue({ items: [] });
+  render(<Documents/>);
+  expect((await screen.findByRole("link", { name: "← Response" })).getAttribute("href")).toBe("#/forms/responses/revision-1");
+});
+
 it("hides a previous vendor's documents immediately when the scope changes", async () => {
   window.history.replaceState(null, "", "#/documents?relationship_id=rel-1");
   documents.loadDocuments.mockResolvedValueOnce({ items: [{ id: "1", file_name: "First.pdf", form_title: "Review", relationship_id: "rel-1", current: true, artifact_status: "AVAILABLE" }] }).mockReturnValueOnce(new Promise(() => {}));
