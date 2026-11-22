@@ -89,19 +89,93 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// A blocked checkpoint must release its transaction rather than indefinitely
+	// holding future session and authority locks.
+	stalled, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = stalled.Exec(ctx, `SELECT id FROM programs WHERE id=$1::uuid FOR UPDATE`, program.Program.ID); err != nil {
+		t.Fatal(err)
+	}
+	stalledResult := make(chan error, 1)
+	go func() {
+		_, e := service.AcceptProgramReview(ctx, AcceptProgramReviewInput{TenantID: "program-review-a", ProgramID: program.Program.ID, PrincipalID: principalA, ExpectedProgramVersion: program.Program.Version, ExpectedProjectionVersion: firstDigest.CurrentProjectionVersion})
+		stalledResult <- e
+	}()
+	select {
+	case e := <-stalledResult:
+		if !errors.Is(e, context.DeadlineExceeded) {
+			t.Fatalf("blocked checkpoint: %v", e)
+		}
+	case <-time.After(7 * time.Second):
+		_ = stalled.Rollback(ctx)
+		t.Fatal("blocked checkpoint did not time out")
+	}
+	if err = stalled.Rollback(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var partialCheckpoints, partialEvents, partialOutbox int
+	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM program_review_checkpoints WHERE tenant_id=$1::uuid), (SELECT count(*) FROM continuity_events WHERE tenant_id=$1::uuid AND event_type=$2), (SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type=$2)`, tenantA, EventProgramReviewAccepted).Scan(&partialCheckpoints, &partialEvents, &partialOutbox); err != nil || partialCheckpoints != 0 || partialEvents != 0 || partialOutbox != 0 {
+		t.Fatalf("timed-out checkpoint=%d event=%d outbox=%d err=%v", partialCheckpoints, partialEvents, partialOutbox, err)
+	}
 
-	accepted, err := service.AcceptProgramReview(ctx, AcceptProgramReviewInput{
-		TenantID:                  "program-review-a",
-		ProgramID:                 program.Program.ID,
-		PrincipalID:               principalA,
-		ExpectedProgramVersion:    program.Program.Version,
-		ExpectedProjectionVersion: firstDigest.CurrentProjectionVersion,
-	})
+	blocker, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = blocker.Exec(ctx, `SELECT id FROM programs WHERE id=$1::uuid FOR UPDATE`, program.Program.ID); err != nil {
+		t.Fatal(err)
+	}
+	type reviewResult struct {
+		digest ProgramReviewDigest
+		err    error
+	}
+	result := make(chan reviewResult, 1)
+	go func() {
+		digest, e := service.AcceptProgramReview(ctx, AcceptProgramReviewInput{
+			TenantID:                  "program-review-a",
+			ProgramID:                 program.Program.ID,
+			PrincipalID:               principalA,
+			ExpectedProgramVersion:    program.Program.Version,
+			ExpectedProjectionVersion: firstDigest.CurrentProjectionVersion,
+		})
+		result <- reviewResult{digest, e}
+	}()
+	// The receipt time must describe the database write after the Program lock,
+	// not the earlier service-clock value captured before waiting.
+	waitUntil := time.Now().Add(3 * time.Second)
+	for {
+		var waiting bool
+		if err = pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE '%FOR UPDATE OF p%')`).Scan(&waiting); err != nil {
+			t.Fatal(err)
+		}
+		if waiting {
+			break
+		}
+		if time.Now().After(waitUntil) {
+			_ = blocker.Rollback(ctx)
+			t.Fatal("review did not reach the Program lock")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	var beforeRelease time.Time
+	if err = pool.QueryRow(ctx, `SELECT clock_timestamp()`).Scan(&beforeRelease); err != nil {
+		t.Fatal(err)
+	}
+	if err = blocker.Rollback(ctx); err != nil {
+		t.Fatal(err)
+	}
+	got := <-result
+	accepted, err := got.digest, got.err
 	if err != nil {
 		t.Fatal(err)
 	}
 	if accepted.State != "CURRENT" || accepted.Checkpoint == nil {
 		t.Fatalf("unexpected accepted digest: %#v", accepted)
+	}
+	if accepted.Checkpoint.AcceptedAt.Before(beforeRelease) {
+		t.Fatalf("checkpoint predates write boundary: %s < %s", accepted.Checkpoint.AcceptedAt, beforeRelease)
 	}
 
 	// Re-accepting the exact same actor-visible versions is idempotent rather
@@ -135,6 +209,16 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 	}
 	if reviewEventCount != 1 || reviewOutboxCount != 1 {
 		t.Fatalf("review checkpoint event/outbox counts = %d/%d, want 1/1", reviewEventCount, reviewOutboxCount)
+	}
+	var eventAt, outboxAt time.Time
+	var eventPayloadAt, outboxPayloadAt time.Time
+	if err := pool.QueryRow(ctx, `SELECT e.occurred_at, o.occurred_at, (e.payload->>'accepted_at')::timestamptz, (o.payload->>'accepted_at')::timestamptz FROM continuity_events e JOIN outbox_events o ON o.aggregate_id=e.aggregate_id AND o.event_type=e.event_type WHERE e.aggregate_type='PROGRAM_REVIEW' AND e.aggregate_id=$1::uuid`, accepted.Checkpoint.ID).Scan(&eventAt, &outboxAt, &eventPayloadAt, &outboxPayloadAt); err != nil {
+		t.Fatal(err)
+	}
+	for _, recordedAt := range []time.Time{eventAt, outboxAt, eventPayloadAt, outboxPayloadAt} {
+		if !recordedAt.Equal(accepted.Checkpoint.AcceptedAt) {
+			t.Fatalf("checkpoint and audit timestamp differ: %s != %s", recordedAt, accepted.Checkpoint.AcceptedAt)
+		}
 	}
 
 	// Tenant binding is database-enforced even if a caller tried to pair a

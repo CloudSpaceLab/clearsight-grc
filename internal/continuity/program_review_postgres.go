@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -32,11 +33,17 @@ func (r *PostgresRepository) LatestProgramReview(ctx context.Context, tenant, pr
 }
 
 func (r *PostgresRepository) RecordProgramReview(ctx context.Context, checkpoint ProgramReviewCheckpoint, event Event) (ProgramReviewCheckpoint, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return ProgramReviewCheckpoint{}, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		rollbackCtx, stop := context.WithTimeout(context.Background(), time.Second)
+		defer stop()
+		_ = tx.Rollback(rollbackCtx)
+	}()
 
 	var programVersion, projectedProgramVersion, projectionVersion int64
 	err = tx.QueryRow(ctx, `
@@ -68,13 +75,21 @@ func (r *PostgresRepository) RecordProgramReview(ctx context.Context, checkpoint
 		INSERT INTO program_review_checkpoints(
 			id,tenant_id,program_id,principal_id,program_version,projection_version,accepted_at
 		) VALUES(
-			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5,$6,$7
+			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5,$6,statement_timestamp()
 		)
 		ON CONFLICT(tenant_id,program_id,principal_id,program_version,projection_version) DO NOTHING
 		RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),program_id::text,principal_id::text,program_version,projection_version,accepted_at`,
-		checkpoint.ID, checkpoint.TenantID, checkpoint.ProgramID, checkpoint.PrincipalID, checkpoint.ProgramVersion, checkpoint.ProjectionVersion, checkpoint.AcceptedAt)
+		checkpoint.ID, checkpoint.TenantID, checkpoint.ProgramID, checkpoint.PrincipalID, checkpoint.ProgramVersion, checkpoint.ProjectionVersion)
 	inserted, scanErr := scanProgramReviewCheckpoint(row)
 	if scanErr == nil {
+		// Record the same database write-boundary time in the immutable receipt,
+		// continuity event and outbox payload after any lock wait.
+		event.OccurredAt = inserted.AcceptedAt
+		checkpoint.AcceptedAt = inserted.AcceptedAt
+		event.Payload, err = json.Marshal(checkpoint)
+		if err != nil {
+			return ProgramReviewCheckpoint{}, err
+		}
 		if err := insertContinuityEvent(ctx, tx, event); err != nil {
 			return ProgramReviewCheckpoint{}, err
 		}
