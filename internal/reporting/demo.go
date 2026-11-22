@@ -185,10 +185,12 @@ func installPostgresDemoBoundedStopRun(ctx context.Context, service *Service, re
 // request.
 func demoActorContext(ctx context.Context, scope ReportScope, principalID string, now time.Time) context.Context {
 	return identity.WithActor(ctx, identity.Actor{
-		TenantID:             scope.TenantID,
-		LegalEntityID:        scope.LegalEntityID,
-		PrincipalID:          principalID,
-		Kind:                 "PERSON",
+		TenantID:      scope.TenantID,
+		LegalEntityID: scope.LegalEntityID,
+		PrincipalID:   principalID,
+		Kind:          "PERSON",
+		// The demo installer reads its own sample privacy report definitions.
+		PermissionCodes:      []string{identity.PermissionPrivacyRead},
 		AuthenticationMethod: "demo",
 		AssuranceLevel:       "aal2",
 		SessionID:            "demo-report-install",

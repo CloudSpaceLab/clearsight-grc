@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -246,6 +247,10 @@ func assertPostgresDemoComposition(t *testing.T, services serviceSet, databaseUR
 	actor := identity.Actor{TenantID: identity.DurableDemoTenantID, LegalEntityID: identity.DurableDemoLegalEntityID,
 		PrincipalID: identity.DurableDemoPrincipalCRO, Kind: "PERSON", IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour)}
 	reportScope := reporting.ReportScope{TenantID: identity.DurableDemoTenantID, LegalEntityID: identity.DurableDemoLegalEntityID}
+	if _, err := services.Reporting.ListDefinitions(identity.WithActor(t.Context(), actor), reportScope, true); !errors.Is(err, reporting.ErrPrivacyReadForbidden) {
+		t.Fatalf("report list without privacy permission: got %v", err)
+	}
+	actor.PermissionCodes = []string{identity.PermissionPrivacyRead}
 	ctx := identity.WithActor(t.Context(), actor)
 	definitions, err := services.Reporting.ListDefinitions(ctx, reportScope, true)
 	if err != nil {
