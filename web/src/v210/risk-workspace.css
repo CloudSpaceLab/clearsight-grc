@@ -14,3 +14,42 @@
 .v-risk-linker { margin: 16px 0; } .v-risk-linker h3 { margin: 0; } .v-risk-linker button { justify-self: start; }
 .v-risk-linker button.v-primary { border-color: var(--v-button-primary-background); background: var(--v-button-primary-background); color: var(--v-button-primary-text); }
 .v-risk-linker [role="alert"] { color: var(--v-color-danger-text); }
+.v-risk-register .v-local-nav { flex-wrap: nowrap; overflow-x: auto; }
+.v-risk-register .v-local-nav a { flex: 0 0 auto; }
+.v-risk-register .v-risk-posture { margin-top: 24px; padding: 24px; }
+.v-risk-posture header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.v-risk-posture h2, .v-risk-insights h2, .v-risk-register-title h2 { margin: 0; color: var(--v-color-text); font-size: 16px; }
+.v-risk-posture header a { color: var(--v-color-action); font-size: 12px; font-weight: 700; text-decoration: none; }
+.v-risk-posture-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 24px 0; }
+.v-risk-posture-grid > div { display: flex; flex-direction: column; gap: 12px; padding: 8px 20px; border-left: 1px solid var(--v-color-border); }
+.v-risk-posture-grid > div:first-child { padding-left: 0; border-left: 0; }
+.v-risk-posture-grid span { color: #627998; font-size: 12px; font-weight: 600; }
+.v-risk-posture-grid strong { color: var(--v-color-text); font-size: 28px; line-height: 1.2; }
+.v-risk-posture-grid > div:nth-child(2) strong { color: #a5242c; }
+.v-risk-posture p, .v-risk-coverage p { margin: 0; color: #627998; font-size: 12px; }
+.v-risk-insights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 16px 0 24px; }
+.v-risk-breakdown-row { display: grid; grid-template-columns: minmax(105px, 1fr) minmax(60px, 1fr) 32px; align-items: center; gap: 12px; margin-top: 18px; font-size: 12px; }
+.v-risk-breakdown-row > strong { text-align: right; }
+.v-risk-bar { height: 7px; border-radius: 8px; overflow: hidden; background: #edf2f8; }
+.v-risk-bar i { display: block; height: 100%; border-radius: inherit; }
+.v-risk-bar .is-breached { background: #c0343d; } .v-risk-bar .is-approaching { background: #d29316; } .v-risk-bar .is-within { background: #19865e; } .v-risk-bar .is-unknown { background: #8394aa; }
+.v-risk-coverage-value { margin: 24px 0 8px; color: var(--v-color-action); font-size: 34px; font-weight: 700; }
+.v-risk-register-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 0 14px; }
+.v-risk-register-title span { color: #627998; font-size: 12px; }
+.v-risk-register .v-risk-search { margin-bottom: 16px; padding: 16px 20px; background: var(--v-panel-background); border: 1px solid var(--v-panel-border); border-radius: var(--v-panel-radius); }
+.v-risk-register-table th { background: #f5f8fc; }
+.v-program-table a.v-risk-open { display: inline-flex; justify-content: center; align-items: center; min-width: 52px; min-height: 44px; padding: 0 10px; border: 1px solid var(--v-button-secondary-border); border-radius: var(--v-button-radius); color: var(--v-button-secondary-text); font-size: 12px; font-weight: 600; }
+.v-risk-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 900px) {
+  .v-risk-register-table table, .v-risk-register-table tbody, .v-risk-register-table td { display: block; }
+  .v-risk-register-table thead { display: none; }
+  .v-risk-register-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--v-color-border); }
+  .v-program-table.v-risk-register-table td { padding: 0; border: 0; }
+  .v-risk-register-table td:first-child { grid-column: 1 / -1; }
+  .v-risk-register-table .v-mobile-label { display: block; margin-bottom: 3px; color: #7389a9; font-size: 11px; }
+}
+@media (max-width: 700px) {
+  .v-risk-posture-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .v-risk-posture-grid > div { padding-left: 0; border-left: 0; }
+  .v-risk-insights { grid-template-columns: 1fr; }
+}

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { RiskWorkspace } from "./RiskWorkspace";
 import { ApiError } from "../http";
@@ -9,6 +9,26 @@ vi.mock("../monitoringApi", () => monitoring);
 vi.mock("./FocusedSheet", () => ({ FocusedSheet: ({ children }: { children: React.ReactNode }) => <div role="dialog">{children}</div> }));
 const risk = { id: "risk/1", code: "R-01", name: "Service disruption", category: "Operational", statement: "Service may be unavailable", impact: "Delayed payments", status: "ACTIVE", version: 2 };
 beforeEach(() => { vi.resetAllMocks(); api.loadRiskIndicatorOperation.mockResolvedValue({ can_act: false }); api.listRisks.mockResolvedValue({ items: [{ risk }] }); api.getRisk.mockResolvedValue({ risk, assessments: [], appetite: [] }); });
+it("shows loaded risk posture without treating stale assessments as current", async () => {
+  api.listRisks.mockResolvedValue({ items: [
+    { risk, latest_assessment: { risk_version: 2, appetite_position: "BREACHED", appetite_statement_id: "current" }, active_appetite: { id: "current" } },
+    { risk: { ...risk, id: "risk-2", name: "Payment delay" }, latest_assessment: { risk_version: 1, appetite_position: "BREACHED", appetite_statement_id: "current" }, active_appetite: { id: "current" } },
+  ], next_cursor: "next" });
+  render(<RiskWorkspace/>);
+  expect(await screen.findByRole("link", { name: "Service disruption" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Risk appetite" })).toBeTruthy();
+  expect(screen.getByText("Counts cover loaded risks.")).toBeTruthy();
+  const posture = within(screen.getByRole("region", { name: "Risk appetite" }));
+  expect(posture.getByText("Above appetite").parentElement?.textContent).toContain("1");
+  expect(posture.getByText("Unknown positions").parentElement?.textContent).toContain("1");
+  expect(screen.getByText("1 of 2 loaded risks")).toBeTruthy();
+});
+it("does not show zero posture counts when risk data is unavailable", async () => {
+  api.listRisks.mockRejectedValue(new Error("offline"));
+  render(<RiskWorkspace/>);
+  expect(await screen.findByRole("alert")).toBeTruthy();
+  expect(within(screen.getByRole("region", { name: "Risk appetite" })).getByText("Above appetite").parentElement?.textContent).toContain("—");
+});
 it("clears the risk register if access is denied during pagination", async () => {
   api.listRisks.mockResolvedValueOnce({ items: [{ risk }], next_cursor: "next" }).mockRejectedValueOnce(new ApiError(403, "Denied"));
   render(<RiskWorkspace/>);
@@ -24,6 +44,36 @@ it("does not append a risk page that repeats its cursor", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Load more" }));
   expect((await screen.findByRole("alert")).textContent).toContain("More risks unavailable.");
   expect(screen.getAllByText("Service disruption")).toHaveLength(1);
+});
+it("does not double-count repeated risks or accept a cursor cycle", async () => {
+  const other = { ...risk, id: "risk-2", name: "Payment delay" };
+  api.listRisks.mockResolvedValueOnce({ items: [{ risk }], next_cursor: "a" }).mockResolvedValueOnce({ items: [{ risk }, { risk: other }], next_cursor: "b" }).mockResolvedValueOnce({ items: [{ risk: { ...risk, id: "risk-3", name: "Repeated page" } }], next_cursor: "a" });
+  render(<RiskWorkspace/>);
+  await screen.findByRole("link", { name: "Service disruption" });
+  fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+  await screen.findByRole("link", { name: "Payment delay" });
+  expect(screen.getAllByRole("link", { name: "Service disruption" })).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("More risks unavailable.");
+  expect(screen.queryByText("Repeated page")).toBeNull();
+});
+it("clears the register when another page returns a conflicting risk revision", async () => {
+  api.listRisks.mockResolvedValueOnce({ items: [{ risk }], next_cursor: "next" }).mockResolvedValueOnce({ items: [{ risk: { ...risk, version: 3 } }] });
+  render(<RiskWorkspace/>);
+  await screen.findByRole("link", { name: "Service disruption" });
+  fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("Risks unavailable.");
+  expect(screen.queryByRole("link", { name: "Service disruption" })).toBeNull();
+  expect(within(screen.getByRole("region", { name: "Risk appetite" })).getByText("Loaded risks").parentElement?.textContent).toContain("—");
+});
+it("clears the register when a repeated risk has a different assessment", async () => {
+  const appetite = { id: "current", version: 1, status: "ACTIVE" };
+  api.listRisks.mockResolvedValueOnce({ items: [{ risk, latest_assessment: { id: "a", risk_version: 2, appetite_position: "WITHIN", appetite_statement_id: "current" }, active_appetite: appetite }], next_cursor: "next" }).mockResolvedValueOnce({ items: [{ risk, latest_assessment: { id: "b", risk_version: 2, appetite_position: "BREACHED", appetite_statement_id: "current" }, active_appetite: appetite }] });
+  render(<RiskWorkspace/>);
+  await screen.findByRole("link", { name: "Service disruption" });
+  fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("Risks unavailable.");
+  expect(screen.queryByRole("link", { name: "Service disruption" })).toBeNull();
 });
 it("offers loss navigation only with global oversight access", async () => {
   const view = render(<RiskWorkspace/>);
@@ -60,7 +110,13 @@ it("does not report an appetite position when the assessment uses an outdated ap
   api.listRisks.mockResolvedValue({ items: [{ risk, latest_assessment: { risk_version: 2, appetite_position: "WITHIN", appetite_statement_id: "old" }, active_appetite: { id: "current" } }] });
   render(<RiskWorkspace/>);
   expect(await screen.findByText("Appetite unknown")).toBeTruthy();
-  expect(screen.queryByText("Within appetite")).toBeNull();
+  expect(within(screen.getByRole("row", { name: /Service disruption/ })).queryByText("Within appetite")).toBeNull();
+});
+it("does not treat missing risk and assessment versions as a current match", async () => {
+  api.listRisks.mockResolvedValue({ items: [{ risk: { ...risk, version: undefined }, latest_assessment: { appetite_position: "WITHIN", appetite_statement_id: "current" }, active_appetite: { id: "current" } }] });
+  render(<RiskWorkspace/>);
+  expect(await screen.findByText("Appetite unknown")).toBeTruthy();
+  expect(within(screen.getByRole("row", { name: /Service disruption/ })).queryByText("Within appetite")).toBeNull();
 });
 it("shows linked control and indicator details with their recorded states", async () => {
   api.getRisk.mockResolvedValue({ risk, assessments: [], appetite: [], control_details_complete: true, indicator_details_complete: true, control_details: [{ link: { id: "control-1" }, definition: { name: "Review access" }, implementation_status: "IMPLEMENTED", program_name: "Access assurance" }], indicator_details: [{ link: { id: "indicator-1" }, check_name: "Privileged accounts reviewed", state: "BREACH" }] });

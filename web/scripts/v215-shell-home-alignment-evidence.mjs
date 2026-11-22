@@ -15,6 +15,9 @@ try {
       const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: "reduce" });
       await page.goto(`${base}${admin ? "?fixture=admin-dashboard" : ""}#/home`, { waitUntil: "domcontentloaded" });
       await page.getByRole("heading", { name: admin ? "Dashboard" : "Overview", exact: true }).waitFor();
+      const priorityIssue = page.getByRole("link", { name: "Open Review privileged access exceptions" });
+      await priorityIssue.waitFor();
+      assert.equal(await priorityIssue.getAttribute("href"), "#/work/issues/sample-issue");
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `document overflow at ${width}px`);
       const cdp = await page.context().newCDPSession(page);
       const { root } = await cdp.send("DOM.getDocument");

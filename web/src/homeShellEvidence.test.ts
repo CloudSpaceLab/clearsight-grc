@@ -35,3 +35,19 @@ it("keeps the administrator role sample explicit", async () => {
   expect(context.actor.role_codes).toEqual(["SYSTEM_ADMIN"]);
   expect(context.mode).toBe("sample");
 });
+
+it("keeps the work count snapshot consistent with its complete sample page", async () => {
+  vi.stubEnv("VITE_STATIC_DEMO", "true");
+  vi.stubEnv("VITE_UI_EVIDENCE", "true");
+  installFreshEvidence();
+  const counts = await (await fetch("/api/v1/work/assignment-counts")).json();
+  const page = await (await fetch("/api/v1/work/assignments")).json();
+  expect(page.has_more).toBe(false);
+  expect(counts.as_of).toBe(page.as_of);
+  expect(counts.total).toBe(page.items.length);
+  const asOf = Date.parse(counts.as_of);
+  const deadlines = page.items.map((item: { due_at?: string }) => item.due_at ? Date.parse(item.due_at) : undefined);
+  expect(counts.overdue).toBe(deadlines.filter((date: number | undefined) => date !== undefined && date < asOf).length);
+  expect(counts.due_soon).toBe(deadlines.filter((date: number | undefined) => date !== undefined && date >= asOf && date <= asOf + 7 * 86_400_000).length);
+  expect(counts.undated).toBe(deadlines.filter((date: number | undefined) => date === undefined).length);
+});

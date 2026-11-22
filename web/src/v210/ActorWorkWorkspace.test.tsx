@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ActorWorkWorkspace } from "./ActorWorkWorkspace";
 import { ApiError } from "../http";
-const api = vi.hoisted(() => ({ loadActorWorkPage: vi.fn() }));
+const api = vi.hoisted(() => ({ loadActorWorkPage: vi.fn(), loadActorWorkDueCounts: vi.fn() }));
 const approvalSources = vi.hoisted(() => ({ forms: vi.fn(), reviews: vi.fn() }));
 vi.mock("../api", () => api);
 vi.mock("../formsApi", () => ({ loadFormTemplatePage: approvalSources.forms }));
@@ -10,7 +10,39 @@ vi.mock("./programResponseReviewsApi", () => ({ loadProgramResponseReviews: appr
 const context = { tenant: { id: "bank", name: "Bank" }, legal_entity: { id: "entity", name: "Entity" }, actor: { id: "person", name: "Person" }, mode: "LIVE" };
 const item = (id: string) => ({ id, title: `Review ${id}`, type: "REVIEW", state: "READY", owner: "Person", due_at: "2026-12-01T00:00:00Z" });
 const page = { scope: { tenant_id: "bank", legal_entity_id: "entity", principal_id: "person" }, coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE", as_of: "2026-11-21T10:00:00Z", items: [item("one")], has_more: true, next_cursor: "next" };
-beforeEach(() => { vi.resetAllMocks(); });
+beforeEach(() => { vi.resetAllMocks(); api.loadActorWorkDueCounts.mockRejectedValue(new Error("unavailable")); });
+it("shows assignment counts only from a valid actor-scoped snapshot", async () => {
+  api.loadActorWorkPage.mockResolvedValue(page);
+  api.loadActorWorkDueCounts.mockResolvedValue({ ...page, count_basis: "SOURCE_SNAPSHOT", total: 7, overdue: 2, due_soon: 3, undated: 1 });
+  render(<ActorWorkWorkspace context={context}/>);
+  const counts = await screen.findByRole("region", { name: "Workflow assignment counts" });
+  expect(counts.textContent).toContain("7"); expect(counts.textContent).toContain("2"); expect(counts.textContent).toContain("3");
+  expect(counts.textContent).toContain("As of");
+});
+it("withholds assignment counts from another actor", async () => {
+  api.loadActorWorkPage.mockResolvedValue(page);
+  api.loadActorWorkDueCounts.mockResolvedValue({ ...page, scope: { ...page.scope, principal_id: "other" }, count_basis: "SOURCE_SNAPSHOT", total: 89, overdue: 0, due_soon: 0, undated: 0 });
+  render(<ActorWorkWorkspace context={context}/>);
+  expect(await screen.findByText("Assignment counts unavailable.")).toBeTruthy();
+  expect(screen.queryByText("89")).toBeNull();
+});
+it("clears the prior actor's assignment counts immediately when scope changes", async () => {
+  api.loadActorWorkPage.mockResolvedValue(page);
+  api.loadActorWorkDueCounts.mockResolvedValueOnce({ ...page, count_basis: "SOURCE_SNAPSHOT", total: 7, overdue: 2, due_soon: 3, undated: 1 }).mockReturnValueOnce(new Promise(() => {}));
+  const view = render(<ActorWorkWorkspace context={context}/>);
+  expect(await screen.findByText("7")).toBeTruthy();
+  view.rerender(<ActorWorkWorkspace context={{ ...context, actor: { ...context.actor, id: "other" } }}/>);
+  expect(screen.queryByText("7")).toBeNull();
+});
+it("labels due urgency against the source timestamp and leaves invalid deadlines unclassified", async () => {
+  api.loadActorWorkPage.mockResolvedValue({ ...page, items: [{ ...item("overdue"), due_at: "2026-11-20T10:00:00Z" }, { ...item("soon"), due_at: "2026-11-25T10:00:00Z" }, { ...item("unknown"), due_at: "invalid" }], has_more: false, next_cursor: undefined });
+  render(<ActorWorkWorkspace context={context}/>);
+  const overdue = (await screen.findByText("Review overdue")).closest("tr")!;
+  const soon = screen.getByText("Review soon").closest("tr")!;
+  const unknown = screen.getByText("Review unknown").closest("tr")!;
+  expect(overdue.textContent).toContain("Overdue"); expect(soon.textContent).toContain("Due soon");
+  expect(unknown.textContent).not.toContain("Overdue"); expect(unknown.textContent).not.toContain("Due soon");
+});
 it.each([
   ["missing scope", { ...page, scope: undefined }],
   ["coverage", { ...page, coverage: "ALL_WORK" }],

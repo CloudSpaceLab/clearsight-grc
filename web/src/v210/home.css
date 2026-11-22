@@ -6,6 +6,9 @@
 .v-home .v-home-grid { grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); align-items: start; }
 .v-home-side { min-width: 0; display: grid; gap: 18px; }
 .v-home-side .v-home-assignments, .v-home-side .v-home-indicators { margin: 0; }
+.v-home-priorities li > div:first-child { min-width: 0; }
+.v-home-priority-actions { display: flex; flex: none; align-items: center; gap: 10px; }
+.v-home-priority-actions a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--v-button-primary-background); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .v-home-assignments { margin: 16px 0; }
 .v-home-assignments header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .v-home-assignments h2 { margin: 0; }
@@ -18,3 +21,4 @@
 .v-home-indicator--watch { color: #855500; background: #fff4d7; }
 .v-home-indicator--normal { color: #186642; background: #e9f7ef; }
 @media (max-width: 900px) { .v-home .v-home-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .v-home-priorities li { align-items: flex-start; flex-wrap: wrap; } .v-home-priority-actions { margin-left: auto; } }

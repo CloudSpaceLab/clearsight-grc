@@ -128,6 +128,25 @@ it("keeps the personal overview for non-administrative roles", async () => {
   expect(screen.queryByRole("heading", { name: "Dashboard" })).toBeNull();
 });
 
+it("opens a priority issue by its exact identifier", async () => {
+  const data = payload();
+  sources.oversight.mockResolvedValue({ ...data.oversight, interventions: [{ target_type: "MATTER", target_id: "issue/one", title: "Review access exceptions", owner_name: "Ada", state: "OPEN", priority: 4 }] });
+  render(<Home context={context}/>);
+  expect((await screen.findByRole("link", { name: "Open Review access exceptions" })).getAttribute("href")).toBe("#/work/issues/issue%2Fone");
+});
+
+it("does not offer an issue link for unknown target types or invalid identifiers", async () => {
+  const data = payload();
+  sources.oversight.mockResolvedValue({ ...data.oversight, interventions: [
+    { target_type: "PROGRAM", target_id: "program-1", title: "Program item", state: "OPEN", priority: 4 },
+    { target_type: "MATTER", target_id: "bad\nidentifier", title: "Invalid issue", state: "OPEN", priority: 4 },
+  ] });
+  render(<Home context={context}/>);
+  expect(await screen.findByText("Program item")).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Open Program item" })).toBeNull();
+  expect(screen.queryByRole("link", { name: "Open Invalid issue" })).toBeNull();
+});
+
 it.each(["SYSTEM_ADMIN", "SUPER_ADMIN", "GRC_ADMIN", "GRC_ADMINISTRATOR"])("uses the administrative presentation for %s", async (role) => {
   render(<Home context={{ ...context, actor: { ...context.actor, role_codes: [role] } }}/>);
   expect(await screen.findByRole("heading", { name: "Dashboard" })).toBeTruthy();

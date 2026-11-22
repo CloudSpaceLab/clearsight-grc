@@ -23,7 +23,7 @@ export function installFreshEvidence() {
   const bodies: Record<string, unknown> = {
     "/api/v1/session/status": { authenticated: true, demo_login_available: false },
     "/api/v1/context": { tenant: { id: "sample-bank", name: "Sample Bank" }, legal_entity: { id: "sample-entity", name: "Sample Bank" }, actor: { id: "sample-person", name: "Ada Okafor", ...(adminDashboardFixture ? { role_codes: ["SYSTEM_ADMIN"] } : {}) }, mode: "sample", capabilities: { oversight_read: true } },
-    "/api/v1/work/assignment-counts": { scope: { tenant_id: "sample-bank", legal_entity_id: "sample-entity", principal_id: "sample-person" }, coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "SOURCE_SNAPSHOT", as_of: "2026-11-20T10:00:00Z", total: 5, overdue: 1, due_soon: 2, undated: 1 },
+    "/api/v1/work/assignment-counts": { scope: { tenant_id: "sample-bank", legal_entity_id: "sample-entity", principal_id: "sample-person" }, coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "SOURCE_SNAPSHOT", as_of: "2026-11-20T10:00:00Z", total: 2, overdue: 0, due_soon: 2, undated: 0 },
     "/api/v1/work/assignments": { scope: { tenant_id: "sample-bank", legal_entity_id: "sample-entity", principal_id: "sample-person" }, coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE", as_of: "2026-11-20T10:00:00Z", has_more: false, items: [
       { id: "sample-work-1", title: "Review the sample access assessment", type: "REVIEW", state: "READY", owner: "Ada Okafor", due_at: "2026-11-25T10:00:00Z", ...(matterWorkFixture ? { action_target_type: "MATTER", action_target_id: "sample-issue" } : {}) },
       { id: "sample-work-2", title: "Confirm the sample vendor audit report", type: "REVIEW", state: "IN_PROGRESS", owner: "Ada Okafor", due_at: "2026-11-27T10:00:00Z" },
