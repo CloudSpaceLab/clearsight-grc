@@ -8,9 +8,10 @@ describe("bank assessment requests", () => {
     vi.stubGlobal("fetch", fetcher);
     await loadResponseAssessment("response/a");
     expect(fetcher.mock.calls[0]![0]).toBe("/api/v1/forms/responses/response%2Fa/assessment");
-    await recordResponseAssessment("response/a", { expected_version: 3, decisions: [{ field_id: "proof", outcome_id: "gap", rationale: "Scope missing" }] });
+    await recordResponseAssessment("response/a", { expected_version: 3, decisions: [{ field_id: "proof", outcome_id: "gap", rationale: "Scope missing" }] }, "00000000-0000-4000-8000-000000000001");
     const init = fetcher.mock.calls[1]![1];
     expect(init.credentials).toBe("include");
+    expect(new Headers(init.headers).get("Idempotency-Key")).toBe("00000000-0000-4000-8000-000000000001");
     expect(JSON.parse(init.body)).toEqual({ expected_version: 3, decisions: [{ field_id: "proof", outcome_id: "gap", rationale: "Scope missing" }] });
   });
 });
