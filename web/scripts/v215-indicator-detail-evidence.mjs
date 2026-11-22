@@ -30,6 +30,7 @@ try {
     await dialog.getByRole('table', { name: 'Sample backup failures evaluation history' }).waitFor();
     assert.equal(await dialog.getByText('Range: 1–2').count(), 1);
     assert.equal(await dialog.getByRole('link', { name: 'View issue ISS-001' }).getAttribute('href'), '#/work/issues/sample-issue');
+    assert.equal(await dialog.getByText('Issue status: Assessment').count(), 1);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.equal(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth), true);
     await page.screenshot({ path: path.join(output, `history-${width}.png`), fullPage: true });

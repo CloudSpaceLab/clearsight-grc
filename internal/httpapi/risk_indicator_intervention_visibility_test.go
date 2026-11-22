@@ -18,10 +18,7 @@ import (
 func TestRiskIndicatorReadsEnforceInterventionVisibility(t *testing.T) {
 	fixture := newLinkedIssueFixture(t)
 	ctx := t.Context()
-	matter, err := fixture.continuity.CreateMatter(continuity.WithTrustedSystemScope(ctx), continuity.CreateMatterInput{TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterControlGap, Priority: 3, Title: "Restricted issue", Summary: "Restricted issue", Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["program-owner"]}`), TriggerKey: "monitoring-check-adverse:" + fixture.check.ID, ProgramID: fixture.program.Program.ID})
-	if err != nil {
-		t.Fatal(err)
-	}
+
 	svc := risk.NewService(risk.NewMemoryRepository())
 	svc.ConfigureIndicatorLinkValidator(func(_ context.Context, _ risk.Scope, _ string, _ int64) (string, error) {
 		return fixture.program.Program.ID, nil
@@ -34,10 +31,25 @@ func TestRiskIndicatorReadsEnforceInterventionVisibility(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	paths := []string{"/api/v1/risks/" + created.ID, "/api/v1/risk-indicators"}
+	before := map[string]string{}
+	baselineHandler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "other-reader", "entity-a", "CRO"), Risk: svc, Monitoring: fixture.monitoring, Continuity: fixture.continuity})
+	for _, path := range paths {
+		res := httptest.NewRecorder()
+		baselineHandler.ServeHTTP(res, httptest.NewRequest(http.MethodGet, path, nil))
+		if res.Code != http.StatusOK {
+			t.Fatalf("baseline %s: %d %s", path, res.Code, res.Body.String())
+		}
+		before[path] = res.Body.String()
+	}
+	matter, err := fixture.continuity.CreateMatter(continuity.WithTrustedSystemScope(ctx), continuity.CreateMatterInput{TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterControlGap, Priority: 3, Title: "Restricted issue", Summary: "Restricted issue", Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["program-owner"]}`), TriggerKey: "monitoring-check-adverse:" + fixture.check.ID, ProgramID: fixture.program.Program.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, principal := range []string{"program-owner", "other-reader"} {
 		t.Run(principal, func(t *testing.T) {
 			handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", principal, "entity-a", "CRO"), Risk: svc, Monitoring: fixture.monitoring, Continuity: fixture.continuity})
-			for _, path := range []string{"/api/v1/risks/" + created.ID, "/api/v1/risk-indicators"} {
+			for _, path := range paths {
 				res := httptest.NewRecorder()
 				handler.ServeHTTP(res, httptest.NewRequest(http.MethodGet, path, nil))
 				if res.Code != http.StatusOK {
@@ -47,12 +59,23 @@ func TestRiskIndicatorReadsEnforceInterventionVisibility(t *testing.T) {
 				if !strings.Contains(body, fixture.check.ID) {
 					t.Fatalf("indicator absent: %s", body)
 				}
+				if strings.HasPrefix(path, "/api/v1/risks/") && !strings.Contains(body, `"indicator_details_complete":true`) {
+					t.Fatalf("detail completeness changed: %s", body)
+				}
+				if path == "/api/v1/risk-indicators" && !strings.Contains(body, `"complete":true`) {
+					t.Fatalf("population completeness changed: %s", body)
+				}
 				if principal == "program-owner" {
 					if !strings.Contains(body, `"intervention"`) || !strings.Contains(body, matter.Matter.ID) || !strings.Contains(body, matter.Matter.Reference) {
 						t.Fatalf("visible intervention missing: %s", body)
 					}
-				} else if strings.Contains(body, `"intervention"`) || strings.Contains(body, matter.Matter.ID) || strings.Contains(body, matter.Matter.Reference) {
-					t.Fatalf("intervention metadata exposed: %s", body)
+				} else {
+					if strings.Contains(body, `"intervention"`) || strings.Contains(body, matter.Matter.ID) || strings.Contains(body, matter.Matter.Reference) {
+						t.Fatalf("intervention metadata exposed: %s", body)
+					}
+					if body != before[path] {
+						t.Fatalf("hidden and absent responses differ for %s: before=%s after=%s", path, before[path], body)
+					}
 				}
 			}
 		})
