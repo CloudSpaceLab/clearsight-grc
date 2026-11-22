@@ -3,7 +3,6 @@ package httpapi
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -73,35 +72,6 @@ func (a *API) formDistributionAccessService(w http.ResponseWriter) (*evidence.Di
 		return nil, false
 	}
 	return a.deps.FormDistributionAccess, true
-}
-func (a *API) listFormDistributions(w http.ResponseWriter, r *http.Request) {
-	service, ok := a.formDistributionService(w)
-	if !ok {
-		return
-	}
-	actor, ok := distributionActor(w, r)
-	if !ok {
-		return
-	}
-	legalEntityID, ok := distributionLegalEntity(w, r, actor, r.URL.Query().Get("legal_entity_id"))
-	if !ok {
-		return
-	}
-	limit := 25
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		value, err := strconv.Atoi(raw)
-		if err != nil || value < 1 || value > 100 {
-			httpx.WriteError(w, http.StatusBadRequest, "invalid_distribution_filter", "Choose a page size from 1 to 100 distributions.")
-			return
-		}
-		limit = value
-	}
-	page, err := service.List(r.Context(), evidence.DistributionListQuery{TenantID: actor.TenantID, LegalEntityID: legalEntityID, Status: evidence.DistributionStatus(strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("status")))), Limit: limit, Cursor: strings.TrimSpace(r.URL.Query().Get("cursor"))})
-	if err != nil {
-		writeFormDistributionError(w, err)
-		return
-	}
-	httpx.WriteJSON(w, http.StatusOK, distributionPageDTO(page))
 }
 func (a *API) createFormDistribution(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.formDistributionService(w)

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,10 +19,12 @@ func TestDistributionReadsFailClosedBeforeRepositoryAccess(t *testing.T) {
 	api := &API{deps: Dependencies{FormDistributions: evidence.NewDistributionService(nil)}}
 	want := map[string]bool{"/api/v1/forms/distributions": false, "/api/v1/forms/distributions/{id}": false, "/api/v1/forms/distributions/{id}/responses": false}
 	for _, route := range api.formDistributionRoutes() {
-		if _, ok := want[route.Path]; !ok || route.Method != http.MethodGet {
+		if route.Method != http.MethodGet || (route.Path != "/api/v1/forms/distributions" && !strings.HasPrefix(route.Path, "/api/v1/forms/distributions/")) {
 			continue
 		}
-		want[route.Path] = true
+		if _, expected := want[route.Path]; expected {
+			want[route.Path] = true
+		}
 		r := httptest.NewRequest(http.MethodGet, "/api/v1/forms/distributions/test", nil)
 		r.SetPathValue("id", "test")
 		r = r.WithContext(identity.WithActor(r.Context(), identity.Actor{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "person", Kind: "PERSON", ExpiresAt: time.Now().Add(time.Hour)}))
