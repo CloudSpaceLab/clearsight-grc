@@ -645,6 +645,15 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertDelegateReplay("segregation removed", true)
+	assertDelegateWriteRace("reviewer deactivated at write", func() error {
+		_, e := pool.Exec(ctx, `UPDATE principals SET status='INACTIVE' WHERE tenant_id=$1::uuid AND id=$2::uuid`, tenant, delegate)
+		return e
+	})
+	assertDelegateReplay("inactive reviewer", false)
+	if _, err = pool.Exec(ctx, `UPDATE principals SET status='ACTIVE' WHERE tenant_id=$1::uuid AND id=$2::uuid`, tenant, delegate); err != nil {
+		t.Fatal(err)
+	}
+	assertDelegateReplay("reviewer reactivated", true)
 	assertDelegateWriteRace("delegation revoked at write", func() error {
 		_, e := pool.Exec(ctx, `UPDATE delegations SET status='REVOKED' WHERE tenant_id=$1::uuid AND to_principal_id=$2::uuid`, tenant, delegate)
 		return e
