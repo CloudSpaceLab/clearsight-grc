@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { FreshApp } from "./FreshApp";
 
 vi.mock("../api", () => ({ loadSessionStatus: vi.fn(async () => ({ authenticated: true })), loadContext: vi.fn(async () => ({ tenant: { id: "t", name: "Bank" }, legal_entity: { id: "e", name: "Bank" }, actor: { id: "a", name: "Ada" }, capabilities: {} })) }));
+vi.mock("./Home", () => ({ Home: () => <h1>Home</h1> }));
 vi.mock("./NotificationPreferences", () => ({ NotificationPreferences: ({scope}: {scope:{tenant:string;actor:string}}) => <p>Email preferences: {scope.tenant} {scope.actor}</p> }));
 vi.mock("./Vendors", () => ({ Vendors: ({ context, relationshipId, assessmentId }: { context: { legal_entity: { id: string } }; relationshipId?: string; assessmentId?: string }) => <><p>Vendor route: {relationshipId} {assessmentId}</p><p>Vendor scope: {context.legal_entity.id}</p></> }));
 vi.mock("./Responses", () => ({ Responses: ({ id }: { id?: string }) => <p>Response route: {id}</p> }));
