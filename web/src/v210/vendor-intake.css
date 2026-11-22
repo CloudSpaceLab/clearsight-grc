@@ -5,3 +5,11 @@
 .v-intake .v-intake-candidates a { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; border: 1px solid #dce7f5; border-radius: 8px; background: #f5f8fd; color: #18335e; overflow-wrap: anywhere; }
 .v-intake-edit { display: flex; flex-wrap: wrap; gap: 8px; }
 .v-intake-edit button, .v-intake > button { min-height: 44px; padding: 0 14px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
+.v-vendor-intake-progress { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 720px; gap: 8px; padding: 0; margin: 0 0 20px; list-style: none; }
+.v-vendor-intake-progress li { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 48px; color: #627b9f; font-size: 13px; font-weight: 600; }
+.v-vendor-intake-progress li span { display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px; border: 1px solid #dce7f5; border-radius: 50%; background: #fff; color: #536c90; }
+.v-vendor-intake-progress li.is-current { color: #173866; }
+.v-vendor-intake-progress li.is-current span { border-color: #246cf0; background: #246cf0; color: #fff; }
+.v-vendor-intake-progress li.is-complete span { border-color: #bcd3f7; background: #e8f1ff; color: #246cf0; }
+.v-vendor-intake-form { padding: 24px; }
+@media (max-width: 420px) { .v-vendor-intake-progress { gap: 4px; } .v-vendor-intake-progress li { align-items: flex-start; flex-direction: column; gap: 6px; font-size: 12px; } .v-vendor-intake-form { padding: 18px; } }

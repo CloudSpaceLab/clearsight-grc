@@ -96,6 +96,15 @@ it("shows the exact answers and records an authorized versioned review", async (
   await vi.waitFor(() => expect(review.recordResponseReview).toHaveBeenCalledWith("revision-1", { expected_version: 4, decision: "REVIEWED", comment: "" }, expect.any(String)));
 });
 
+it("keeps submitted answers and independent review in distinct labelled regions", async () => {
+  render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
+  const answers = await screen.findByRole("heading", {name:"Answers"});
+  const reviewRegion = screen.getByRole("complementary", {name:"Response review"});
+  expect(answers.closest(".v-response-review-main")).toBeTruthy();
+  expect(reviewRegion.contains(screen.getByRole("heading", {name:"Review"}))).toBe(true);
+  expect(reviewRegion.contains(screen.getByLabelText("Review decision"))).toBe(true);
+});
+
 it("does not permit review of an earlier revision or without reviewer authority", async () => {
   responses.loadCompletedResponse.mockResolvedValue({ response: { ...summary, current: false }, revision: { id: "revision-1", current: false }, answers: [], documents: [] });
   review.loadResponseReviews.mockResolvedValue({ version: 1, may_review: true, items: [] });

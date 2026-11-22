@@ -23,7 +23,7 @@ export function Frameworks() {
     const token = ++generation.current; moreLock.current = false;
     setState("loading"); setItems([]); setSelected(undefined); setAdopting(false); setCursor(""); setMoreError(false); setBusy(false);
     loadFrameworkEditionPage(jurisdiction, "").then((page) => {
-      if (token === generation.current) { setItems(page.items); setCursor(page.next_after_id); setState("ready"); }
+      if (token === generation.current) { setItems(page.items); setSelected(page.items[0]?.id); setCursor(page.next_after_id); setState("ready"); }
     }).catch(() => { if (token === generation.current) setState("error"); });
     return () => { generation.current++; };
   }, [jurisdiction, attempt]);
@@ -48,7 +48,7 @@ export function Frameworks() {
     {state === "loading" && <p role="status">Loading framework editions…</p>}
     {state === "error" && <div className="v-panel"><p role="alert">Framework editions unavailable.</p><button onClick={() => setAttempt((value) => value + 1)}>Try again</button></div>}
     {state === "ready" && <div className="v-framework-layout"><div>
-      {items.length === 0 ? <div className="v-panel"><p>No published editions found for {jurisdiction}.</p></div> : filtered.length === 0 ? <div className="v-panel"><p>No loaded editions match this search.</p></div> : <ul className="v-framework-list">{filtered.map((item) => <li key={item.id}><button type="button" disabled={adoptionPending} aria-pressed={selected === item.id} onClick={() => { setSelected(item.id); setAdopting(false); }}><strong>{item.title}</strong><span>{item.publisher_code} · {item.edition_code}</span><small>{item.jurisdiction}</small></button></li>)}</ul>}
+      {items.length === 0 ? <div className="v-panel"><p>No published editions found for {jurisdiction}.</p></div> : filtered.length === 0 ? <div className="v-panel"><p>No loaded editions match this search.</p></div> : <ul className="v-framework-list">{filtered.map((item) => <li key={item.id}><button type="button" disabled={adoptionPending} aria-pressed={selected === item.id} onClick={() => { setSelected(item.id); setAdopting(false); }}><span className="v-framework-card-heading"><span className="v-framework-monogram" aria-hidden="true">{item.framework_code.slice(0, 2).toUpperCase()}</span><span className="v-framework-card-title"><strong>{item.title}</strong><span>{item.publisher_code} · {item.edition_code}</span></span><span className="v-framework-chevron" aria-hidden="true">›</span></span><small>Jurisdiction · {item.jurisdiction}</small></button></li>)}</ul>}
       {moreError && <p role="alert">More editions unavailable. Try again.</p>}
       {cursor && <button type="button" className="v-framework-more" disabled={busy} onClick={() => void more()}>{busy ? "Loading…" : "Load more editions"}</button>}
     </div><aside className="v-panel v-framework-detail" aria-label="Framework edition details"><h2>{detail?.title ?? "Edition details"}</h2>{detail ? <>

@@ -1,0 +1,5 @@
+# V2.15 dashboard coverage
+
+The reference dashboard places a coverage panel alongside priorities. The admin Dashboard uses the existing oversight projection's issue population, exclusions and unknowns for this panel. The included count is the population less excluded and unknown records; it is not a compliance score. A percentage is displayed only when all counts are valid and the population is nonzero. Missing, inconsistent or empty data never produces an invented percentage. The projection timestamp and freshness are displayed separately from other dashboard measures.
+
+Reference: `clearsight-v2.15/assets/scoped-analytics.js`, SHA-256 `2035ea855021d07a86f59f0e43e5636271ea2c2a9f92b0fdc6eb4193ffc63154`. The previous Dashboard renders are in `docs/evidence/2026-11-22-v215-shell-home-alignment/`; the updated synthetic renders and limitations are in `docs/evidence/2026-11-22-v215-home-coverage-review/`. The panel does not establish parity for assessment targets, branch comparisons or reporting confidence, for which the existing authorized response does not supply equivalent data.

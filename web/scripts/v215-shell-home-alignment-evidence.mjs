@@ -27,6 +27,11 @@ try {
       assert.equal(nodes[0]?.description?.value, "Ada Okafor", `actor description missing at ${width}px`);
       await cdp.detach();
       await page.screenshot({ path: path.join(output, `${admin ? "dashboard" : "overview"}-${width}.png`), fullPage: true });
+      await page.evaluate(() => {
+        document.querySelector(".v-home-priorities strong").textContent = "PrivilegedAccessExceptionRequiringImmediateAssessmentAcrossMultipleBankingBusinessUnits";
+        document.querySelector(".v-home-indicators strong").textContent = "IndicatorForBusinessCriticalInfrastructureAvailabilityAndOperationalContinuity";
+      });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `long dashboard content overflows at ${width}px`);
       if (width === 768) {
         for (const name of ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Documents", "Work & Approvals"]) {
           await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: admin && name === "Home" ? "Dashboard" : name, exact: true }).waitFor();

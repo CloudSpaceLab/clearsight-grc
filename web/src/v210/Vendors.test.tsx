@@ -332,3 +332,14 @@ it("accepts existing-vendor results in the verified tenant UUID scope", async ()
   fireEvent.click(screen.getByRole("button", { name: "Check existing vendors" }));
   expect(await screen.findByRole("link", { name: "Atlas Ltd · Hosting (opens in new tab)" })).toBeTruthy();
 });
+
+it("shows the current onboarding step as the relationship is prepared", async () => {
+  render(<Vendors context={context}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Add vendor" }));
+  const progress = screen.getByRole("list", { name: "Relationship setup progress" });
+  expect(progress.querySelector('[aria-current="step"]')?.textContent).toContain("Vendor details");
+  fireEvent.change(screen.getByLabelText("Legal name"), { target: { value: "Atlas Ltd" } });
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  expect(progress.querySelector('[aria-current="step"]')?.textContent).toContain("Service details");
+  expect(vendors.createVendorRelationship).not.toHaveBeenCalled();
+});

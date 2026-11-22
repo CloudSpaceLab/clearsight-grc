@@ -1,0 +1,7 @@
+.v-form-detail-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr); gap: 18px; align-items: start; }
+.v-form-detail-questions, .v-form-detail-facts { min-width: 0; overflow-wrap: anywhere; }
+.v-form-detail-questions .v-attention li > div { min-width: 0; }
+.v-form-detail-facts dl { display: grid; gap: 16px; margin: 16px 0 0; }
+.v-form-detail-facts dt { color: #536c90; font-size: 12px; }
+.v-form-detail-facts dd { margin: 5px 0 0; color: #18335e; font-size: 13px; }
+@media (max-width: 900px) { .v-form-detail-layout { grid-template-columns: minmax(0, 1fr); } }

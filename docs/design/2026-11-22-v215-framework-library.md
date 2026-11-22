@@ -1,0 +1,7 @@
+# Framework library — v2.15 integration
+
+Reference: `C:/dev/clearsight-grc/clearsight-v2.15/framework-library.html` (SHA-256 `d22b2beb8bf933ac1a4e807b5302ce791f033125f290169e1b7e8c7b9bb30d07`). Related adoption reference: `framework-adoption.html` (SHA-256 `47f72fd05cd66e9a42748c9081bfa7ecef293027e751215ea48b0dba1fdd4804`). Reference, before and after captures are in `docs/evidence/2026-11-22-v215-frameworks/`.
+
+The published library opens with its first edition selected and loads that edition's actual requirements, source and rights. Edition cards use the reference's icon, title, metadata and selected state; the source inspector remains alongside the list on desktop and follows it at narrow widths. Existing jurisdiction, pagination, adoption authority and source checks remain in use. Empty, loading and unavailable states do not invent a selected edition.
+
+Evidence uses the synthetic fixture, not live bank data. Browser checks cover 1440, 1280, 1024, 768 and 390 pixels, selection via keyboard and horizontal overflow. An initial browser run timed out loading the second viewport; a complete rerun passed. This is partial integration: the prototype's baseline descriptions, counts and adoption wizard are not represented by this catalog contract, and its illustrated seeded workflow must not be treated as live catalog data. Live backend permissions, production screen acceptance and adoption wizard parity are not established by these captures.

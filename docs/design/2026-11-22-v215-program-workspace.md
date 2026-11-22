@@ -1,0 +1,9 @@
+# Program workspace — v2.15 integration
+
+Reference: `C:/dev/clearsight-grc/clearsight-v2.15/program-workspace.html` (SHA-256 `3f66a3a702c8dec31b49f0f74c2e688cf0ef357838470edcf7f0e4d3d3ae274e`), with `assets/app.js` (SHA-256 `3994fefcd0532ec6a13f4d2f0282ed918fe28dd4236524e30b9e7713c2d5324f`). Reference render: `docs/evidence/2026-11-22-v215-program-workspace/reference-1440.png`.
+
+The Program workspace uses a heading, local navigation and a two-column requirements and summary layout. At narrow widths the summary precedes requirements. The requirements action moves keyboard focus to the existing requirements workflow; the issues link retains Program scope. Requirement edits and applicability use existing controls and commands. Summary facts are restricted to values returned by the Program aggregate. Unavailable coverage is identified as unavailable.
+
+Baseline: `docs/evidence/2026-11-22-v215-program-coverage/current-1440.png` shows the same synthetic Program before this layout change, with an additional synthetic requirement and calculation injected by the coverage evidence script. Current full-shell captures at five widths are under `docs/evidence/2026-11-22-v215-program-workspace/`. Both are synthetic; comparisons of row count or coverage must account for the fixture difference. An attempted re-run of the older coverage evidence script timed out waiting for the injected calculation on the current evidence route; a matching calculation render remains unverified.
+
+This is partial integration, not full v2.15 screen acceptance. The reference includes assessment target selection, outcome metrics, named responsibility, documents and additional local sections that are not supplied by this aggregate or wired through this workspace. Prototype counts, names and actions were not reproduced. The captures do not establish live authorization, backend decision correctness, dark-mode parity or production acceptance.

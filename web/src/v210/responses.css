@@ -7,8 +7,13 @@
 .v-response-list li a:hover { text-decoration: underline; }
 .v-response-list small, .v-review-history span { display: block; margin-top: 5px; color: #7589a9; font-size: 12px; }
 .v-response-list > button { margin-top: 28px; }
-.v-response-meta { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-bottom: 20px; color: #627b9f; font-size: 12px; }
-.v-response-meta strong { color: #18335e; }
+.v-response-review-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr); align-items: start; gap: 18px; }
+.v-response-review-main, .v-response-review-side { min-width: 0; }
+.v-response-provenance { margin-bottom: 20px; }
+.v-response-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 22px; margin-top: 18px; color: #627b9f; font-size: 12px; }
+.v-response-meta strong { display: block; margin-top: 4px; color: #18335e; overflow-wrap: anywhere; }
+.v-response-provenance-actions { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px; color: #246cf0; font-size: 13px; font-weight: 600; }
+.v-response-provenance-actions a { display: inline-flex; align-items: center; min-height: 44px; }
 .v-response-result, .v-response-answers, .v-response-documents, .v-response-review, .v-field-assessment { margin-bottom: 20px; }
 .v-assessment-field { border-top: 1px solid #e5edf7; margin-top: 16px; padding-top: 16px; overflow-wrap: anywhere; }
 .v-field-assessment select, .v-field-assessment textarea { min-width: 0; }
@@ -32,6 +37,8 @@
 .v-review-history li { padding: 12px 0; border-top: 1px solid #e5edf7; font-size: 13px; }
 .v-review-history p { margin-bottom: 0; white-space: pre-wrap; }
 @media (max-width: 420px) { .v-response-list li { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 1000px) { .v-response-review-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .v-response-meta { grid-template-columns: minmax(0, 1fr); } }
 
 .v-response-filters { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 16px; }
 .v-response-filters label { display: grid; gap: 6px; color: var(--v-muted, #536b8c); font-size: 0.8rem; }

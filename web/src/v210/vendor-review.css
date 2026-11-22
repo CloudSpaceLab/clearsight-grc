@@ -1,5 +1,13 @@
 .v-vendor-review .v-local-nav span { min-height: 44px; padding: 13px 12px; border-bottom: 2px solid #246cf0; color: #246cf0; font-size: 13px; font-weight: 600; }
 .v-vendor-review-content { display: contents; }
+.v-vendor-review .v-vendor-detail-heading { align-items: flex-start; gap: 16px; }
+.v-vendor-detail-heading > div { min-width: 0; }
+.v-vendor-detail-heading h1 { overflow-wrap: anywhere; }
+.v-vendor-detail-heading p:not(.v-eyebrow) { margin: 8px 0 0; color: #627b9f; font-size: 13px; }
+.v-vendor-detail-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+.v-vendor-detail-facts > div { min-width: 0; min-height: 106px; display: grid; align-content: center; gap: 10px; padding: 18px; border: 1px solid var(--v-panel-border); border-radius: var(--v-panel-radius); background: var(--v-panel-background); box-shadow: var(--v-panel-shadow); }
+.v-vendor-detail-facts span { color: #627b9f; font-size: 12px; }
+.v-vendor-detail-facts strong { color: #18335e; font-size: 16px; overflow-wrap: anywhere; }
 .v-vendor-review .v-vendor-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .v-vendor-review .v-vendor-answers { margin-top: 16px; }
 .v-vendor-review .v-vendor-answers ul { margin: 12px 0 24px; padding: 0; list-style: none; }
@@ -17,5 +25,7 @@
 .v-vendor-clarification fieldset label { display: flex; align-items: center; gap: 10px; min-height: 44px; }
 .v-vendor-clarification fieldset input { width: 18px; min-height: 18px; height: 18px; }
 @media (max-width: 600px) { .v-vendor-review .v-vendor-summary { flex-direction: column; } }
+@media (max-width: 900px) { .v-vendor-detail-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .v-vendor-detail-heading { flex-direction: column; } .v-vendor-detail-facts { gap: 10px; } .v-vendor-detail-facts > div { padding: 14px; min-height: 92px; } }
 
 .v-vendor-review .v-review-alert [role="alert"] { color: var(--v-color-danger-text); }

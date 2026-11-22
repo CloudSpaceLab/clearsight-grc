@@ -18,6 +18,18 @@ vi.mock("./VendorActivation", () => ({ VendorActivation: () => null }));
 const relationship = { vendor: { legal_name: "Atlas Ltd" }, relationship: { id: "rel-1", tenant_id: "bank", legal_entity_id: "entity", version: 3, service_name: "Hosting", status: "PROPOSED", criticality: "IMPORTANT", privacy_role: "PROCESSOR" } } as any;
 beforeEach(() => { vi.clearAllMocks(); collections.loadVendorCollection.mockResolvedValue({ assessment_id: "assess-1", assessment_version: 7, fields: [], can_reconcile: false }); forms.loadFormTemplatePage.mockResolvedValue({ items: [{ template: { id: "form-1", name: "Security", code: "F-01" }, active_version: 2, active_status: "ACTIVE" }] }); authority.checkVendorAuthority.mockResolvedValue(true); });
 
+it("shows the selected service and its recorded relationship facts", async () => {
+  assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: null });
+  render(<VendorReview relationship={relationship} onBack={() => {}}/>);
+  expect(await screen.findByRole("heading", { name: "Hosting" })).toBeTruthy();
+  expect(screen.getByText("Atlas Ltd")).toBeTruthy();
+  const facts = screen.getByRole("region", { name: "Relationship details" });
+  expect(facts.textContent).toContain("Proposed");
+  expect(facts.textContent).toContain("Important");
+  expect(facts.textContent).toContain("Processor");
+  expect(facts.textContent).toContain("Not recorded");
+});
+
 it("opens Documents for the selected vendor and returns to its assessment", async () => {
   assessment.loadCurrentVendorAssessment.mockResolvedValue({ assessment: null });
   assessment.loadVendorAssessment.mockResolvedValue({ assessment: { id: "assess-1", relationship_id: "rel-1", version: 1, status: "SUBMITTED", review_kind: "ONBOARDING" }, answers: [], documents: [], matters: [], coverage: {} });

@@ -2,21 +2,17 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { loadContext, loadDemoAccounts, loadProgram, loadSessionStatus, loginDemo, type DemoAccount, type RuntimeContext } from "../api";
 import { apiErrorKind, SESSION_ENDED_EVENT } from "../http";
 import type { ProgramAggregate } from "../types";
-import { loadFormTemplateItem } from "../formsApi";
-import type { FormLibraryItem } from "../formsTypes";
 import { FormsRegister } from "./FormsRegister";
 import { Documents } from "./Documents";
 import { Vendors } from "./Vendors";
 import { Responses } from "./Responses";
 import { FormCreator } from "./FormCreator";
-import { FormActions } from "./FormActions";
+import { FormDetail } from "./FormDetail";
 import { FormEditor } from "./FormEditor";
-import { APIQuestionWizard } from "./APIQuestionWizard";
 import { Frameworks } from "./Frameworks";
 import { Home } from "./Home";
 import { RiskWorkspace } from "./RiskWorkspace";
-import { ProgramRequirements } from "./ProgramRequirements";
-import { ProgramCoverage } from "./ProgramCoverage";
+import { ProgramWorkspace } from "./ProgramWorkspace";
 import { ProgramIssues } from "./ProgramIssues";
 import { ProgramCreator } from "./ProgramCreator";
 import { ProgramsRegister } from "./ProgramsRegister";
@@ -153,22 +149,6 @@ export function FreshApp() {
   </div>;
 }
 
-function FormDetail({ id, approvalVersion }: { id: string; approvalVersion?: number }) {
-  const [item, setItem] = useState<FormLibraryItem>();
-  const [failed, setFailed] = useState(false);
-  const [retry, setRetry] = useState(0);
-  const [receipt, setReceipt] = useState<{ id: string; version: number; status: "ACTIVE" | "REJECTED" }>();
-  useEffect(() => { let active = true; setItem(undefined); setFailed(false); loadFormTemplateItem(id).then((value) => { if (active) { if (value.template?.id !== id) setFailed(true); else setItem(value); } }).catch(() => { if (active) setFailed(true); }); return () => { active = false; }; }, [id, retry]);
-  if (failed) return <section>{receipt && <p role="status">{receipt.status === "ACTIVE" ? "Form approved." : "Form rejected."}</p>}<h1>Form unavailable</h1><button onClick={() => setRetry(retry + 1)}>Try again</button></section>;
-  if (!item) return <p role="status">Loading form…</p>;
-  const { template } = item;
-  const approvalChanged = approvalVersion !== undefined && template.version !== approvalVersion;
-  const approvalClosed = approvalVersion !== undefined && !approvalChanged && template.status !== "PENDING_APPROVAL";
-  const approvalUnavailable = approvalChanged || approvalClosed;
-  const receiptMatches = receipt?.id === template.id && receipt.version === template.version && receipt.status === template.status;
-  const canTestQuestions = template.status === "DRAFT" && item.authority_available && item.operations?.some((operation) => operation.command === "forms.template.revise" && operation.can_act);
-  return <section><a className="v-back" href="#/forms">← Forms</a><header className="v-page-heading"><div><p className="v-eyebrow">Version {template.version}</p><h1>{template.name}</h1></div><span className="v-status">{template.status.toLowerCase().replaceAll("_", " ")}</span></header>{receiptMatches && <p role="status">{receipt.status === "ACTIVE" ? "Form approved." : "Form rejected."}</p>}{approvalUnavailable && !receiptMatches && <div className="v-panel" role="alert"><p>{approvalChanged ? "Form version changed. Review the latest version before deciding." : "This form is no longer awaiting approval."}</p><a href={`#/forms/${encodeURIComponent(template.id)}`}>Review latest form</a></div>}{!approvalUnavailable && item.authority_available && item.operations?.some((operation) => operation.command === "forms.template.revise" && operation.can_act) && <p><a className="v-primary" href={`#/forms/${encodeURIComponent(template.id)}/edit`}>Edit form</a></p>}{!approvalUnavailable && <FormActions item={item} onSaved={(result) => { if (approvalVersion !== undefined && template.status === "PENDING_APPROVAL" && (result.status === "ACTIVE" || result.status === "REJECTED")) setReceipt({ id: result.id, version: result.version, status: result.status }); }} onReload={() => setRetry((value) => value + 1)}/>}<div className="v-panel"><h2>Questions</h2>{!template.fields ? <p>Questions unavailable.</p> : template.fields.length === 0 ? <p>No questions recorded.</p> : <ul className="v-attention">{template.fields.map((field) => <li key={field.id}><div><strong>{field.label}</strong><small>{field.type.replaceAll("_", " ")}{field.required ? " · Required" : ""}</small>{!approvalUnavailable && canTestQuestions && (field.type === "yes_no" || field.type === "decimal" || field.type === "percentage") && <APIQuestionWizard formID={template.id} version={template.version} fieldID={field.id} label={field.label} resultType={field.type === "yes_no" ? "BOOLEAN" : "NUMBER"}/>}</div></li>)}</ul>}</div></section>;
-}
 
 function ProgramDetail({ id, showIssues = false }: { id: string; showIssues?: boolean }) {
   const [value, setValue] = useState<ProgramAggregate>();
@@ -179,7 +159,7 @@ function ProgramDetail({ id, showIssues = false }: { id: string; showIssues?: bo
   if (!value) return <p role="status">Loading program…</p>;
   const filters = readProgramFilters(window.location.hash);
   if (showIssues) return <section className="v-programs"><a className="v-back" href={`#/programs/${encodeURIComponent(id)}${programFilterQuery(filters.search, filters.overallState)}`}>← {value.program.name}</a><header className="v-page-heading"><div><p className="v-eyebrow">{value.program.name}</p><h1>Open issues</h1></div></header><ProgramIssues program={value.program}/></section>;
-  return <section className="v-programs"><a className="v-back" href={`#/programs${programFilterQuery(filters.search, filters.overallState)}`}>← Programs</a><header className="v-page-heading"><div><p className="v-eyebrow">{value.program.code}</p><h1>{value.program.name}</h1></div><span className="v-status">{value.program.status.toLowerCase()}</span></header><ProgramCoverage aggregate={value}/><ProgramRequirements aggregate={value} onUpdated={setValue}/></section>;
+  return <ProgramWorkspace aggregate={value} backHref={`#/programs${programFilterQuery(filters.search, filters.overallState)}`} issuesHref={`#/programs/${encodeURIComponent(id)}/issues${programFilterQuery(filters.search, filters.overallState)}`} onUpdated={setValue}/>;
 }
 
 function DemoSignIn({ accounts, onSignedIn }: { accounts: DemoAccount[]; onSignedIn: () => Promise<void> }) {

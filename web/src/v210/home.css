@@ -6,7 +6,12 @@
 .v-home .v-home-grid { grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); align-items: start; }
 .v-home-side { min-width: 0; display: grid; gap: 18px; }
 .v-home-side .v-home-assignments, .v-home-side .v-home-indicators { margin: 0; }
-.v-home-priorities li > div:first-child { min-width: 0; }
+.v-home-coverage > strong { display: block; margin-top: 20px; color: #18335e; font-size: 32px; }
+.v-home-coverage > p { margin: 6px 0 12px; }
+.v-home-coverage > small { color: #627b9f; }
+.v-home-coverage-bar { height: 9px; margin-bottom: 10px; overflow: hidden; border-radius: 8px; background: #e9eef6; }
+.v-home-coverage-bar span { display: block; height: 100%; border-radius: inherit; background: #617b9e; }
+.v-home-priorities li > div:first-child, .v-home-indicators li > div:first-child { min-width: 0; overflow-wrap: anywhere; }
 .v-home-priority-actions { display: flex; flex: none; align-items: center; gap: 10px; }
 .v-home-priority-actions a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--v-button-primary-background); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .v-home-assignments { margin: 16px 0; }

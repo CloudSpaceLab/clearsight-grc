@@ -122,6 +122,38 @@ it("prioritizes oversight on the administrative dashboard", async () => {
   expect(metric.compareDocumentPosition(personal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
+it("shows the oversight population and its recorded exclusions without inventing coverage", async () => {
+  const data = payload();
+  sources.oversight.mockResolvedValue({ ...data.oversight, coverage: { population: 10, excluded: 1, unknown: 2 }, freshness: "CURRENT", generated_at: "2026-11-20T10:00:00Z" });
+  render(<Home context={{ ...context, actor: { ...context.actor, role_codes: ["SYSTEM_ADMIN"] } }}/>);
+  expect(await screen.findByText("7 of 10 issues included")).toBeTruthy();
+  expect(screen.getByText("1 excluded · 2 unknown")).toBeTruthy();
+  expect(screen.getByText(/As of .*UTC/)).toBeTruthy();
+});
+
+it("identifies stale or unknown oversight coverage freshness", async () => {
+  const data = payload();
+  sources.oversight.mockResolvedValue({ ...data.oversight, coverage: { population: 2, excluded: 0, unknown: 1 }, freshness: "STALE", generated_at: "2026-11-20T10:00:00Z" });
+  render(<Home context={{ ...context, actor: { ...context.actor, role_codes: ["SYSTEM_ADMIN"] } }}/>);
+  expect(await screen.findByText(/Outdated/)).toBeTruthy();
+});
+
+it("withholds coverage when its population or exclusions are inconsistent", async () => {
+  const data = payload();
+  sources.oversight.mockResolvedValue({ ...data.oversight, coverage: { population: 2, excluded: 2, unknown: 1 }, freshness: "CURRENT" });
+  render(<Home context={{ ...context, actor: { ...context.actor, role_codes: ["SYSTEM_ADMIN"] } }}/>);
+  expect(await screen.findByText("Coverage unavailable.")).toBeTruthy();
+  expect(screen.queryByText(/of 2 issues included/)).toBeNull();
+});
+
+it("does not invent a percentage for an empty oversight population", async () => {
+  const data = payload();
+  sources.oversight.mockResolvedValue({ ...data.oversight, coverage: { population: 0, excluded: 0, unknown: 0 }, freshness: "CURRENT" });
+  render(<Home context={{ ...context, actor: { ...context.actor, role_codes: ["SYSTEM_ADMIN"] } }}/>);
+  expect(await screen.findByText("0 of 0 issues included")).toBeTruthy();
+  expect(screen.queryByText("0%" )).toBeNull();
+});
+
 it("keeps the personal overview for non-administrative roles", async () => {
   render(<Home context={{ ...context, actor: { ...context.actor, role_codes: ["RISK_MANAGER"] }, capabilities: { config_read: true } }}/>);
   expect(await screen.findByRole("heading", { name: "Overview" })).toBeTruthy();

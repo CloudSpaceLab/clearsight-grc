@@ -8,6 +8,14 @@ vi.mock("../programOperationsApi", () => catalog);
 const edition = { id: "e1", publisher_code: "CBN", framework_code: "SEC", edition_code: "2026", title: "Security standard", jurisdiction: "GLOBAL", source_published_on: "2026-01-01", source_url: "https://example.org/standard", license_basis: "CITATIONS_ONLY" };
 beforeEach(() => { vi.resetAllMocks(); catalog.loadFrameworkClauses.mockResolvedValue({ edition_id: "e1", items: [{ code: "A", title: "Review access", source_anchor: "Section 1" }], next_after_code: "" }); });
 
+it("shows the first published edition and its requirements when the library opens", async () => {
+  catalog.loadFrameworkEditionPage.mockResolvedValue({ items: [edition], next_after_id: "" });
+  render(<Frameworks/>);
+  expect(await screen.findByRole("heading", { name: "Security standard" })).toBeTruthy();
+  expect(await screen.findByText("Review access")).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Security standard/ }).getAttribute("aria-pressed")).toBe("true");
+});
+
 it("clears the catalog and selected details when access is revoked during pagination", async () => {
   catalog.loadFrameworkEditionPage.mockResolvedValueOnce({ items: [edition], next_after_id: "e1" }).mockRejectedValueOnce(new ApiError(403, "Denied"));
   render(<Frameworks/>);

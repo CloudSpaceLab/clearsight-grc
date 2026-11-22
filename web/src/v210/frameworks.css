@@ -4,9 +4,16 @@
 .v-framework-filters button, .v-framework-more { min-height: 44px; padding: 0 16px; border: 1px solid #dce7f5; border-radius: 8px; background: #fff; color: #18335e; }
 .v-framework-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); gap: 18px; align-items: start; }
 .v-framework-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
-.v-framework-list button { display: grid; gap: 8px; width: 100%; min-height: 100px; padding: 20px; border: 1px solid #dce7f5; border-radius: 14px; background: #fff; color: #18335e; text-align: left; cursor: pointer; }
+.v-framework-list button { display: grid; gap: 22px; width: 100%; min-height: 140px; padding: 22px 24px; border: 1px solid #dce7f5; border-radius: 14px; background: #fff; color: #18335e; text-align: left; cursor: pointer; }
 .v-framework-list button[aria-pressed="true"] { border-color: #246cf0; box-shadow: 0 0 0 1px #246cf0; }
 .v-framework-list span, .v-framework-list small { color: #627b9f; }
+.v-framework-card-heading { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.v-framework-monogram { display: grid; place-items: center; flex: 0 0 42px; height: 42px; border: 1px solid #dce7f5; border-radius: 10px; background: #eef4ff; color: #246cf0 !important; font-size: 12px; font-weight: 700; }
+.v-framework-card-title { display: grid; min-width: 0; gap: 6px; }
+.v-framework-card-title strong { color: #18335e; overflow-wrap: anywhere; }
+.v-framework-card-title span { font-size: 12px; }
+.v-framework-chevron { margin-left: auto; font-size: 24px; }
+.v-framework-list small { padding-top: 13px; border-top: 1px solid #e5edf7; }
 .v-framework-more { margin-top: 14px; }
 .v-framework-detail dl { display: grid; gap: 12px; margin: 20px 0; }
 .v-framework-detail dl div { display: flex; justify-content: space-between; gap: 12px; }
