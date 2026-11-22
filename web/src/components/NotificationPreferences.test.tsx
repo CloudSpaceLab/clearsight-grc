@@ -1,137 +1,21 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import { NotificationPreferences } from "./NotificationPreferences";
-import type { NotificationPreferences as Value } from "../notificationPreferencesApi";
+import { act,fireEvent,render,screen,waitFor } from "@testing-library/react";
+import { beforeEach,expect,it,vi } from "vitest";
 import { ApiError } from "../http";
+import { NotificationPreferences } from "../v210/NotificationPreferences";
+const api=vi.hoisted(()=>({load:vi.fn(),save:vi.fn()}));
+vi.mock("../notificationPreferencesApi",()=>({loadNotificationPreferences:api.load,saveNotificationPreferences:api.save}));
+const scope={tenant:"bank",actor:"person"};
+const value={tenant_id:"bank",principal_id:"person",daily_digest_enabled:true,digest_minute:420,time_zone:"Africa/Lagos",quiet_hours_enabled:true,quiet_start_minute:1380,quiet_end_minute:360,critical_email_required:true,version:2};
+beforeEach(()=>{vi.resetAllMocks();api.load.mockResolvedValue(value)});
+it("saves scoped versioned preferences while critical email remains required",async()=>{api.save.mockImplementation(async input=>({...value,...input,version:3}));render(<NotificationPreferences scope={scope}/>);expect(await screen.findByText("Critical emails are required.")).toBeTruthy();fireEvent.change(screen.getByLabelText("Digest time"),{target:{value:"00:00"}});fireEvent.change(screen.getByLabelText("Starts"),{target:{value:"23:59"}});fireEvent.click(screen.getByRole("button",{name:"Save preferences"}));await waitFor(()=>expect(api.save).toHaveBeenCalledWith(expect.objectContaining({version:2,digest_minute:0,quiet_start_minute:1439})));expect(await screen.findByText("Email preferences saved.")).toBeTruthy();expect(screen.queryByRole("checkbox",{name:/critical/i})).toBeNull()});
+it("rejects foreign preference scope",async()=>{api.load.mockResolvedValue({...value,principal_id:"other"});render(<NotificationPreferences scope={scope}/>);expect((await screen.findByRole("alert")).textContent).toContain("Preferences unavailable");expect(screen.queryByRole("button",{name:"Save preferences"})).toBeNull()});
+it("locks a conflicted or uncertain save until a fresh read",async()=>{api.save.mockRejectedValue(new ApiError(409,"changed"));render(<NotificationPreferences scope={scope}/>);fireEvent.click(await screen.findByRole("button",{name:"Save preferences"}));expect(await screen.findByText("Preferences changed. Reload before saving.")).toBeTruthy();expect(screen.getByRole("button",{name:"Save preferences"}).matches(":disabled")).toBe(true);fireEvent.click(screen.getByRole("button",{name:"Reload preferences"}));await waitFor(()=>expect(api.load).toHaveBeenCalledTimes(2))});
+it("does not claim an unknown or mismatched receipt succeeded",async()=>{api.save.mockResolvedValue({...value,version:3,principal_id:"other"});render(<NotificationPreferences scope={scope}/>);fireEvent.click(await screen.findByRole("button",{name:"Save preferences"}));expect(await screen.findByText("Save status unknown. Reload before saving.")).toBeTruthy();expect(screen.queryByText("Email preferences saved.")).toBeNull()});
+it("clears preferences on access loss",async()=>{api.save.mockRejectedValue(new ApiError(403,"denied"));render(<NotificationPreferences scope={scope}/>);fireEvent.click(await screen.findByRole("button",{name:"Save preferences"}));expect((await screen.findByRole("alert")).textContent).toContain("Preferences unavailable");expect(screen.queryByLabelText("Time zone")).toBeNull()});
 
-function value(overrides: Partial<Value> = {}): Value {
-  return {
-    tenant_id: "bank",
-    principal_id: "actor",
-    daily_digest_enabled: true,
-    digest_minute: 420,
-    time_zone: "Africa/Lagos",
-    quiet_hours_enabled: false,
-    quiet_start_minute: 1320,
-    quiet_end_minute: 420,
-    critical_email_required: true,
-    version: 1,
-    ...overrides,
-  };
-}
+it("can disable the digest and retain exact timezone and quiet hours",async()=>{api.save.mockImplementation(async input=>({...value,...input,version:3}));render(<NotificationPreferences scope={scope}/>);fireEvent.click(await screen.findByLabelText("Daily digest"));fireEvent.change(screen.getByLabelText("Time zone"),{target:{value:"Europe/London"}});fireEvent.change(screen.getByLabelText("Ends"),{target:{value:"00:00"}});fireEvent.click(screen.getByRole("button",{name:"Save preferences"}));await waitFor(()=>expect(api.save).toHaveBeenCalledWith(expect.objectContaining({daily_digest_enabled:false,time_zone:"Europe/London",quiet_end_minute:0,version:2}))) });
+it("retries unavailable preferences without inventing defaults",async()=>{api.load.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(value);render(<NotificationPreferences scope={scope}/>);expect(await screen.findByRole("alert")).toBeTruthy();expect(api.save).not.toHaveBeenCalled();fireEvent.click(screen.getByRole("button",{name:"Try again"}));expect(await screen.findByDisplayValue("Africa/Lagos")).toBeTruthy()});
+it("ignores an old owner save after scope changes",async()=>{let finish!:(v:typeof value)=>void;api.save.mockReturnValue(new Promise(resolve=>{finish=resolve}));const {rerender}=render(<NotificationPreferences scope={scope}/>);fireEvent.click(await screen.findByRole("button",{name:"Save preferences"}));api.load.mockResolvedValue({...value,principal_id:"other",time_zone:"Europe/London"});rerender(<NotificationPreferences scope={{tenant:"bank",actor:"other"}}/>);expect(await screen.findByDisplayValue("Europe/London")).toBeTruthy();await act(async()=>{finish({...value,version:3});await Promise.resolve()});expect(screen.queryByText("Email preferences saved.")).toBeNull();expect(screen.getByDisplayValue("Europe/London")).toBeTruthy()});
+it("reloads the current version before a new save after conflict",async()=>{api.load.mockResolvedValueOnce(value).mockResolvedValueOnce({...value,version:3,digest_minute:600});api.save.mockRejectedValueOnce(new ApiError(409,"changed")).mockImplementationOnce(async input=>({...value,...input,version:4}));render(<NotificationPreferences scope={scope}/>);fireEvent.click(await screen.findByRole("button",{name:"Save preferences"}));fireEvent.click(await screen.findByRole("button",{name:"Reload preferences"}));expect(await screen.findByDisplayValue("10:00")).toBeTruthy();fireEvent.change(screen.getByLabelText("Digest time"),{target:{value:"11:00"}});fireEvent.click(screen.getByRole("button",{name:"Save preferences"}));await waitFor(()=>expect(api.save).toHaveBeenLastCalledWith(expect.objectContaining({version:3,digest_minute:660})));expect(await screen.findByText("Email preferences saved.")).toBeTruthy()});
 
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((yes) => { resolve = yes; });
-  return { promise, resolve };
-}
-
-describe("NotificationPreferences", () => {
-  it("keeps critical email required while allowing the daily digest to be disabled", async () => {
-    const load = vi.fn().mockResolvedValue(value());
-    const save = vi.fn().mockResolvedValue(value({ daily_digest_enabled: false, version: 2 }));
-    render(<NotificationPreferences load={load} save={save}/>);
-
-    expect(await screen.findByText("Critical required")).toBeTruthy();
-    const digest = screen.getByRole("checkbox", { name: "Daily digest" });
-    expect((digest as HTMLInputElement).checked).toBe(true);
-
-    fireEvent.click(digest);
-    fireEvent.click(screen.getByRole("button", { name: "Save email preferences" }));
-
-    await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({
-      daily_digest_enabled: false,
-      version: 1,
-    })));
-    expect(screen.queryByRole("checkbox", { name: /critical/i })).toBeNull();
-  });
-
-  it("saves edited local times as bounded minutes with the current version and timezone", async () => {
-    const load = vi.fn().mockResolvedValue(value({
-      digest_minute: 510,
-      quiet_hours_enabled: true,
-      quiet_start_minute: 1290,
-      quiet_end_minute: 375,
-    }));
-    const save = vi.fn().mockImplementation(async (input) => value({ ...input, version: 2 }));
-    render(<NotificationPreferences load={load} save={save}/>);
-
-    expect(await screen.findByDisplayValue("08:30")).toBeTruthy();
-    expect(screen.getByDisplayValue("21:30")).toBeTruthy();
-    expect(screen.getByDisplayValue("06:15")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Digest time"), { target: { value: "09:45" } });
-    fireEvent.change(screen.getByLabelText("Starts"), { target: { value: "22:10" } });
-    fireEvent.change(screen.getByLabelText("Ends"), { target: { value: "06:20" } });
-    fireEvent.change(screen.getByLabelText("Time zone"), { target: { value: "UTC" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save email preferences" }));
-
-    await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({
-      digest_minute: 585,
-      time_zone: "UTC",
-      quiet_hours_enabled: true,
-      quiet_start_minute: 1330,
-      quiet_end_minute: 380,
-      version: 1,
-    })));
-    expect(await screen.findByText("Email preferences saved.")).toBeTruthy();
-  });
-
-  it("saves midnight and the last minute of the day without shifting the local times", async () => {
-    const load = vi.fn().mockResolvedValue(value({ quiet_hours_enabled: true }));
-    const save = vi.fn().mockImplementation(async (input) => value({ ...input, version: 2 }));
-    render(<NotificationPreferences load={load} save={save}/>);
-    fireEvent.change(await screen.findByLabelText("Digest time"), { target: { value: "00:00" } });
-    fireEvent.change(screen.getByLabelText("Starts"), { target: { value: "23:59" } });
-    fireEvent.change(screen.getByLabelText("Ends"), { target: { value: "00:00" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save email preferences" }));
-    await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ digest_minute: 0, quiet_start_minute: 1439, quiet_end_minute: 0 })));
-  });
-
-  it("retains a conflicted draft without claiming success, then reloads the current version before saving", async () => {
-    const load = vi.fn().mockResolvedValueOnce(value({ version: 3 })).mockResolvedValueOnce(value({ version: 4, digest_minute: 600 }));
-    const save = vi.fn().mockRejectedValueOnce(new ApiError(409, "Version changed", "version_conflict")).mockImplementationOnce(async (input) => value({ ...input, version: 5 }));
-    render(<NotificationPreferences load={load} save={save}/>);
-    fireEvent.change(await screen.findByLabelText("Digest time"), { target: { value: "09:45" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save email preferences" }));
-    expect(await screen.findByText("Email preferences changed. Reload them before saving again.")).toBeTruthy();
-    expect((screen.getByLabelText("Digest time") as HTMLInputElement).value).toBe("09:45");
-    expect(screen.queryByText("Email preferences saved.")).toBeNull();
-    expect(save).toHaveBeenNthCalledWith(1, expect.objectContaining({ version: 3, digest_minute: 585 }));
-
-    fireEvent.click(screen.getByRole("button", { name: "Reload preferences" }));
-    expect(await screen.findByDisplayValue("10:00")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Digest time"), { target: { value: "11:00" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save email preferences" }));
-    expect(await screen.findByText("Email preferences saved.")).toBeTruthy();
-    expect(save).toHaveBeenNthCalledWith(2, expect.objectContaining({ version: 4, digest_minute: 660 }));
-  });
-
-  it("offers recovery for unavailable preferences without saving default settings", async () => {
-    const load = vi.fn().mockRejectedValueOnce(new Error("unavailable")).mockResolvedValueOnce(value());
-    const save = vi.fn();
-    render(<NotificationPreferences load={load} save={save}/>);
-    expect(await screen.findByText("Email preferences are unavailable. Try again to load your settings.")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Save email preferences" })).toBeNull();
-    expect(save).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    expect(await screen.findByLabelText("Digest time")).toBeTruthy();
-    expect(load).toHaveBeenCalledTimes(2);
-  });
-
-  it("ignores a pending save from a replaced preferences owner", async () => {
-    const oldSave = deferred<Value>();
-    const load = vi.fn().mockResolvedValue(value());
-    const nextLoad = vi.fn().mockResolvedValue(value({ principal_id: "actor-2", time_zone: "Europe/London", digest_minute: 540 }));
-    const save = vi.fn().mockReturnValue(oldSave.promise);
-    const { rerender } = render(<NotificationPreferences load={load} save={save}/>);
-    fireEvent.change(await screen.findByLabelText("Time zone"), { target: { value: "UTC" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save email preferences" }));
-    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
-    rerender(<NotificationPreferences load={nextLoad} save={save}/>);
-    expect(await screen.findByDisplayValue("Europe/London")).toBeTruthy();
-    expect((load.mock.calls[0]![0] as AbortSignal).aborted).toBe(true);
-    await act(async () => { oldSave.resolve(value({ time_zone: "UTC", version: 2 })); });
-    expect((screen.getByLabelText("Time zone") as HTMLInputElement).value).toBe("Europe/London");
-    expect(screen.queryByText("Email preferences saved.")).toBeNull();
-  });
-});
+it("does not read preferences without a verified owner scope",async()=>{render(<NotificationPreferences scope={{tenant:"bank",actor:""}}/>);expect((await screen.findByRole("alert")).textContent).toContain("Preferences unavailable");expect(api.load).not.toHaveBeenCalled()});

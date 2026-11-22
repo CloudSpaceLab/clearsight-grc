@@ -1,0 +1,8 @@
+.v-preference-form { max-width: 680px; }
+.v-preference-form fieldset { display: grid; gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.v-preference-form label { display: grid; gap: 6px; color: var(--v-text-secondary, #536c90); font-size: 13px; }
+.v-preference-form label:has(input[type="checkbox"]) { display: flex; align-items: center; min-height: 44px; gap: 10px; }
+.v-preference-form input:not([type="checkbox"]) { min-height: 44px; width: 100%; max-width: 360px; padding: 10px 12px; border: 1px solid var(--v-field-border); border-radius: var(--v-field-radius); }
+.v-preference-form input[type="checkbox"] { width: 18px; height: 18px; }
+.v-preference-form button { justify-self: start; min-height: 44px; }
+.v-preference-form [role="alert"] { color: var(--v-color-danger-text); }

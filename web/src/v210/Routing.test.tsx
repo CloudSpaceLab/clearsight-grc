@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { FreshApp } from "./FreshApp";
 
-vi.mock("../api", () => ({ loadSessionStatus: vi.fn(async () => ({ authenticated: true })), loadContext: vi.fn(async () => ({ tenant: { id: "t", name: "Bank" }, legal_entity: { id: "e", name: "Bank" }, actor: { name: "Ada" }, capabilities: {} })) }));
+vi.mock("../api", () => ({ loadSessionStatus: vi.fn(async () => ({ authenticated: true })), loadContext: vi.fn(async () => ({ tenant: { id: "t", name: "Bank" }, legal_entity: { id: "e", name: "Bank" }, actor: { id: "a", name: "Ada" }, capabilities: {} })) }));
+vi.mock("./NotificationPreferences", () => ({ NotificationPreferences: ({scope}: {scope:{tenant:string;actor:string}}) => <p>Email preferences: {scope.tenant} {scope.actor}</p> }));
 vi.mock("./Vendors", () => ({ Vendors: ({ context, relationshipId, assessmentId }: { context: { legal_entity: { id: string } }; relationshipId?: string; assessmentId?: string }) => <><p>Vendor route: {relationshipId} {assessmentId}</p><p>Vendor scope: {context.legal_entity.id}</p></> }));
 vi.mock("./Responses", () => ({ Responses: ({ id }: { id?: string }) => <p>Response route: {id}</p> }));
 vi.mock("./FormAssignment", () => ({ FormAssignment: ({ formId }: { formId: string }) => <p>Assignment route: {formId}</p> }));
@@ -139,4 +140,11 @@ it("opens the editor for the exact selected form", async () => {
   window.location.hash = "#/forms/form%20one/edit";
   render(<FreshApp/>);
   expect(await screen.findByText("Form editor: form one")).toBeTruthy();
+});
+
+it("opens personal email preferences without administrative settings access", async () => {
+  window.location.hash = "#/preferences"; render(<FreshApp/>);
+  expect(await screen.findByText("Email preferences: t a")).toBeTruthy();
+  expect(screen.getByRole("link", {name:"Email preferences"}).getAttribute("href")).toBe("#/preferences");
+  expect(screen.queryByRole("link", {name:"Settings"})).toBeNull();
 });
