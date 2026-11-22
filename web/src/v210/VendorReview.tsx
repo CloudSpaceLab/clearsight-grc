@@ -36,6 +36,7 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
   const [historical, setHistorical] = useState(false);
   const [authority, setAuthority] = useState<"checking" | "allowed" | "unavailable">("checking");
   const [clarificationAllowed, setClarificationAllowed] = useState(false);
+  useEffect(() => { setMode("view"); setUncertain(false); setStale(false); setCommandError(""); }, [relationship.relationship.id, relationship.relationship.tenant_id, relationship.relationship.legal_entity_id, assessmentId]);
   useEffect(() => {
     let active = true; setState("loading"); setReview(undefined); setAssessment(null); setSetup(undefined); setHistorical(false);
     loadCurrentVendorAssessment(relationship.relationship.id).catch((error: unknown) => {
@@ -52,7 +53,7 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
       void error; setState("error");
     });
     return () => { active = false; };
-  }, [relationship.relationship.id, assessmentId, attempt]);
+  }, [relationship.relationship.id, relationship.relationship.tenant_id, relationship.relationship.legal_entity_id, assessmentId, attempt]);
 
   const reassessment = Boolean(assessment && ["COMPLETED", "CANCELLED"].includes(assessment.status) && ["ACTIVE", "RESTRICTED", "SUSPENDED"].includes(relationship.relationship.status));
   const restart = assessment?.status === "CANCELLED" && assessment.review_kind === "ONBOARDING" && ["PROPOSED", "UNDER_REVIEW"].includes(relationship.relationship.status) ? assessment.id : undefined;
@@ -75,6 +76,7 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
   }, [state, historical, assessment?.id, assessment?.version, assessment?.status, assessment?.current_request_id, assessment?.submission_id, review, attempt]);
 
   function reload() { setMode("view"); setUncertain(false); setStale(false); setCommandError(""); setSetupQueued(false); setAttempt((value) => value + 1); }
+  function clearAssessmentAccess() { setAssessment(null); setReview(undefined); setSetup(undefined); setAuthority("unavailable"); setClarificationAllowed(false); setDocumentAccess(undefined); setReviewTarget(undefined); setMode("view"); setUncertain(false); setStale(false); setCommandError(""); setState("error"); }
   function commandFailed(error: unknown) {
     if (error instanceof ApiError && error.status >= 400 && error.status < 500) { setCommandError(error.message); if (error.status === 409 && error.code !== "vendor_assessment_review_incomplete") setStale(true); }
     else setUncertain(true);
@@ -99,12 +101,12 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
   return <section className="v-vendor-review"><fieldset className="v-vendor-review-content" disabled={collectionPending} onClickCapture={(event) => { if (collectionPending) { event.preventDefault(); event.stopPropagation(); } }} onSubmitCapture={(event) => { if (collectionPending) { event.preventDefault(); event.stopPropagation(); } }}><button className="v-back v-back-button" onClick={onBack}>← {backLabel}</button><header className="v-page-heading"><div><p className="v-eyebrow">Vendor relationship</p><h1>{relationship.vendor.legal_name}</h1><p>{relationship.relationship.service_name}</p>{documentHref && <a href={documentHref}>View vendor documents</a>}</div><span className="v-status">{label(relationship.relationship.status)}</span></header>
     <nav className="v-local-nav" aria-label="Vendor sections"><span aria-current="page">Due diligence</span></nav>
     {state === "loading" && <p role="status">Loading assessment…</p>}
-    {state === "error" && <div className="v-panel"><p role="alert">Assessment unavailable.</p><button onClick={reload}>Try again</button></div>}
-    {uncertain && <div className="v-panel"><p role="alert">Review status could not be confirmed. Reload the assessment before trying again.</p><button onClick={reload}>Reload assessment</button></div>}
+    {state === "error" && <div className="v-panel v-review-alert"><p role="alert">Assessment unavailable.</p><button onClick={reload}>Try again</button></div>}
+    {uncertain && <div className="v-panel v-review-alert"><p role="alert">Review status could not be confirmed. Reload the assessment before trying again.</p><button onClick={reload}>Reload assessment</button></div>}
     {commandError && !uncertain && <p role="alert">{commandError}</p>}
     {stale && <button onClick={reload}>Reload assessment</button>}
     {state === "ready" && !uncertain && !stale && mode === "start" && <StartAssessment relationship={relationship} reassessment={reassessment} restartID={restart} onCancel={() => { setCommandError(""); setMode("view"); }} onDone={reload} onFailed={commandFailed}/>}
-    {state === "ready" && !uncertain && !stale && mode === "complete" && assessment && <CompleteAssessment assessment={assessment} onCancel={() => { setCommandError(""); setMode("view"); }} onDone={reload} onFailed={commandFailed}/>}
+    {state === "ready" && !uncertain && !stale && mode === "complete" && assessment && <CompleteAssessment key={`${relationship.relationship.tenant_id}:${relationship.relationship.legal_entity_id}:${relationship.relationship.id}:${assessment.id}:${assessment.version}`} assessment={assessment} relationship={relationship} onAccessLost={clearAssessmentAccess} onCancel={() => { setCommandError(""); setMode("view"); }} onDone={reload} onFailed={commandFailed}/>}
     {state === "ready" && !uncertain && !stale && mode === "send" && assessment && <SendAssessment assessment={assessment} onCancel={() => { setCommandError(""); setMode("view"); }} onDone={(result) => { setCommandError(""); setSendState(result); setMode("sent"); }} onFailed={commandFailed}/>}
     {state === "ready" && !uncertain && !stale && mode === "reissue" && assessment && <ReissueAssessment assessment={assessment} onCancel={() => setMode("view")} onDone={(result) => { setSendState(result); setMode("reissued"); }} onUncertain={() => setUncertain(true)}/>}
     {state === "ready" && !uncertain && !stale && mode === "clarification" && assessment && review && <Clarification assessment={assessment} answers={review.answers} onCancel={() => setMode("view")} onDone={(result) => { setSendState(result); setMode("clarified"); }} onUncertain={() => setUncertain(true)}/>}
@@ -236,14 +238,21 @@ function StartAssessment({ relationship, reassessment, restartID, onCancel, onDo
 
 function activeForms(items: Awaited<ReturnType<typeof loadFormTemplatePage>>["items"]): ReusableFormTemplateRef[] { return items.flatMap((item) => item.active_version && item.active_status === "ACTIVE" ? [{ id: item.template.id, name: item.template.name, code: item.template.code, version: item.active_version }] : []); }
 
-function CompleteAssessment({ assessment, onCancel, onDone, onFailed }: { assessment: VendorAssessment; onCancel: () => void; onDone: () => void; onFailed: (error: unknown) => void }) {
+function CompleteAssessment({ assessment, relationship, onAccessLost, onCancel, onDone, onFailed }: { assessment: VendorAssessment; relationship: VendorRelationshipAggregate; onAccessLost: () => void; onCancel: () => void; onDone: () => void; onFailed: (error: unknown) => void }) {
   const [conclusion, setConclusion] = useState<"" | VendorAssessmentConclusion>(""); const [rationale, setRationale] = useState(""); const [uncertainty, setUncertainty] = useState(""); const [busy, setBusy] = useState(false);
+  const lock = useRef(false); const generation = useRef(0); const [refreshFailed, setRefreshFailed] = useState(false);
+  useEffect(() => { const token = ++generation.current; return () => { if (generation.current === token) generation.current++; }; }, []);
   async function submit(event: FormEvent) {
-    event.preventDefault(); if (!conclusion || !rationale.trim() || busy) return; setBusy(true);
-    try { await completeVendorAssessment(assessment.id, { expected_version: assessment.version, conclusion, rationale: rationale.trim(), ...(uncertainty.trim() ? { uncertainty: uncertainty.trim() } : {}) }); onDone(); }
-    catch (error) { onFailed(error); } finally { setBusy(false); }
+    event.preventDefault(); if (!conclusion || !rationale.trim() || busy || lock.current || !relationship.relationship.tenant_id || !relationship.relationship.legal_entity_id) return; lock.current = true; setBusy(true); const token = generation.current;
+    try {
+      const result = await completeVendorAssessment(assessment.id, { expected_version: assessment.version, conclusion, rationale: rationale.trim(), ...(uncertainty.trim() ? { uncertainty: uncertainty.trim() } : {}) });
+      if (token !== generation.current) return;
+      if (!result || result.id !== assessment.id || result.relationship_id !== relationship.relationship.id || result.tenant_id !== relationship.relationship.tenant_id || result.legal_entity_id !== relationship.relationship.legal_entity_id || result.status !== "COMPLETED" || result.version !== assessment.version + 1 || result.conclusion !== conclusion || result.conclusion_rationale !== rationale.trim() || (result.conclusion_uncertainty || "") !== uncertainty.trim() || !result.reviewer_principal_id || !result.completed_at || Number.isNaN(Date.parse(result.completed_at))) throw new Error("Unconfirmed");
+      try { onDone(); } catch { setRefreshFailed(true); }
+    } catch (error) { if (token === generation.current) { if (error instanceof ApiError && [401, 403, 404].includes(error.status)) { onAccessLost(); return; } if (error instanceof ApiError && error.status >= 400 && error.status < 500) lock.current = false; onFailed(error); } } finally { if (token === generation.current) setBusy(false); }
   }
-  return <form className="v-panel v-intake" onSubmit={(event) => void submit(event)}><h2>Complete review</h2><label>Conclusion<select required value={conclusion} onChange={(event) => setConclusion(event.target.value as typeof conclusion)}><option value="">Select conclusion</option><option value="SATISFACTORY">Satisfactory</option><option value="SATISFACTORY_WITH_CONDITIONS">Satisfactory with conditions</option><option value="UNSATISFACTORY">Unsatisfactory</option><option value="INCONCLUSIVE">Inconclusive</option></select></label><label>Rationale<textarea required maxLength={4000} value={rationale} onChange={(event) => setRationale(event.target.value)}/></label><label>Uncertainty<textarea maxLength={2000} value={uncertainty} onChange={(event) => setUncertainty(event.target.value)}/></label><div className="v-intake-actions"><button type="button" onClick={onCancel} disabled={busy}>Cancel</button><button className="v-primary" disabled={busy}>{busy ? "Completing…" : "Complete review"}</button></div></form>;
+  if (refreshFailed) return <div className="v-panel"><p role="alert">Review completed. Reload the assessment to see it.</p><button type="button" onClick={onDone}>Reload assessment</button></div>;
+  return <form className="v-panel v-intake" onSubmit={(event) => void submit(event)}><h2>Complete review</h2><label>Conclusion<select required value={conclusion} onChange={(event) => setConclusion(event.target.value as typeof conclusion)}><option value="">Select conclusion</option><option value="SATISFACTORY">Satisfactory</option><option value="SATISFACTORY_WITH_CONDITIONS">Satisfactory with conditions</option><option value="UNSATISFACTORY">Unsatisfactory</option><option value="INCONCLUSIVE">Inconclusive</option></select></label><label>Rationale<textarea required maxLength={4000} value={rationale} onChange={(event) => setRationale(event.target.value)}/></label><label>Uncertainty<textarea maxLength={2000} value={uncertainty} onChange={(event) => setUncertainty(event.target.value)}/></label>{(!relationship.relationship.tenant_id || !relationship.relationship.legal_entity_id) && <p role="alert">Assessment scope unavailable.</p>}<div className="v-intake-actions"><button type="button" onClick={onCancel} disabled={busy}>Cancel</button><button className="v-primary" disabled={busy || !relationship.relationship.tenant_id || !relationship.relationship.legal_entity_id}>{busy ? "Completing…" : "Complete review"}</button></div></form>;
 }
 
 function label(value: string) { const text = value.toLowerCase().replaceAll("_", " "); return text.charAt(0).toUpperCase() + text.slice(1); }

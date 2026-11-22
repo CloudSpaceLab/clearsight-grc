@@ -17,3 +17,5 @@
 .v-vendor-clarification fieldset label { display: flex; align-items: center; gap: 10px; min-height: 44px; }
 .v-vendor-clarification fieldset input { width: 18px; min-height: 18px; height: 18px; }
 @media (max-width: 600px) { .v-vendor-review .v-vendor-summary { flex-direction: column; } }
+
+.v-vendor-review .v-review-alert [role="alert"] { color: var(--v-color-danger-text); }
