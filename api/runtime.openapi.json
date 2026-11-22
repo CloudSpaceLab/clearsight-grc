@@ -1718,6 +1718,26 @@
         }
       }
     },
+    "/api/v1/risks/{id}/operations": {
+      "get": {
+        "operationId": "getRiskIndicatorOperations",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "summary": "Check authority to link an indicator to a Risk",
+        "parameters": [
+          {"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Authority for the verified actor on the returned Risk version. The link command rechecks authority and version.",
+            "content": {"application/json":{"schema":{"type":"object","required":["risk_id","risk_version","can_act","authority_available"],"properties":{"risk_id":{"type":"string","format":"uuid"},"risk_version":{"type":"integer","minimum":1},"can_act":{"type":"boolean"},"authority_available":{"type":"boolean"}}}}}
+          },
+          "401": {"description":"A verified sign-in is required."},
+          "403": {"description":"The actor cannot access the Risk register."},
+          "404": {"description":"The Risk is unavailable in the verified scope."}
+        }
+      }
+    },
     "/api/v1/risks/{id}/assessments": {
       "post": {
         "operationId": "assessRisk",

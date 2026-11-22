@@ -4,7 +4,7 @@ import axe from "axe-core";
 import { FreshApp } from "./FreshApp";
 import { ApiError } from "../http";
 
-const api = vi.hoisted(() => ({ loadContext: vi.fn(), loadSessionStatus: vi.fn(), loadDemoAccounts: vi.fn(), loginDemo: vi.fn(), loadProgramSummaries: vi.fn(), loadProgram: vi.fn(), loadMatter: vi.fn(), loadActorWorkDueCounts: vi.fn() }));
+const api = vi.hoisted(() => ({ loadContext: vi.fn(), loadSessionStatus: vi.fn(), loadDemoAccounts: vi.fn(), loginDemo: vi.fn(), loadProgramSummaries: vi.fn(), loadMatterSummaries: vi.fn(), loadProgram: vi.fn(), loadMatter: vi.fn(), loadActorWorkDueCounts: vi.fn() }));
 const metrics = vi.hoisted(() => ({ loadHomeMetrics: vi.fn() }));
 const oversight = vi.hoisted(() => ({ loadOversight: vi.fn() }));
 const forms = vi.hoisted(() => ({ loadFormTemplatePage: vi.fn(), loadFormTemplateItem: vi.fn(), transitionFormTemplateRevision: vi.fn() }));
@@ -131,7 +131,7 @@ it("shows stale program status and unknown counts without claiming current assur
   expect(within(row).getByText("Out of date")).toBeTruthy();
   expect(screen.getByRole("columnheader", { name: "Visible open issues" })).toBeTruthy();
   expect(within(row).getByText("Visible open issues")).toBeTruthy();
-  expect(within(row).getAllByText("Unknown")).toHaveLength(2);
+  expect(within(row).getAllByText("Unknown")).toHaveLength(3);
   expect(within(row).queryByText("Up to date")).toBeNull();
   expect(within(row).getByText(/Status as of/).querySelector("time")?.getAttribute("datetime")).toBe("2026-11-20T10:00:00Z");
 });
@@ -141,7 +141,7 @@ it("keeps the actor-visible issue count when the assessment status is unknown", 
   api.loadProgramSummaries.mockResolvedValue({ items: [{ program: { id: "p1", name: "Access program", code: "P-1", version: 2 }, state_label: "Up to date", overall_state: "CURRENT", program_version: 2, requirement_count: 8, open_matter_count: 0 }] });
   render(<FreshApp/>);
   const row = (await screen.findByRole("link", { name: "Access program" })).closest("tr")!;
-  expect(within(row).getByText("Unknown")).toBeTruthy();
+  expect(within(row).getAllByText("Unknown")).toHaveLength(2);
   expect(within(row).getByText("0")).toBeTruthy();
   expect(within(row).getByText("Visible open issues")).toBeTruthy();
   expect(within(row).queryByText("Up to date")).toBeNull();
@@ -504,4 +504,19 @@ it("rejects a Forms cursor cycle before appending repeated data", async () => {
  const row=(id:string)=>({template:{id,name:id,status:"ACTIVE",version:1}});
  forms.loadFormTemplatePage.mockResolvedValueOnce({items:[row("first")],next_cursor:"A"}).mockResolvedValueOnce({items:[row("second")],next_cursor:"B"}).mockResolvedValueOnce({items:[row("repeated")],next_cursor:"A"});
  render(<FreshApp/>); await screen.findByText("first"); fireEvent.click(screen.getByRole("button",{name:"Load more"})); await screen.findByText("second"); fireEvent.click(screen.getByRole("button",{name:"Load more"})); expect((await screen.findByRole("alert")).textContent).toContain("More forms unavailable."); expect(screen.queryByText("repeated")).toBeNull();
+});
+
+
+it("drills from the actor-visible issue count into the selected Program's open issues", async () => {
+ window.location.hash = "#/programs?q=bank&overall_state=AT_RISK";
+ api.loadProgramSummaries.mockResolvedValue({items:[{program:{id:"program-1",name:"Bank assurance",code:"P1",version:2},requirement_count:3,open_matter_count:1}]});
+ api.loadProgram.mockResolvedValue({program:{id:"program-1",tenant_id:"bank",legal_entity_id:"entity",name:"Bank assurance",code:"P1",status:"ACTIVE",version:2},requirements:[]});
+ api.loadMatterSummaries.mockResolvedValue({items:[{matter:{id:"issue-1",tenant_id:"bank",legal_entity_id:"entity",title:"Review access",reference:"ISS-1",status:"ASSESSMENT"},status_label:"Assessment"}]});
+ render(<FreshApp/>); fireEvent.click(await screen.findByRole("link",{name:"View 1 visible open issues for Bank assurance"}));
+ expect(await screen.findByRole("heading",{name:"Open issues"})).toBeTruthy(); expect((await screen.findByRole("link",{name:"Review access"})).getAttribute("href")).toBe("#/work/issues/issue-1");
+ expect(api.loadMatterSummaries).toHaveBeenCalledWith({programID:"program-1",status:"OPEN",limit:20}); expect(screen.getByRole("link",{name:"← Bank assurance"}).getAttribute("href")).toBe("#/programs/program-1?q=bank&overall_state=AT_RISK");
+});
+it("shows distinct requirement, evidence check and visible issue counts", async () => {
+ window.location.hash="#/programs"; api.loadProgramSummaries.mockResolvedValue({items:[{program:{id:"p1",name:"Privacy",code:"P1",version:2},requirement_count:6,evidence_check_count:5,open_matter_count:8}]}); render(<FreshApp/>);
+ const row=(await screen.findByRole("link",{name:"Privacy"})).closest("tr")!; expect(within(row).getByText("6")).toBeTruthy(); expect(within(row).getByText("5")).toBeTruthy(); expect(within(row).getByRole("link",{name:"View 8 visible open issues for Privacy"})).toBeTruthy(); expect(screen.getByRole("columnheader",{name:"Assurance checks"})).toBeTruthy();
 });

@@ -20,3 +20,5 @@
 .v-program-create .v-intake-actions button:disabled { opacity: .55; cursor: not-allowed; }
 .v-form-filters { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 220px) auto; align-items: end; gap: 8px; } .v-form-filters label { margin: 0; } .v-form-filters input { display: block; width: 100%; margin-top: 7px; } .v-form-filters button { justify-self: start; }
 @media (max-width: 560px) { .v-form-filters { grid-template-columns: minmax(0, 1fr); } }
+.v-program-issue-link { display: inline-flex; align-items: center; min-height: var(--v-button-height); min-width: 44px; }
+.v-program-table td a.v-program-issue-link { color: var(--v-color-action); text-decoration: underline; } .v-program-issues [role="alert"] { color: var(--v-color-danger-text); } .v-program-issue-badges { display: flex; flex-wrap: wrap; gap: 6px; }

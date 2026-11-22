@@ -127,6 +127,10 @@ func (s *Service) ListMatterSummaries(ctx context.Context, tenant string, query 
 	if summaries, ok := s.repo.(SummaryRepository); ok {
 		return summaries.ListMatterSummaries(ctx, tenant, query)
 	}
+	// A broad bounded list cannot safely apply an exact Program filter before pagination.
+	if query.ProgramID != "" {
+		return MatterSummaryPage{}, ErrSummaryUnavailable
+	}
 	values, err := s.repo.ListMatters(ctx, tenant, query.Status, query.Limit)
 	if err != nil {
 		return MatterSummaryPage{}, err

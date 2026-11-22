@@ -52,6 +52,9 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 			WHERE $9
 			  AND ml.tenant_id=p.tenant_id
 			  AND ml.program_id=p.id
+              AND ml.retired_at IS NULL
+              AND m.legal_entity_id=p.legal_entity_id
+              AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL)
 			  AND m.status NOT IN ('CLOSED','CANCELLED')
 			  AND CASE
 					WHEN NOT (m.scope ? 'access') THEN true
@@ -218,81 +221,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 		actorTenant = actor.TenantID
 	}
 	enforceEntity, actorEntityTenant, actorEntity := postgresActorScope(ctx)
-	rows, err := r.pool.Query(ctx, `
-		SELECT
-			m.id::text,t.id::text,COALESCE(m.legal_entity_id::text,''),m.reference,m.matter_type,m.status,m.priority,m.title,m.summary,m.scope,
-			m.source_type,COALESCE(m.source_id::text,''),m.trigger_type,COALESCE(m.trigger_id::text,''),m.trigger_key,m.known_facts,m.missing_facts,m.contradictions,
-			COALESCE(m.owner_principal_id::text,''),m.required_authority,m.due_at,m.closed_at,m.closure_reason,m.reopen_count,
-			m.created_at,m.updated_at,m.version,
-			(SELECT count(DISTINCT ml.program_id) FROM matter_links ml WHERE ml.tenant_id=m.tenant_id AND ml.matter_id=m.id AND ml.program_id IS NOT NULL AND ml.retired_at IS NULL),
-			(SELECT count(*) FROM matter_actions ma WHERE ma.tenant_id=m.tenant_id AND ma.matter_id=m.id AND ma.status NOT IN ('IMPLEMENTED','CANCELLED')),
-			(SELECT count(*) FROM verification_contracts vc WHERE vc.tenant_id=m.tenant_id AND vc.matter_id=m.id AND vc.status='ACTIVE'),
-			latest.result,latest.observed_at
-		FROM matters m
-		JOIN tenants t ON t.id=m.tenant_id
-		LEFT JOIN LATERAL (
-			SELECT vr.result,vr.observed_at
-			FROM verification_results vr
-			WHERE vr.tenant_id=m.tenant_id AND vr.matter_id=m.id
-			ORDER BY vr.observed_at DESC,vr.id DESC
-			LIMIT 1
-		) latest ON TRUE
-		WHERE (t.id::text=$1 OR t.slug=$1)
-		  AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL)
-		  AND (NOT $13 OR ((t.id::text=$14 OR t.slug=$14) AND m.legal_entity_id IS NOT NULL AND ($15='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$15 OR le.code=$15) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
-		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
-		  AND ($3='' OR m.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))
-		  AND ($12='' OR EXISTS (
-			SELECT 1 FROM matter_links program_link
-			WHERE program_link.tenant_id=m.tenant_id AND program_link.matter_id=m.id AND program_link.program_id=NULLIF($12,'')::uuid AND program_link.retired_at IS NULL
-		  ))
-		  AND ($16='' OR m.matter_type=$16)
-		  AND ($17=0 OR m.priority=$17)
-		  AND (NOT $20 OR COALESCE(m.owner_principal_id::text,'')=$21)
-		  AND (NOT $22 OR m.owner_principal_id IS NULL)
-		  AND (
-			$18='' OR
-			($18='NO_DUE_DATE' AND m.due_at IS NULL) OR
-			($18='OVERDUE' AND m.due_at<$19 AND m.status NOT IN ('CLOSED','CANCELLED')) OR
-			($18='DUE_7_DAYS' AND m.due_at>=$19 AND m.due_at<=$19+interval '7 days' AND m.status NOT IN ('CLOSED','CANCELLED')) OR
-			($18='DUE_30_DAYS' AND m.due_at>=$19 AND m.due_at<=$19+interval '30 days' AND m.status NOT IN ('CLOSED','CANCELLED'))
-		  )
-		  AND (NOT $4 OR t.id::text=$6 OR t.slug=$6)
-		  AND (
-			NOT $4 OR
-			CASE
-				WHEN NOT (m.scope ? 'access') THEN true
-				WHEN jsonb_typeof(m.scope->'access')<>'string' THEN false
-				WHEN upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL') THEN true
-				WHEN upper(btrim(m.scope->>'access'))='RESTRICTED' THEN
-					CASE
-						WHEN jsonb_typeof(m.scope->'allowed_principal_ids')<>'array' THEN false
-						ELSE
-							NOT EXISTS (
-								SELECT 1
-								FROM jsonb_array_elements(m.scope->'allowed_principal_ids') entry(value)
-								WHERE jsonb_typeof(entry.value)<>'string'
-							)
-							AND EXISTS (
-								SELECT 1
-								FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') nonblank(value)
-								WHERE btrim(nonblank.value)<>''
-							)
-							AND EXISTS (
-								SELECT 1
-								FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') allowed(value)
-								WHERE btrim(allowed.value)=$5
-							)
-					END
-				ELSE false
-			END
-		  )
-		  AND (
-			NOT $7 OR m.priority < $8 OR
-			(m.priority = $8 AND (m.updated_at < $9 OR (m.updated_at = $9 AND m.id < NULLIF($10,'')::uuid)))
-		  )
-		ORDER BY m.priority DESC,m.updated_at DESC,m.id DESC
-		LIMIT $11`, tenant, query.Status, query.Search, enforceVisibility, principalID, actorTenant, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1, query.ProgramID, enforceEntity, actorEntityTenant, actorEntity, query.MatterType, query.Priority, query.DueCondition, query.asOf, query.AssignedToMe, query.principalID, query.Unassigned)
+	rows, err := r.pool.Query(ctx, matterSummarySQL, tenant, query.Status, query.Search, enforceVisibility, principalID, actorTenant, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1, query.ProgramID, enforceEntity, actorEntityTenant, actorEntity, query.MatterType, query.Priority, query.DueCondition, query.asOf, query.AssignedToMe, query.principalID, query.Unassigned)
 	if err != nil {
 		return MatterSummaryPage{}, err
 	}
@@ -347,3 +276,80 @@ var _ SummaryRepository = (*MemoryRepository)(nil)
 func normalizedSummaryStatus(value string) string {
 	return strings.ToUpper(strings.TrimSpace(value))
 }
+
+const matterSummarySQL = `
+		SELECT
+			m.id::text,t.id::text,COALESCE(m.legal_entity_id::text,''),m.reference,m.matter_type,m.status,m.priority,m.title,m.summary,m.scope,
+			m.source_type,COALESCE(m.source_id::text,''),m.trigger_type,COALESCE(m.trigger_id::text,''),m.trigger_key,m.known_facts,m.missing_facts,m.contradictions,
+			COALESCE(m.owner_principal_id::text,''),m.required_authority,m.due_at,m.closed_at,m.closure_reason,m.reopen_count,
+			m.created_at,m.updated_at,m.version,
+			(SELECT count(DISTINCT ml.program_id) FROM matter_links ml WHERE ml.tenant_id=m.tenant_id AND ml.matter_id=m.id AND ml.program_id IS NOT NULL AND ml.retired_at IS NULL),
+			(SELECT count(*) FROM matter_actions ma WHERE ma.tenant_id=m.tenant_id AND ma.matter_id=m.id AND ma.status NOT IN ('IMPLEMENTED','CANCELLED')),
+			(SELECT count(*) FROM verification_contracts vc WHERE vc.tenant_id=m.tenant_id AND vc.matter_id=m.id AND vc.status='ACTIVE'),
+			latest.result,latest.observed_at
+		FROM matters m
+		JOIN tenants t ON t.id=m.tenant_id
+		LEFT JOIN LATERAL (
+			SELECT vr.result,vr.observed_at
+			FROM verification_results vr
+			WHERE vr.tenant_id=m.tenant_id AND vr.matter_id=m.id
+			ORDER BY vr.observed_at DESC,vr.id DESC
+			LIMIT 1
+		) latest ON TRUE
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL)
+		  AND (NOT $13 OR ((t.id::text=$14 OR t.slug=$14) AND m.legal_entity_id IS NOT NULL AND ($15='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$15 OR le.code=$15) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
+		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
+		  AND ($3='' OR m.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))
+		  AND ($12='' OR EXISTS (
+			SELECT 1 FROM matter_links program_link
+            JOIN programs linked_program ON linked_program.tenant_id=program_link.tenant_id AND linked_program.id=program_link.program_id AND linked_program.legal_entity_id=m.legal_entity_id
+			WHERE program_link.tenant_id=m.tenant_id AND program_link.matter_id=m.id AND program_link.program_id=NULLIF($12,'')::uuid AND program_link.retired_at IS NULL
+		  ))
+		  AND ($16='' OR m.matter_type=$16)
+		  AND ($17=0 OR m.priority=$17)
+		  AND (NOT $20 OR COALESCE(m.owner_principal_id::text,'')=$21)
+		  AND (NOT $22 OR m.owner_principal_id IS NULL)
+		  AND (
+			$18='' OR
+			($18='NO_DUE_DATE' AND m.due_at IS NULL) OR
+			($18='OVERDUE' AND m.due_at<$19 AND m.status NOT IN ('CLOSED','CANCELLED')) OR
+			($18='DUE_7_DAYS' AND m.due_at>=$19 AND m.due_at<=$19+interval '7 days' AND m.status NOT IN ('CLOSED','CANCELLED')) OR
+			($18='DUE_30_DAYS' AND m.due_at>=$19 AND m.due_at<=$19+interval '30 days' AND m.status NOT IN ('CLOSED','CANCELLED'))
+		  )
+		  AND (NOT $4 OR t.id::text=$6 OR t.slug=$6)
+		  AND (
+			NOT $4 OR
+			CASE
+				WHEN NOT (m.scope ? 'access') THEN true
+				WHEN jsonb_typeof(m.scope->'access')<>'string' THEN false
+				WHEN upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL') THEN true
+				WHEN upper(btrim(m.scope->>'access'))='RESTRICTED' THEN
+					CASE
+						WHEN jsonb_typeof(m.scope->'allowed_principal_ids')<>'array' THEN false
+						ELSE
+							NOT EXISTS (
+								SELECT 1
+								FROM jsonb_array_elements(m.scope->'allowed_principal_ids') entry(value)
+								WHERE jsonb_typeof(entry.value)<>'string'
+							)
+							AND EXISTS (
+								SELECT 1
+								FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') nonblank(value)
+								WHERE btrim(nonblank.value)<>''
+							)
+							AND EXISTS (
+								SELECT 1
+								FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') allowed(value)
+								WHERE btrim(allowed.value)=$5
+							)
+					END
+				ELSE false
+			END
+		  )
+		  AND (
+			NOT $7 OR m.priority < $8 OR
+			(m.priority = $8 AND (m.updated_at < $9 OR (m.updated_at = $9 AND m.id < NULLIF($10,'')::uuid)))
+		  )
+		ORDER BY m.priority DESC,m.updated_at DESC,m.id DESC
+		LIMIT $11`
