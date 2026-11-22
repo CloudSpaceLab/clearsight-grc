@@ -5,6 +5,12 @@ import (
 	"encoding/json"
 )
 
+type memoryAssessmentReceipt struct {
+	ResponseID string
+	Payload    string
+	Snapshot   assessmentSnapshot
+}
+
 func cloneAssessmentSnapshot(v assessmentSnapshot) assessmentSnapshot {
 	b, _ := json.Marshal(v)
 	var copy assessmentSnapshot
@@ -82,14 +88,45 @@ func (s *MemoryDistributionStore) ReadResponseAssessment(ctx context.Context, te
 	return s.assessmentMaterialLocked(ctx, tenant, entity, principal, response, authorize)
 }
 func (s *MemoryDistributionStore) WriteResponseAssessment(ctx context.Context, tenant, entity, principal, response string, input RecordResponseAssessmentInput, authorize assessmentReadAuthorizer, apply func(context.Context, assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error)) (assessmentMaterial, error) {
-	if input.RequestKey != "" {
-		return assessmentMaterial{}, ErrAssessmentUnavailable
-	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	m, err := s.assessmentMaterialLocked(ctx, tenant, entity, principal, response, authorize)
 	if err != nil {
 		return assessmentMaterial{}, err
+	}
+	keyParts, _ := json.Marshal([]string{tenant, entity, principal, input.RequestKey})
+	payloadBytes, err := json.Marshal(input)
+	if err != nil {
+		return assessmentMaterial{}, err
+	}
+	key, payload := string(keyParts), string(payloadBytes)
+	if prior, ok := s.assessmentRequestKeys[key]; ok {
+		if prior.ResponseID != response {
+			return assessmentMaterial{}, ErrAssessmentForbidden
+		}
+		candidate := m
+		candidate.Snapshot = assessmentSnapshot{}
+		if input.ExpectedVersion > 0 {
+			found := false
+			for _, snapshot := range s.assessments[response] {
+				if snapshot.Version == input.ExpectedVersion {
+					candidate.Snapshot = cloneAssessmentSnapshot(snapshot)
+					found = true
+					break
+				}
+			}
+			if !found {
+				return assessmentMaterial{}, ErrAssessmentForbidden
+			}
+		}
+		if _, _, err = apply(ctx, candidate); err != nil {
+			return assessmentMaterial{}, err
+		}
+		if prior.Payload != payload {
+			return assessmentMaterial{}, ErrAssessmentConflict
+		}
+		m.Snapshot = cloneAssessmentSnapshot(prior.Snapshot)
+		return m, nil
 	}
 	next, decisions, err := apply(ctx, m)
 	if err != nil {
@@ -101,6 +138,10 @@ func (s *MemoryDistributionStore) WriteResponseAssessment(ctx context.Context, t
 		s.assessments = map[string][]assessmentSnapshot{}
 	}
 	s.assessments[response] = append(s.assessments[response], cloneAssessmentSnapshot(next))
+	if s.assessmentRequestKeys == nil {
+		s.assessmentRequestKeys = map[string]memoryAssessmentReceipt{}
+	}
+	s.assessmentRequestKeys[key] = memoryAssessmentReceipt{ResponseID: response, Payload: payload, Snapshot: cloneAssessmentSnapshot(next)}
 	s.assessmentDecisions = append(s.assessmentDecisions, decisions...)
 	s.events = append(s.events, event)
 	s.outbox = append(s.outbox, event)

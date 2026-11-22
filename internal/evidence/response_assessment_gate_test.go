@@ -7,7 +7,7 @@ import (
 
 func TestResponseAssessmentDecisionsUnavailableWhileHistoryRemainsReadable(t *testing.T) {
 	s, store, ctx := assessmentFixture(t)
-	input := RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Report omits tested systems."}}}
+	input := RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Report omits tested systems."}}}
 	if _, err := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", input); err != nil {
 		t.Fatal(err)
 	}

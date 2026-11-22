@@ -19,25 +19,26 @@ type memoryDistributionRecipient struct {
 }
 
 type MemoryDistributionStore struct {
-	creationReceipts    map[string]distributionCreationReceipt
-	assessments         map[string][]assessmentSnapshot
-	assessmentDecisions []FieldAssessmentDecision
-	responseReviews     map[string][]ResponseReview
-	responseReviewKeys  map[string]ResponseReview
-	mu                  sync.RWMutex
-	repo                *MemoryRepository
-	forms               DistributionFormReader
-	protector           recipientAddressProtector
-	now                 func() time.Time
-	distributions       map[string]FormDistribution
-	recipients          map[string][]memoryDistributionRecipient
-	workspaces          map[string]ResponseWorkspace
-	requestDistribution map[string]string
-	responseRevisions   map[string][]ResponseRevision
-	documentContexts    DocumentContextReader
-	vendorProgress      func(string) (map[string]formcontract.AnswerValue, bool, time.Time)
-	events              []distributionEvent
-	outbox              []distributionEvent
+	creationReceipts      map[string]distributionCreationReceipt
+	assessments           map[string][]assessmentSnapshot
+	assessmentRequestKeys map[string]memoryAssessmentReceipt
+	assessmentDecisions   []FieldAssessmentDecision
+	responseReviews       map[string][]ResponseReview
+	responseReviewKeys    map[string]ResponseReview
+	mu                    sync.RWMutex
+	repo                  *MemoryRepository
+	forms                 DistributionFormReader
+	protector             recipientAddressProtector
+	now                   func() time.Time
+	distributions         map[string]FormDistribution
+	recipients            map[string][]memoryDistributionRecipient
+	workspaces            map[string]ResponseWorkspace
+	requestDistribution   map[string]string
+	responseRevisions     map[string][]ResponseRevision
+	documentContexts      DocumentContextReader
+	vendorProgress        func(string) (map[string]formcontract.AnswerValue, bool, time.Time)
+	events                []distributionEvent
+	outbox                []distributionEvent
 }
 
 func NewMemoryDistributionStore(repo *MemoryRepository, forms DistributionFormReader, protector recipientAddressProtector) *MemoryDistributionStore {

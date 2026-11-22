@@ -19,12 +19,29 @@ func TestResponseAssessmentPOSTUnavailableForAuthorizedActor(t *testing.T) {
 	api := &API{deps: Dependencies{FormDistributions: service}}
 	actor := identity.Actor{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "reviewer", ExpiresAt: time.Now().Add(time.Hour)}
 	r := httptest.NewRequest("POST", "/api/v1/forms/responses/response/assessment", strings.NewReader(`{"expected_version":0,"decisions":[{"field_id":"report","outcome_id":"poor","rationale":"Missing scope."}]}`))
+	r.Header.Set("Idempotency-Key", "00000000-0000-4000-8000-000000000001")
 	r = r.WithContext(identity.WithActor(r.Context(), actor))
 	r.SetPathValue("revision_id", "response")
 	w := httptest.NewRecorder()
 	api.recordResponseAssessment(w, r)
 	if w.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestResponseAssessmentPOSTRequiresValidRequestKey(t *testing.T) {
+	api := &API{deps: Dependencies{FormDistributions: evidence.NewDistributionService(evidence.NewMemoryDistributionStore(evidence.NewMemoryRepository(nil, nil), nil, nil))}}
+	actor := identity.Actor{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "reviewer", ExpiresAt: time.Now().Add(time.Hour)}
+	for _, key := range []string{"", "not-a-uuid"} {
+		r := httptest.NewRequest("POST", "/api/v1/forms/responses/response/assessment", strings.NewReader(`{"expected_version":0,"decisions":[]}`))
+		r.Header.Set("Idempotency-Key", key)
+		r = r.WithContext(identity.WithActor(r.Context(), actor))
+		r.SetPathValue("revision_id", "response")
+		w := httptest.NewRecorder()
+		api.recordResponseAssessment(w, r)
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "Reload and try again") {
+			t.Fatalf("key %q: %d %s", key, w.Code, w.Body.String())
+		}
 	}
 }
 

@@ -149,7 +149,7 @@ func (s *DistributionService) RecordResponseAssessment(ctx context.Context, tena
 		return ResponseAssessment{}, ErrAssessmentUnavailable
 	}
 	input.RequestKey = strings.ToLower(strings.TrimSpace(input.RequestKey))
-	if input.RequestKey != "" && !responseReviewRequestKeyPattern.MatchString(input.RequestKey) {
+	if !responseReviewRequestKeyPattern.MatchString(input.RequestKey) {
 		return ResponseAssessment{}, ErrAssessmentInvalid
 	}
 	input.Decisions = append([]FieldAssessmentInput(nil), input.Decisions...)

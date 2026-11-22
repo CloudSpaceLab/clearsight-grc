@@ -124,7 +124,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	expiring := identity.WithActor(ctx, identity.Actor{Kind: "PERSON", TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: expires})
 	expiryResult := make(chan error, 1)
 	go func() {
-		_, writeErr := service.RecordResponseAssessment(expiring, tenant, entity, response, RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
+		_, writeErr := service.RecordResponseAssessment(expiring, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
 		expiryResult <- writeErr
 	}()
 	<-started
@@ -152,7 +152,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	})
 	revokedResult := make(chan error, 1)
 	go func() {
-		_, e := service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
+		_, e := service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
 		revokedResult <- e
 	}()
 	<-authorized
@@ -191,7 +191,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	})
 	collisionResult := make(chan error, 1)
 	go func() {
-		_, e := service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
+		_, e := service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
 		collisionResult <- e
 	}()
 	<-checked
@@ -382,7 +382,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	if _, err = service.RecordResponseAssessment(ctx, tenant, entity, response, changedInput); !errors.Is(err, ErrAssessmentConflict) {
 		t.Fatalf("changed command replay: %v", err)
 	}
-	input.RequestKey = ""
+	input.RequestKey = mustResponseWorkspaceID(t)
 	var decisions, outbox int
 	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_field_assessments WHERE tenant_id=$1::uuid),(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_ASSESSED')`, tenant).Scan(&decisions, &outbox); err != nil || decisions != 1 || outbox != 1 {
 		t.Fatalf("counts %d %d %v", decisions, outbox, err)
@@ -536,7 +536,7 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 		t.Fatalf("unscoped reviewer inventory %+v %v", page, err)
 	}
 	q.ResponseRevisionID = response
-	updated, err := service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
+	updated, err := service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
 	if err != nil || updated.Version != 1 || !updated.MayReview {
 		t.Fatalf("non-owner reviewer cannot record: %+v %v", updated, err)
 	}
@@ -548,7 +548,7 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 		if err != nil || retired.Current || retired.MayReview {
 			t.Fatalf("retired review %+v %v", retired, err)
 		}
-		_, err = service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{ExpectedVersion: 1, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "Must not save."}}})
+		_, err = service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", ExpectedVersion: 1, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "Must not save."}}})
 		if !errors.Is(err, ErrAssessmentConflict) {
 			t.Fatalf("retired distribution write: %v", err)
 		}

@@ -5,6 +5,8 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"net/http"
+	"regexp"
+	"strings"
 )
 
 func (a *API) getResponseAssessment(w http.ResponseWriter, r *http.Request) {
@@ -57,11 +59,16 @@ func (a *API) recordResponseAssessment(w http.ResponseWriter, r *http.Request) {
 		writeResponseAssessmentError(w, evidence.ErrAssessmentInvalid)
 		return
 	}
+	key := strings.ToLower(strings.TrimSpace(r.Header.Get("Idempotency-Key")))
+	if ok, _ := regexp.MatchString(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, key); !ok {
+		httpx.WriteError(w, http.StatusBadRequest, "assessment_request_key_invalid", "Review not saved. Reload and try again.")
+		return
+	}
 	entity, ok := distributionLegalEntity(w, r, actor, body.LegalEntityID)
 	if !ok {
 		return
 	}
-	result, err := service.RecordResponseAssessment(r.Context(), actor.TenantID, entity, r.PathValue("revision_id"), evidence.RecordResponseAssessmentInput{ExpectedVersion: *body.ExpectedVersion, Decisions: body.Decisions, RequestKey: r.Header.Get("Idempotency-Key")})
+	result, err := service.RecordResponseAssessment(r.Context(), actor.TenantID, entity, r.PathValue("revision_id"), evidence.RecordResponseAssessmentInput{ExpectedVersion: *body.ExpectedVersion, Decisions: body.Decisions, RequestKey: key})
 	if err != nil {
 		writeResponseAssessmentError(w, err)
 		return

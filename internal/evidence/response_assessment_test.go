@@ -30,7 +30,7 @@ func TestResponseAssessmentImmutableConflictAndAuthority(t *testing.T) {
 	if err != nil || v.State != "AWAITING_REVIEW" || v.RequiredCount != 1 {
 		t.Fatalf("pending=%+v err=%v", v, err)
 	}
-	input := RecordResponseAssessmentInput{ExpectedVersion: 0, Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Report omits the tested systems."}}}
+	input := RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", ExpectedVersion: 0, Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Report omits the tested systems."}}}
 	got, err := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", input)
 	if err != nil {
 		t.Fatal(err)
@@ -38,10 +38,16 @@ func TestResponseAssessmentImmutableConflictAndAuthority(t *testing.T) {
 	if got.Version != 1 || got.State != "ASSESSED" || got.AssessedScore == nil || *got.AssessedScore.RawScore != 80 {
 		t.Fatalf("result=%+v", got)
 	}
-	if _, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", input); !errors.Is(err, ErrAssessmentConflict) {
-		t.Fatalf("replay accepted: %v", err)
+	if replay, replayErr := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", input); replayErr != nil || replay.Version != got.Version || replay.Fields[0].Decision.ID != got.Fields[0].Decision.ID {
+		t.Fatalf("replay: %+v %v", replay, replayErr)
+	}
+	changed := input
+	changed.Decisions = []FieldAssessmentInput{{FieldID: "report", OutcomeID: "good", Rationale: "Changed reason."}}
+	if _, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", changed); !errors.Is(err, ErrAssessmentConflict) {
+		t.Fatalf("changed replay: %v", err)
 	}
 	input.ExpectedVersion = 1
+	input.RequestKey = "00000000-0000-4000-8000-000000000002"
 	input.Decisions[0].OutcomeID = "good"
 	got2, err := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", input)
 	if err != nil {
@@ -63,6 +69,19 @@ func TestResponseAssessmentImmutableConflictAndAuthority(t *testing.T) {
 	}
 }
 
+func TestResponseAssessmentRequiresRequestKey(t *testing.T) {
+	s, store, ctx := assessmentFixture(t)
+	for _, key := range []string{"", "invalid"} {
+		_, err := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{RequestKey: key, Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
+		if !errors.Is(err, ErrAssessmentInvalid) {
+			t.Fatalf("key %q: %v", key, err)
+		}
+	}
+	if len(store.events) != 0 || len(store.outbox) != 0 {
+		t.Fatal("invalid key wrote records")
+	}
+}
+
 func TestResponseAssessmentRetainsRecordedSubmitter(t *testing.T) {
 	s, store, ctx := assessmentFixture(t)
 	sub := store.repo.submissions["submission"]
@@ -76,7 +95,7 @@ func TestResponseAssessmentRetainsRecordedSubmitter(t *testing.T) {
 
 func TestResponseAssessmentRejectsScopeSupersessionAndInvalidDecision(t *testing.T) {
 	s, store, ctx := assessmentFixture(t)
-	input := RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Missing scope."}}}
+	input := RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Missing scope."}}}
 	if _, err := s.RecordResponseAssessment(context.Background(), "tenant", "entity", "response", input); !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatal(err)
 	}
@@ -118,7 +137,7 @@ func TestResponseAssessmentRejectsRespondentReview(t *testing.T) {
 	sub := store.repo.submissions["submission"]
 	sub.SubmittedBy = "reviewer"
 	store.repo.submissions["submission"] = sub
-	_, err := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
+	_, err := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
 	if !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatalf("respondent self-review accepted %v", err)
 	}
@@ -140,7 +159,7 @@ func TestResponseAssessmentRejectsAssignedRespondentWhenLinkSubmitterUnknown(t *
 	if view.MayReview || view.Fields[0].MayReview {
 		t.Fatal("assigned respondent offered review controls")
 	}
-	_, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
+	_, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
 	if !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatalf("assigned respondent allowed to review: %v", err)
 	}
@@ -171,7 +190,7 @@ func TestResponseAssessmentRejectsOriginalRecipientAfterReassignment(t *testing.
 	if view.SubmissionRecipient == nil || view.SubmissionRecipient.Label != "Ada Okafor" || view.SubmissionRecipient.PrincipalID != "reviewer" {
 		t.Fatalf("recorded recipient provenance unavailable: %+v", view.SubmissionRecipient)
 	}
-	_, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
+	_, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
 	if !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatalf("original recipient allowed to review: %v", err)
 	}
@@ -183,7 +202,7 @@ func TestResponseAssessmentRejectsOriginalRecipientAfterReassignment(t *testing.
 	if err != nil || updated.SubmissionRecipient == nil || updated.SubmissionRecipient.Label != "Ada Okafor" {
 		t.Fatalf("original recipient label changed: %+v %v", updated.SubmissionRecipient, err)
 	}
-	_, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
+	_, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
 	if !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatalf("changed recipient record erased the conflict: %v", err)
 	}
@@ -200,7 +219,7 @@ func TestResponseAssessmentRetiredDistributionIsHistorical(t *testing.T) {
 			if err != nil || v.Current || v.MayReview {
 				t.Fatalf("retired response editable: %+v %v", v, err)
 			}
-			_, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
+			_, err = s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Reason."}}})
 			if !errors.Is(err, ErrAssessmentConflict) {
 				t.Fatalf("retired response write: %v", err)
 			}
@@ -226,7 +245,7 @@ func TestResponseAssessmentPolicyGetterAndLegacy(t *testing.T) {
 	s, store, ctx := assessmentFixture(t)
 	auto := &ResponseScoreResult{State: ResponseScoreNotConfigured}
 	store.responseRevisions["distribution"][0].Score = auto
-	_, err := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Missing scope."}}})
+	_, err := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Missing scope."}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -246,7 +265,7 @@ func TestResponseAssessmentPolicyGetterAndLegacy(t *testing.T) {
 
 func TestResponseAssessmentExecutionGuardRejectsSupersededVersion(t *testing.T) {
 	s, store, ctx := assessmentFixture(t)
-	input := RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Missing scope."}}}
+	input := RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "report", OutcomeID: "poor", Rationale: "Missing scope."}}}
 	if _, err := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", input); err != nil {
 		t.Fatal(err)
 	}
@@ -256,6 +275,7 @@ func TestResponseAssessmentExecutionGuardRejectsSupersededVersion(t *testing.T) 
 		t.Fatalf("current guard: %v", err)
 	}
 	input.ExpectedVersion = 1
+	input.RequestKey = "00000000-0000-4000-8000-000000000002"
 	input.Decisions[0].OutcomeID = "good"
 	if _, err := s.RecordResponseAssessment(ctx, "tenant", "entity", "response", input); err != nil {
 		t.Fatal(err)
