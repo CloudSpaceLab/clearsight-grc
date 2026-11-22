@@ -3,8 +3,10 @@
 package federation
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -29,7 +31,7 @@ func TestPostgresSessionStoreRejectsStaleCommitsAndRotation(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
-	store := NewPostgresSessionStore(pool)
+	store := NewPostgresSessionStore(pool, nil)
 	t.Cleanup(store.StopCleanup)
 	s := scs.New()
 	s.Store = store
@@ -97,10 +99,15 @@ func TestPostgresSessionStoreRejectsStaleCommitsAndRotation(t *testing.T) {
 	})
 	t.Run("rotation invalidates old in-flight request", func(t *testing.T) {
 		token := create()
-		rotation, inflight := load(token), load(token)
+		rotation, inflight, oldLogout := load(token), load(token), load(token)
 		svc := &Service{sessions: s, access: &fakeAccessResolver{resolution: access.Resolution{TenantID: "bank", PrincipalID: "principal-1", LegalEntityID: "entity-b", Kind: "PERSON"}}, now: time.Now}
 		if _, e := svc.SwitchScope(rotation, identity.Actor{TenantID: "bank", PrincipalID: "principal-1", LegalEntityID: "entity-a"}, "entity-b"); e != nil {
 			t.Fatal(e)
+		}
+		w := httptest.NewRecorder()
+		svc.Logout(w, httptest.NewRequest(http.MethodPost, "/logout", nil).WithContext(oldLogout))
+		if w.Code == http.StatusNoContent {
+			t.Fatal("stale logout reported that the rotated session was signed out")
 		}
 		newToken, _, e := s.Commit(rotation)
 		if e != nil {
@@ -176,7 +183,7 @@ func TestPostgresSessionStoreRejectsStaleCommitsAndRotation(t *testing.T) {
 			t.Fatal(e)
 		}
 		closed.Close()
-		bad := NewPostgresSessionStore(closed)
+		bad := NewPostgresSessionStore(closed, nil)
 		defer bad.StopCleanup()
 		origin := withOriginalSessionToken(ctx, "private-session-token")
 		for _, call := range []func() error{func() error {
@@ -197,6 +204,31 @@ func TestPostgresSessionStoreRejectsStaleCommitsAndRotation(t *testing.T) {
 		}
 		if got := s.GetString(load(token), sessionPrincipalID); got != "principal-1" {
 			t.Fatalf("collision altered session: %q", got)
+		}
+	})
+	t.Run("later lookup cannot replace the loaded baseline", func(t *testing.T) {
+		token := create()
+		origin := withOriginalSessionToken(ctx, token)
+		first, found, e := store.FindCtx(origin, hashSessionToken(token))
+		if e != nil || !found {
+			t.Fatalf("first lookup: %v %v", found, e)
+		}
+		changed, e := scs.GobCodec{}.Encode(time.Now().Add(time.Hour), map[string]interface{}{sessionPrincipalID: "different"})
+		if e != nil {
+			t.Fatal(e)
+		}
+		if _, e = pool.Exec(ctx, `UPDATE web_sessions SET data=$2 WHERE token=$1`, hashSessionToken(token), changed); e != nil {
+			t.Fatal(e)
+		}
+		if _, found, e = store.FindCtx(origin, hashSessionToken(token)); e != nil || !found {
+			t.Fatalf("second lookup: %v %v", found, e)
+		}
+		state := origin.Value(originalSessionTokenKey{}).(*sessionRequestState)
+		state.mu.Lock()
+		preserved := bytes.Equal(state.loaded, first)
+		state.mu.Unlock()
+		if !preserved {
+			t.Fatal("loaded baseline was replaced")
 		}
 	})
 	t.Run("duplicate cookies classify the same token SCS loads", func(t *testing.T) {
@@ -239,6 +271,161 @@ func TestPostgresSessionStoreRejectsStaleCommitsAndRotation(t *testing.T) {
 		handler.ServeHTTP(w, r)
 		if w.Code != http.StatusOK || w.Body.String() != "principal-1" {
 			t.Fatalf("new session read: %d %q", w.Code, w.Body.String())
+		}
+	})
+	t.Run("unchanged idle refresh failure preserves committed response", func(t *testing.T) {
+		token := create()
+		var logs bytes.Buffer
+		storePool, e := pgxpool.New(ctx, url)
+		if e != nil {
+			t.Fatal(e)
+		}
+		failing := NewPostgresSessionStore(storePool, slog.New(slog.NewTextHandler(&logs, nil)))
+		defer failing.StopCleanup()
+		old := s.Store
+		s.Store = failing
+		defer func() { s.Store = old }()
+		domainConn, e := pool.Acquire(ctx)
+		if e != nil {
+			t.Fatal(e)
+		}
+		defer domainConn.Release()
+		if _, e = domainConn.Exec(ctx, `CREATE TEMP TABLE assessment_commit_probe(id integer)`); e != nil {
+			t.Fatal(e)
+		}
+		svc := &Service{sessions: s}
+		handler := svc.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if _, e := domainConn.Exec(ctx, `INSERT INTO assessment_commit_probe(id) VALUES(1)`); e != nil {
+				t.Error(e)
+				return
+			}
+			storePool.Close()
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("committed"))
+		}))
+		r := httptest.NewRequest(http.MethodPost, "/assessment", nil)
+		r.AddCookie(&http.Cookie{Name: s.Cookie.Name, Value: token})
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		var count int
+		if e = domainConn.QueryRow(ctx, `SELECT count(*) FROM assessment_commit_probe`).Scan(&count); e != nil || count != 1 {
+			t.Fatalf("material commit: %d %v", count, e)
+		}
+		if w.Code != http.StatusOK || w.Body.String() != "committed" {
+			t.Fatalf("committed response: %d %q", w.Code, w.Body.String())
+		}
+		if !strings.Contains(logs.String(), "session idle refresh failed") || strings.Contains(logs.String(), token) || strings.Contains(logs.String(), "principal-1") {
+			t.Fatalf("unsafe or missing warning: %q", logs.String())
+		}
+	})
+	for _, tc := range []struct {
+		name                             string
+		mutate, deadline, rotate, logout bool
+	}{
+		{"changed session", true, false, false, false}, {"changed deadline", false, true, false, false}, {"rotation", false, false, true, false}, {"logout", false, false, false, true},
+	} {
+		t.Run(tc.name+" failure stays explicit", func(t *testing.T) {
+			token := create()
+			storePool, e := pgxpool.New(ctx, url)
+			if e != nil {
+				t.Fatal(e)
+			}
+			var logs bytes.Buffer
+			failing := NewPostgresSessionStore(storePool, slog.New(slog.NewTextHandler(&logs, nil)))
+			defer failing.StopCleanup()
+			old := s.Store
+			s.Store = failing
+			defer func() { s.Store = old }()
+			svc := &Service{sessions: s}
+			handler := svc.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tc.mutate {
+					s.Put(r.Context(), sessionPrincipalID, "different-principal")
+				}
+				if tc.deadline {
+					s.SetDeadline(r.Context(), time.Now().Add(30*time.Minute))
+				}
+				if tc.rotate {
+					if e := s.RenewToken(r.Context()); e != nil {
+						t.Error(e)
+						return
+					}
+				}
+				storePool.Close()
+				if tc.logout {
+					svc.Logout(w, r)
+					return
+				}
+				_, _ = w.Write([]byte("attempted"))
+			}))
+			r := httptest.NewRequest(http.MethodPost, "/", nil)
+			r.AddCookie(&http.Cookie{Name: s.Cookie.Name, Value: token})
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, r)
+			if w.Code != http.StatusInternalServerError || strings.Contains(w.Body.String(), token) || strings.Contains(w.Body.String(), "principal-1") || strings.Contains(logs.String(), "session idle refresh failed") {
+				t.Fatalf("security-critical failure: %d %q logs=%q", w.Code, w.Body.String(), logs.String())
+			}
+		})
+	}
+	t.Run("missing baseline and logger fail closed", func(t *testing.T) {
+		closed, e := pgxpool.New(ctx, url)
+		if e != nil {
+			t.Fatal(e)
+		}
+		closed.Close()
+		var logs bytes.Buffer
+		withLogger := NewPostgresSessionStore(closed, slog.New(slog.NewTextHandler(&logs, nil)))
+		defer withLogger.StopCleanup()
+		withoutLogger := NewPostgresSessionStore(closed, nil)
+		defer withoutLogger.StopCleanup()
+		origin := withOriginalSessionToken(ctx, "private-token")
+		encoded, e := scs.GobCodec{}.Encode(time.Now().Add(time.Hour), map[string]interface{}{"key": "value"})
+		if e != nil {
+			t.Fatal(e)
+		}
+		for _, store := range []*PostgresSessionStore{withLogger, withoutLogger} {
+			if e := store.CommitCtx(origin, hashSessionToken("private-token"), encoded, time.Now().Add(time.Hour)); e == nil {
+				t.Fatal("unproven refresh error was suppressed")
+			}
+		}
+	})
+	t.Run("loaded refresh without logger stays explicit", func(t *testing.T) {
+		token := create()
+		storePool, e := pgxpool.New(ctx, url)
+		if e != nil {
+			t.Fatal(e)
+		}
+		failing := NewPostgresSessionStore(storePool, nil)
+		defer failing.StopCleanup()
+		old := s.Store
+		s.Store = failing
+		defer func() { s.Store = old }()
+		loaded := load(token)
+		storePool.Close()
+		if _, _, e = s.Commit(loaded); e == nil {
+			t.Fatal("unlogged refresh error was suppressed")
+		}
+	})
+	t.Run("expiry beyond the absolute deadline stays explicit", func(t *testing.T) {
+		token := create()
+		storePool, e := pgxpool.New(ctx, url)
+		if e != nil {
+			t.Fatal(e)
+		}
+		var logs bytes.Buffer
+		failing := NewPostgresSessionStore(storePool, slog.New(slog.NewTextHandler(&logs, nil)))
+		defer failing.StopCleanup()
+		old := s.Store
+		s.Store = failing
+		defer func() { s.Store = old }()
+		loaded := load(token)
+		state := loaded.Value(originalSessionTokenKey{}).(*sessionRequestState)
+		state.mu.Lock()
+		data := append([]byte(nil), state.loaded...)
+		state.mu.Unlock()
+		expiry := s.Deadline(loaded).Add(time.Hour)
+		storePool.Close()
+		if e = failing.CommitCtx(loaded, hashSessionToken(token), data, expiry); e == nil || strings.Contains(logs.String(), "session idle refresh failed") {
+			t.Fatalf("invalid expiry was suppressed: %v %q", e, logs.String())
 		}
 	})
 }

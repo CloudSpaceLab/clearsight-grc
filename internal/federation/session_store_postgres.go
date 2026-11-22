@@ -5,9 +5,12 @@ package federation
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"reflect"
 	"time"
 
 	"github.com/alexedwards/scs/pgxstore"
+	"github.com/alexedwards/scs/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -19,7 +22,8 @@ var errSessionNoLongerActive = errors.New("session is no longer active")
 // an old token that has been deleted or has expired.
 type PostgresSessionStore struct {
 	*pgxstore.PostgresStore
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger *slog.Logger
 }
 
 // SCS uses the context-aware methods. The legacy interface methods cannot
@@ -28,23 +32,46 @@ func (s *PostgresSessionStore) Commit(string, []byte, time.Time) error {
 	return errSessionOriginUnavailable
 }
 func (s *PostgresSessionStore) Delete(string) error { return errSessionOriginUnavailable }
-
-func NewPostgresSessionStore(pool *pgxpool.Pool) *PostgresSessionStore {
-	return &PostgresSessionStore{PostgresStore: pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"}), pool: pool}
+func NewPostgresSessionStore(pool *pgxpool.Pool, logger *slog.Logger) *PostgresSessionStore {
+	return &PostgresSessionStore{PostgresStore: pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"}), pool: pool, logger: logger}
+}
+func (s *PostgresSessionStore) FindCtx(ctx context.Context, token string) ([]byte, bool, error) {
+	data, found, err := s.PostgresStore.FindCtx(ctx, token)
+	if state, ok := ctx.Value(originalSessionTokenKey{}).(*sessionRequestState); ok && err == nil && found && token == state.hash {
+		state.mu.Lock()
+		if state.loaded == nil {
+			state.loaded = append([]byte(nil), data...)
+		}
+		state.mu.Unlock()
+	}
+	return data, found, err
+}
+func unchangedSession(state *sessionRequestState, data []byte, expiry time.Time) bool {
+	state.mu.Lock()
+	baseline := append([]byte(nil), state.loaded...)
+	state.mu.Unlock()
+	if len(baseline) == 0 {
+		return false
+	}
+	codec := scs.GobCodec{}
+	before, beforeValues, e1 := codec.Decode(baseline)
+	after, afterValues, e2 := codec.Decode(data)
+	return e1 == nil && e2 == nil && before.Equal(after) && !expiry.After(after) && reflect.DeepEqual(beforeValues, afterValues)
 }
 func (s *PostgresSessionStore) CommitCtx(ctx context.Context, token string, data []byte, expiry time.Time) error {
-	original, ok := ctx.Value(originalSessionTokenKey{}).(string)
+	state, ok := ctx.Value(originalSessionTokenKey{}).(*sessionRequestState)
 	if !ok {
 		return errSessionOriginUnavailable
 	}
-	if token == original {
-		// No-op if logout, rotation or expiry removed the row while the request ran.
-		// Reporting a store error here could turn a committed material action into
-		// an apparent failure; the old cookie is unusable on the next request.
+	if token == state.hash {
+		// A missing row stays missing after logout, rotation or expiry.
 		_, err := s.pool.Exec(ctx, `UPDATE web_sessions SET data=$2,expiry=$3 WHERE token=$1 AND expiry>clock_timestamp() AND $3::timestamptz>clock_timestamp()`, token, data, expiry)
+		if err != nil && s.logger != nil && !state.securityChange.Load() && unchangedSession(state, data, expiry) {
+			s.logger.Warn("session idle refresh failed")
+			return nil
+		}
 		return err
 	}
-	// A genuinely new token must not overwrite any existing session.
 	tag, err := s.pool.Exec(ctx, `INSERT INTO web_sessions(token,data,expiry) SELECT $1,$2,$3 WHERE $3::timestamptz>clock_timestamp() ON CONFLICT(token) DO NOTHING`, token, data, expiry)
 	if err != nil {
 		return err
@@ -55,15 +82,15 @@ func (s *PostgresSessionStore) CommitCtx(ctx context.Context, token string, data
 	return nil
 }
 func (s *PostgresSessionStore) DeleteCtx(ctx context.Context, token string) error {
-	original, ok := ctx.Value(originalSessionTokenKey{}).(string)
+	state, ok := ctx.Value(originalSessionTokenKey{}).(*sessionRequestState)
 	if !ok {
 		return errSessionOriginUnavailable
 	}
-	// SCS hashes its empty token when destroying a request with no session.
+	state.securityChange.Store(true)
 	if token == emptySessionTokenHash() {
 		return nil
 	}
-	if token != original {
+	if token != state.hash {
 		return errSessionNoLongerActive
 	}
 	tag, err := s.pool.Exec(ctx, `DELETE FROM web_sessions WHERE token=$1 AND expiry>clock_timestamp()`, token)

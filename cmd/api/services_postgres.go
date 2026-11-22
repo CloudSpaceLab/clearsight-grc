@@ -177,7 +177,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	stopInvalidations := invalidation.StartPostgresListener(ctx, pool, invalidationHub, logger)
 	notificationPreferences := notificationprefs.NewService(notificationprefs.NewPostgresRepository(pool))
 	groupOversightService := oversight.NewGroupService(oversightRepository, accessResolver)
-	sessionStore := federation.NewPostgresSessionStore(pool)
+	sessionStore := federation.NewPostgresSessionStore(pool, logger)
 	scimService, err := scimapi.New(scimapi.NewPostgresRepository(pool), logger)
 	if err != nil {
 		sessionStore.StopCleanup()
