@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/jackc/pgx/v5"
 )
@@ -42,7 +43,7 @@ WHERE current_setting('transaction_isolation')='read committed' AND s.request_in
 // insertCurrentResponseReview is called after locking the response,
 // distribution and request. The decision and exact route receipt share one
 // statement snapshot; event and outbox still belong to the caller's tx.
-func insertCurrentResponseReview(ctx context.Context, tx pgx.Tx, actor identity.Actor, material assessmentMaterial, review ResponseReview, requestKey string) (ResponseReview, error) {
+func insertCurrentResponseReview(ctx context.Context, tx pgx.Tx, actor identity.Actor, material assessmentMaterial, review ResponseReview, requestKey string, session federation.OIDCSessionProof) (ResponseReview, error) {
 	if tx == nil || !strings.EqualFold(strings.TrimSpace(actor.Kind), "PERSON") || actor.PrincipalID != review.ReviewerID || material.Revision.ID != review.ResponseID || material.Summary.ID != material.Revision.ID || material.Revision.Revision != review.ResponseRevision {
 		return ResponseReview{}, ErrAssessmentForbidden
 	}
@@ -63,8 +64,9 @@ SELECT DISTINCT $2::uuid,r.tenant_id,r.legal_entity_id,r.id,r.revision,$3::bigin
  AND r.is_current AND r.state IN ('FINAL','PROVISIONAL') AND d.status NOT IN ('REVOKED','SUPERSEDED')
  AND r.revision=$15 AND COALESCE((SELECT max(version) FROM capture_response_reviews prior WHERE prior.tenant_id=r.tenant_id AND prior.legal_entity_id=r.legal_entity_id AND prior.response_revision_id=r.id),0)=$3::bigint-1
  AND COALESCE((SELECT id::text FROM capture_response_reviews prior WHERE prior.tenant_id=r.tenant_id AND prior.legal_entity_id=r.legal_entity_id AND prior.response_revision_id=r.id ORDER BY version DESC LIMIT 1),'')=$7
+ AND EXISTS(SELECT 1 FROM web_sessions staff_session WHERE staff_session.token=$17 AND staff_session.data=$18::bytea AND staff_session.expiry>statement_timestamp() AND staff_session.expiry>clock_timestamp())
 RETURNING authority_route,reviewed_at,authority_source_type,authority_source_id::text,authority_rule_id,authority_policy_version`
-	err = tx.QueryRow(ctx, statement, string(request), review.ID, review.Version, review.Decision, review.Comment, actor.PrincipalID, review.SupersedesID, material.Revision.ID, material.Summary.TenantID, material.Summary.LegalEntityID, actor.TenantID, actor.LegalEntityID, actor.ExpiresAt, issuedAt, material.Revision.Revision, requestKey).Scan(&review.AuthorityRoute, &review.ReviewedAt, &review.AuthoritySourceType, &review.AuthoritySourceID, &review.AuthorityRuleID, &review.AuthorityPolicyVersion)
+	err = tx.QueryRow(ctx, statement, string(request), review.ID, review.Version, review.Decision, review.Comment, actor.PrincipalID, review.SupersedesID, material.Revision.ID, material.Summary.TenantID, material.Summary.LegalEntityID, actor.TenantID, actor.LegalEntityID, actor.ExpiresAt, issuedAt, material.Revision.Revision, requestKey, session.TokenHash, session.Data).Scan(&review.AuthorityRoute, &review.ReviewedAt, &review.AuthoritySourceType, &review.AuthoritySourceID, &review.AuthorityRuleID, &review.AuthorityPolicyVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ResponseReview{}, ErrAssessmentForbidden
 	}
@@ -76,7 +78,7 @@ RETURNING authority_route,reviewed_at,authority_source_type,authority_source_id:
 
 // replayResponseReview returns a historical decision only while the same
 // verified actor remains an eligible reviewer with current subject visibility.
-func replayResponseReview(ctx context.Context, tx pgx.Tx, actor identity.Actor, material assessmentMaterial, input RecordResponseReviewInput) (ResponseReview, error) {
+func replayResponseReview(ctx context.Context, tx pgx.Tx, actor identity.Actor, material assessmentMaterial, input RecordResponseReviewInput, session federation.OIDCSessionProof) (ResponseReview, error) {
 	if tx == nil || !strings.EqualFold(strings.TrimSpace(actor.Kind), "PERSON") {
 		return ResponseReview{}, ErrAssessmentForbidden
 	}
@@ -92,11 +94,11 @@ func replayResponseReview(ctx context.Context, tx pgx.Tx, actor identity.Actor, 
  SELECT DISTINCT prior.id::text,prior.response_revision_id::text,prior.response_revision,prior.version,prior.decision,prior.comment,prior.reviewer_id::text,prior.authority_route,prior.reviewed_at,COALESCE(prior.supersedes_id::text,''),COALESCE(prior.authority_source_type,''),COALESCE(prior.authority_source_id::text,''),COALESCE(prior.authority_rule_id,''),COALESCE(prior.authority_policy_version,''),
  (prior.version=$3::bigint+1 AND prior.decision=$4 AND prior.comment=$5) AS matches
  ` + responseReviewEligibilitySQL("JOIN capture_response_reviews prior ON prior.tenant_id=r.tenant_id AND prior.legal_entity_id=r.legal_entity_id AND prior.response_revision_id=r.id AND prior.reviewer_id=actor.id AND prior.request_key=$2::uuid") + `
- AND r.revision=$15::bigint AND $7::text=''
+ AND r.revision=$15::bigint AND $7::text='' AND EXISTS(SELECT 1 FROM web_sessions staff_session WHERE staff_session.token=$16 AND staff_session.data=$17::bytea AND staff_session.expiry>statement_timestamp() AND staff_session.expiry>clock_timestamp())
  `
 	var review ResponseReview
 	var matches bool
-	err = tx.QueryRow(ctx, statement, string(request), input.RequestKey, input.ExpectedVersion, input.Decision, input.Comment, actor.PrincipalID, "", material.Revision.ID, material.Summary.TenantID, material.Summary.LegalEntityID, actor.TenantID, actor.LegalEntityID, actor.ExpiresAt, issuedAt, material.Revision.Revision).Scan(&review.ID, &review.ResponseID, &review.ResponseRevision, &review.Version, &review.Decision, &review.Comment, &review.ReviewerID, &review.AuthorityRoute, &review.ReviewedAt, &review.SupersedesID, &review.AuthoritySourceType, &review.AuthoritySourceID, &review.AuthorityRuleID, &review.AuthorityPolicyVersion, &matches)
+	err = tx.QueryRow(ctx, statement, string(request), input.RequestKey, input.ExpectedVersion, input.Decision, input.Comment, actor.PrincipalID, "", material.Revision.ID, material.Summary.TenantID, material.Summary.LegalEntityID, actor.TenantID, actor.LegalEntityID, actor.ExpiresAt, issuedAt, material.Revision.Revision, session.TokenHash, session.Data).Scan(&review.ID, &review.ResponseID, &review.ResponseRevision, &review.Version, &review.Decision, &review.Comment, &review.ReviewerID, &review.AuthorityRoute, &review.ReviewedAt, &review.SupersedesID, &review.AuthoritySourceType, &review.AuthoritySourceID, &review.AuthorityRuleID, &review.AuthorityPolicyVersion, &matches)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ResponseReview{}, ErrAssessmentForbidden
 	}

@@ -15,3 +15,5 @@ OIDC assessment decisions now bind the verified actor to the loaded SCS session 
 The authority receipt fields are optional in historical JSON; old rows are not backfilled. Independent candidate PostgreSQL tests exercised the OIDC lock, cancellation and session race cases, but do not establish end-to-end deployment acceptance.
 
 The timeout and recovery evidence is split across the real PostgreSQL command test, the HTTP error-mapping test and the client retry test. A routed OIDC request that times out and retries the same key remains untested. Add an integration-only composition and shared fixture without a production gate bypass before claiming end-to-end coverage or enabling decisions.
+
+The separately gated whole-response review writer requires a request key and binds decisions and replay to the verified OIDC session row. Its transaction is bounded to five seconds. PostgreSQL tests exercise logout, scope rotation and idle expiry, including concurrent changes with a decision and replay. Routed end-to-end recovery evidence remains necessary; signed-gateway mode has no transaction-visible session proof. The public gate remains closed.

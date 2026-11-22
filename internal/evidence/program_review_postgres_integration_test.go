@@ -85,7 +85,7 @@ func TestPostgresProgramReviewPageScopeAndDecisionEligibility(t *testing.T) {
 		return route.PolicyVersion + ":" + route.RuleID, nil
 	})
 	service.demoResponseReviewDecisions = true // Exercise the unexposed transaction in isolation.
-	actorCtx := identity.WithActor(ctx, actor)
+	actorCtx := assessmentOIDCContext(t, pool, tenant, entity, reviewer, time.Now().Add(time.Hour))
 	answers, err := service.GetCompletedResponseAnswers(actorCtx, tenant, entity, reviewer, first.Items[0].ID)
 	if err != nil || len(answers.Answers) != 1 {
 		t.Fatalf("response answers=%+v err=%v", answers, err)
@@ -98,7 +98,7 @@ func TestPostgresProgramReviewPageScopeAndDecisionEligibility(t *testing.T) {
 	if err != nil || !history.MayReview {
 		t.Fatalf("review history=%+v err=%v", history, err)
 	}
-	_, err = service.RecordResponseReview(actorCtx, tenant, entity, first.Items[0].ID, RecordResponseReviewInput{Decision: "REVIEWED", ExpectedVersion: history.Version})
+	_, err = service.RecordResponseReview(actorCtx, tenant, entity, first.Items[0].ID, RecordResponseReviewInput{Decision: "REVIEWED", ExpectedVersion: history.Version, RequestKey: mustResponseWorkspaceID(t)})
 	if err != nil {
 		t.Fatalf("record review=%v", err)
 	}
@@ -140,7 +140,7 @@ func TestPostgresProgramReviewPageScopeAndDecisionEligibility(t *testing.T) {
 	if err != nil || !provisionalHistory.MayReview {
 		t.Fatalf("provisional history=%+v err=%v", provisionalHistory, err)
 	}
-	if _, err = service.RecordResponseReview(actorCtx, tenant, entity, second.Items[0].ID, RecordResponseReviewInput{Decision: "CHANGES_REQUESTED", Comment: "Please update the response.", ExpectedVersion: provisionalHistory.Version}); err != nil {
+	if _, err = service.RecordResponseReview(actorCtx, tenant, entity, second.Items[0].ID, RecordResponseReviewInput{Decision: "CHANGES_REQUESTED", Comment: "Please update the response.", ExpectedVersion: provisionalHistory.Version, RequestKey: mustResponseWorkspaceID(t)}); err != nil {
 		t.Fatalf("provisional review=%v", err)
 	}
 	query.Cursor = ""

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/jackc/pgx/v5"
 )
@@ -87,16 +88,32 @@ func (s *PostgresDistributionStore) ReadResponseReviews(ctx context.Context, ten
 }
 
 func (s *PostgresDistributionStore) WriteResponseReview(ctx context.Context, tenant, entity, principal, response string, input RecordResponseReviewInput, authorize assessmentReadAuthorizer, apply func(context.Context, assessmentMaterial, *ResponseReview) (ResponseReview, error)) (ResponseReview, error) {
+	if !responseReviewRequestKeyPattern.MatchString(input.RequestKey) {
+		return ResponseReview{}, ErrAssessmentInvalid
+	}
 	actor, ok := identity.FromContext(ctx)
 	if !ok || actor.TenantID != tenant || actor.PrincipalID != principal || (actor.LegalEntityID != entity && actor.LegalEntityID != "*") || actor.ExpiresAt.IsZero() {
 		return ResponseReview{}, ErrAssessmentForbidden
 	}
+	ctx, cancel := context.WithTimeout(ctx, assessmentDecisionTimeout)
+	defer cancel()
 	tx, err := s.repo.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
 		return ResponseReview{}, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		rollbackCtx, stop := context.WithTimeout(context.Background(), time.Second)
+		defer stop()
+		_ = tx.Rollback(rollbackCtx)
+	}()
 	ctx = authority.WithPostgresTransaction(ctx, tx)
+	session, err := federation.LockVerifiedOIDCSession(ctx, tx, actor)
+	if err != nil {
+		if errors.Is(err, federation.ErrOIDCSessionProofUnavailable) {
+			return ResponseReview{}, ErrAssessmentForbidden
+		}
+		return ResponseReview{}, err
+	}
 	canonical, err := responseReviewTenant(ctx, tx, tenant)
 	if err != nil {
 		return ResponseReview{}, err
@@ -126,7 +143,7 @@ func (s *PostgresDistributionStore) WriteResponseReview(ctx context.Context, ten
 			return ResponseReview{}, err
 		}
 		if exists {
-			return replayResponseReview(ctx, tx, actor, m, input)
+			return replayResponseReview(ctx, tx, actor, m, input, session)
 		}
 	}
 	if !current {
@@ -148,7 +165,7 @@ func (s *PostgresDistributionStore) WriteResponseReview(ctx context.Context, ten
 	if err != nil {
 		return ResponseReview{}, err
 	}
-	review, err = insertCurrentResponseReview(ctx, tx, actor, m, review, input.RequestKey)
+	review, err = insertCurrentResponseReview(ctx, tx, actor, m, review, input.RequestKey, session)
 	if err != nil {
 		return ResponseReview{}, err
 	}

@@ -6,12 +6,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -69,7 +72,7 @@ func TestPostgresResponseReviewRechecksBeforeDecision(t *testing.T) {
 				return "review:v1:rule", nil
 			})
 			service.demoResponseReviewDecisions = true // Test the private transaction while the public route remains gated.
-			actorCtx, cancel := context.WithTimeout(identity.WithActor(ctx, identity.Actor{TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, Kind: "PERSON", ExpiresAt: now.Add(time.Hour)}), 15*time.Second)
+			actorCtx, cancel := context.WithTimeout(assessmentOIDCContext(t, pool, tenant, entity, reviewer, now.Add(time.Hour)), 15*time.Second)
 			defer cancel()
 			type outcome struct {
 				review ResponseReview
@@ -77,7 +80,7 @@ func TestPostgresResponseReviewRechecksBeforeDecision(t *testing.T) {
 			}
 			result := make(chan outcome, 1)
 			go func() {
-				review, err := service.RecordResponseReview(actorCtx, tenant, entity, response, RecordResponseReviewInput{Decision: "REVIEWED"})
+				review, err := service.RecordResponseReview(actorCtx, tenant, entity, response, RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: mustResponseWorkspaceID(t)})
 				result <- outcome{review, err}
 			}()
 			select {
@@ -140,11 +143,11 @@ func TestPostgresResponseReviewRejectsSessionExpiryDuringAuthorityCheck(t *testi
 	})
 	service.demoResponseReviewDecisions = true // Exercise the unexposed transaction in isolation.
 	service.now = func() time.Time { return time.Unix(0, tick.Load()).UTC() }
-	ctx, cancel := context.WithTimeout(identity.WithActor(ctx, identity.Actor{TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, Kind: "PERSON", ExpiresAt: now.Add(time.Second)}), 15*time.Second)
+	ctx, cancel := context.WithTimeout(assessmentOIDCContext(t, pool, tenant, entity, reviewer, now.Add(time.Hour)), 15*time.Second)
 	defer cancel()
 	result := make(chan error, 1)
 	go func() {
-		_, e := service.RecordResponseReview(ctx, tenant, entity, response, RecordResponseReviewInput{Decision: "REVIEWED"})
+		_, e := service.RecordResponseReview(ctx, tenant, entity, response, RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: mustResponseWorkspaceID(t)})
 		result <- e
 	}()
 	select {
@@ -153,7 +156,7 @@ func TestPostgresResponseReviewRejectsSessionExpiryDuringAuthorityCheck(t *testi
 		close(release)
 		t.Fatal(ctx.Err())
 	}
-	tick.Store(now.Add(2 * time.Second).UnixNano())
+	tick.Store(now.Add(2 * time.Hour).UnixNano())
 	close(release)
 	if err := <-result; !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatalf("expired session: %v", err)
@@ -189,7 +192,7 @@ func TestPostgresResponseReviewRejectsSessionExpiredAtDatabaseDecision(t *testin
 	// check passes, but the session is already expired at the write boundary.
 	service.now = func() time.Time { return now.Add(-time.Minute) }
 	ctx = identity.WithActor(ctx, identity.Actor{TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, Kind: "PERSON", ExpiresAt: now.Add(-time.Second)})
-	if _, err = service.RecordResponseReview(ctx, tenant, entity, response, RecordResponseReviewInput{Decision: "REVIEWED"}); !errors.Is(err, ErrAssessmentForbidden) {
+	if _, err = service.RecordResponseReview(ctx, tenant, entity, response, RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: mustResponseWorkspaceID(t)}); !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatalf("database-expired session: %v", err)
 	}
 	var reviews, events, outbox int
@@ -226,8 +229,8 @@ func TestPostgresResponseReviewAtomicHistory(t *testing.T) {
 		return "policy:rule", nil
 	})
 	service.ConfigureDemoResponseReviewDecisions(true)
-	ctx = identity.WithActor(ctx, identity.Actor{TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, Kind: "PERSON", ExpiresAt: now.Add(time.Hour)})
-	input := RecordResponseReviewInput{Decision: "REVIEWED"}
+	ctx = assessmentOIDCContext(t, pool, tenant, entity, reviewer, now.Add(time.Hour))
+	input := RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: mustResponseWorkspaceID(t)}
 	blocked, err := service.GetResponseReviews(ctx, tenant, entity, reviewer, response, 0, 10)
 	if err != nil || blocked.MayReview {
 		t.Fatalf("postgres demo opt-in enabled decisions: %+v %v", blocked, err)
@@ -243,7 +246,7 @@ func TestPostgresResponseReviewAtomicHistory(t *testing.T) {
 	probe := ResponseReview{ID: probeID, ResponseID: response, ResponseRevision: 1, Version: 1, Decision: "REVIEWED", ReviewerID: reviewer}
 	material := assessmentMaterial{Summary: CompletedResponseSummary{ID: response, TenantID: tenant, LegalEntityID: entity}, Revision: ResponseRevision{ID: response, Revision: 1}}
 	actor, _ := identity.FromContext(ctx)
-	if _, err = insertCurrentResponseReview(ctx, repeatable, actor, material, probe, ""); !errors.Is(err, ErrAssessmentForbidden) {
+	if _, err = insertCurrentResponseReview(ctx, repeatable, actor, material, probe, "", federation.OIDCSessionProof{}); !errors.Is(err, ErrAssessmentForbidden) {
 		_ = repeatable.Rollback(ctx)
 		t.Fatalf("repeatable-read decision must fail closed: %v", err)
 	}
@@ -275,6 +278,7 @@ func TestPostgresResponseReviewAtomicHistory(t *testing.T) {
 		t.Fatalf("disabled decision must fail closed: %v", err)
 	}
 	service.demoResponseReviewDecisions = true // Exercise the unexposed transaction in isolation.
+	input.RequestKey = mustResponseWorkspaceID(t)
 	if _, err = service.RecordResponseReview(ctx, tenant, entity, response, input); !errors.Is(err, ErrAssessmentConflict) {
 		t.Fatalf("stale=%v", err)
 	}
@@ -295,6 +299,7 @@ func TestPostgresResponseReviewAtomicHistory(t *testing.T) {
 	}
 	allowed = false
 	input.ExpectedVersion = 2
+	input.RequestKey = mustResponseWorkspaceID(t)
 	if _, err = service.RecordResponseReview(ctx, tenant, entity, response, input); !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatalf("revoked=%v", err)
 	}
@@ -339,9 +344,11 @@ func TestPostgresResponseReviewAtomicHistory(t *testing.T) {
 	decisions := make(chan error, 2)
 	start := make(chan struct{})
 	for i := 0; i < 2; i++ {
+		competing := input
+		competing.RequestKey = mustResponseWorkspaceID(t)
 		go func() {
 			<-start
-			_, err := service.RecordResponseReview(ctx, tenant, entity, response, input)
+			_, err := service.RecordResponseReview(ctx, tenant, entity, response, competing)
 			decisions <- err
 		}()
 	}
@@ -400,14 +407,51 @@ func TestPostgresResponseReviewAcceptsVerifiedTenantSlug(t *testing.T) {
 	}
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, otherTenant) })
 	ambiguousCtx := identity.WithActor(ctx, identity.Actor{TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, Kind: "PERSON", ExpiresAt: now.Add(time.Hour)})
-	if _, err := service.RecordResponseReview(ambiguousCtx, tenant, entity, response, RecordResponseReviewInput{Decision: "REVIEWED"}); !errors.Is(err, ErrAssessmentForbidden) {
+	if _, err := service.RecordResponseReview(ambiguousCtx, tenant, entity, response, RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: mustResponseWorkspaceID(t)}); !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatalf("ambiguous tenant identity: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, otherTenant); err != nil {
 		t.Fatal(err)
 	}
-	actorCtx := identity.WithActor(ctx, identity.Actor{TenantID: slug, LegalEntityID: entity, PrincipalID: reviewer, Kind: "PERSON", ExpiresAt: now.Add(time.Hour)})
+	actorCtx := assessmentOIDCContext(t, pool, slug, entity, reviewer, now.Add(time.Hour))
 	requestKey := mustResponseWorkspaceID(t)
+	verifiedActor, _ := identity.FromContext(actorCtx)
+	for _, mutate := range []func(*identity.Actor){func(a *identity.Actor) { a.AuthenticationMethod = "SSO" }, func(a *identity.Actor) { a.LegalEntityID = mustResponseWorkspaceID(t) }, func(a *identity.Actor) { a.PrincipalID = owner }} {
+		altered := verifiedActor
+		mutate(&altered)
+		if _, err := service.RecordResponseReview(identity.WithActor(actorCtx, altered), slug, entity, response, RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: requestKey}); !errors.Is(err, ErrAssessmentForbidden) {
+			t.Fatalf("mismatched session actor accepted: %v", err)
+		}
+	}
+	// A stalled response lock must not hold a review transaction indefinitely.
+	blocker, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = blocker.Exec(ctx, `SELECT id FROM capture_response_revisions WHERE tenant_id=$1::uuid AND id=$2::uuid FOR UPDATE`, tenant, response); err != nil {
+		t.Fatal(err)
+	}
+	blocked := make(chan error, 1)
+	go func() {
+		_, e := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: requestKey})
+		blocked <- e
+	}()
+	select {
+	case e := <-blocked:
+		if !errors.Is(e, context.DeadlineExceeded) {
+			t.Fatalf("blocked review: %v", e)
+		}
+	case <-time.After(7 * time.Second):
+		_ = blocker.Rollback(ctx)
+		t.Fatal("blocked review did not time out")
+	}
+	if err = blocker.Rollback(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var timedOutWrites, timedOutEvents, timedOutOutbox int
+	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_reviews WHERE tenant_id=$1::uuid), (SELECT count(*) FROM capture_distribution_events WHERE tenant_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_REVIEWED_%'), (SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_REVIEWED')`, tenant).Scan(&timedOutWrites, &timedOutEvents, &timedOutOutbox); err != nil || timedOutWrites != 0 || timedOutEvents != 0 || timedOutOutbox != 0 {
+		t.Fatalf("timed out review writes=%d events=%d outbox=%d err=%v", timedOutWrites, timedOutEvents, timedOutOutbox, err)
+	}
 	review, err := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: requestKey})
 	if err != nil || review.AuthoritySourceID == "" {
 		t.Fatalf("verified tenant slug: review=%+v err=%v", review, err)
@@ -417,11 +461,116 @@ func TestPostgresResponseReviewAcceptsVerifiedTenantSlug(t *testing.T) {
 	if err != nil || retry.ID != review.ID {
 		t.Fatalf("retry: %+v %v", retry, err)
 	}
+	for _, action := range []string{"logout", "rotation", "expiry"} {
+		t.Run(action, func(t *testing.T) {
+			fixture := newAssessmentOIDCFixture(t, pool, slug, entity, reviewer, time.Now().Add(time.Hour))
+			actor, _ := identity.FromContext(fixture.ctx)
+			switch action {
+			case "logout":
+				w := httptest.NewRecorder()
+				fixture.service.Logout(w, httptest.NewRequest(http.MethodPost, "/logout", nil).WithContext(fixture.ctx))
+				if w.Code != http.StatusNoContent {
+					t.Fatalf("logout: %d", w.Code)
+				}
+			case "rotation":
+				if _, e := fixture.service.SwitchScope(fixture.ctx, actor, entity); e != nil {
+					t.Fatal(e)
+				}
+			case "expiry":
+				proof, e := federation.VerifiedOIDCSession(fixture.ctx, actor)
+				if e != nil {
+					t.Fatal(e)
+				}
+				if _, e = pool.Exec(ctx, `UPDATE web_sessions SET expiry=clock_timestamp()-interval '1 second' WHERE token=$1`, proof.TokenHash); e != nil {
+					t.Fatal(e)
+				}
+			}
+			for _, attempt := range []RecordResponseReviewInput{{Decision: "REVIEWED", RequestKey: requestKey}, {ExpectedVersion: 1, Decision: "REVIEWED", RequestKey: mustResponseWorkspaceID(t)}} {
+				if _, e := service.RecordResponseReview(fixture.ctx, slug, entity, response, attempt); !errors.Is(e, ErrAssessmentForbidden) {
+					t.Fatalf("%s accepted decision or replay: %v", action, e)
+				}
+			}
+		})
+	}
+	currentVersion := int64(1)
+	for _, scenario := range []struct {
+		action      string
+		newDecision bool
+	}{{"logout", false}, {"rotation", false}, {"logout", true}, {"rotation", true}} {
+		action := scenario.action
+		attempt := RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: requestKey}
+		if scenario.newDecision {
+			attempt.ExpectedVersion = currentVersion
+			attempt.RequestKey = mustResponseWorkspaceID(t)
+			currentVersion++
+		}
+		t.Run(fmt.Sprintf("concurrent %s new=%t", action, scenario.newDecision), func(t *testing.T) {
+			fixture := newAssessmentOIDCFixture(t, pool, slug, entity, reviewer, time.Now().Add(time.Hour))
+			actor, _ := identity.FromContext(fixture.ctx)
+			proof, e := federation.VerifiedOIDCSession(fixture.ctx, actor)
+			if e != nil {
+				t.Fatal(e)
+			}
+			blocker, e := pool.Begin(ctx)
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer blocker.Rollback(context.Background())
+			if _, e = blocker.Exec(ctx, `SELECT id FROM capture_response_revisions WHERE id=$1::uuid FOR UPDATE`, response); e != nil {
+				t.Fatal(e)
+			}
+			done := make(chan error, 1)
+			go func() {
+				_, err := service.RecordResponseReview(fixture.ctx, slug, entity, response, attempt)
+				done <- err
+			}()
+			// The session row is locked before the response row. Verify the command reached that boundary.
+			time.Sleep(200 * time.Millisecond)
+			short, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+			_, e = pool.Exec(short, `UPDATE web_sessions SET expiry=expiry WHERE token=$1`, proof.TokenHash)
+			cancel()
+			if !errors.Is(e, context.DeadlineExceeded) {
+				t.Fatalf("review did not hold session lock: %v", e)
+			}
+			actionDone := make(chan error, 1)
+			go func() {
+				if action == "rotation" {
+					_, err := fixture.service.SwitchScope(fixture.ctx, actor, entity)
+					actionDone <- err
+					return
+				}
+				w := httptest.NewRecorder()
+				fixture.service.Logout(w, httptest.NewRequest(http.MethodPost, "/logout", nil).WithContext(fixture.ctx))
+				if w.Code != http.StatusNoContent {
+					actionDone <- fmt.Errorf("logout: %d", w.Code)
+					return
+				}
+				actionDone <- nil
+			}()
+			select {
+			case e = <-actionDone:
+				t.Fatalf("%s passed session lock: %v", action, e)
+			case <-time.After(150 * time.Millisecond):
+			}
+			if e = blocker.Rollback(ctx); e != nil {
+				t.Fatal(e)
+			}
+			if e = <-done; e != nil {
+				t.Fatalf("replay: %v", e)
+			}
+			if e = <-actionDone; e != nil {
+				t.Fatalf("%s: %v", action, e)
+			}
+			if _, e = service.RecordResponseReview(fixture.ctx, slug, entity, response, attempt); !errors.Is(e, ErrAssessmentForbidden) {
+				t.Fatalf("revoked replay: %v", e)
+			}
+		})
+	}
 	if _, err := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{Decision: "CHANGES_REQUESTED", Comment: "Changed", RequestKey: requestKey}); !errors.Is(err, ErrAssessmentConflict) {
 		t.Fatalf("key reuse: %v", err)
 	}
 	history, err := service.GetResponseReviews(actorCtx, slug, entity, reviewer, response, 0, 10)
-	if err != nil || history.Version != 1 || len(history.Items) != 1 || history.Items[0].ID != review.ID || history.Items[0].ReviewerID != reviewer {
+	if err != nil || history.Version != currentVersion || len(history.Items) != int(currentVersion) || history.Items[len(history.Items)-1].ID != review.ID || history.Items[0].ReviewerID != reviewer {
 		t.Fatalf("scoped recovery history: %+v %v", history, err)
 	}
 	// Competing requests with one key must return the same decision and emit once.
@@ -433,7 +582,7 @@ func TestPostgresResponseReviewAcceptsVerifiedTenantSlug(t *testing.T) {
 	results := make(chan result, 2)
 	for i := 0; i < 2; i++ {
 		go func() {
-			v, e := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: 1, Decision: "REVIEWED", RequestKey: nextKey})
+			v, e := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: currentVersion, Decision: "REVIEWED", RequestKey: nextKey})
 			results <- result{v, e}
 		}()
 	}
@@ -442,14 +591,14 @@ func TestPostgresResponseReviewAcceptsVerifiedTenantSlug(t *testing.T) {
 		t.Fatalf("concurrent same-key: %+v %+v", first, second)
 	}
 	var reviews, events, outbox int
-	if err := pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_reviews WHERE tenant_id=$1::uuid),(SELECT count(*) FROM capture_distribution_events WHERE tenant_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_REVIEWED_%'),(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_REVIEWED')`, tenant).Scan(&reviews, &events, &outbox); err != nil || reviews != 2 || events != 2 || outbox != 2 {
+	if err := pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_reviews WHERE tenant_id=$1::uuid),(SELECT count(*) FROM capture_distribution_events WHERE tenant_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_REVIEWED_%'),(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_REVIEWED')`, tenant).Scan(&reviews, &events, &outbox); err != nil || reviews != int(currentVersion+1) || events != reviews || outbox != reviews {
 		t.Fatalf("records %d %d %d: %v", reviews, events, outbox, err)
 	}
 	// Loss of subject visibility prevents recovery even when the preflight callback allows it.
 	if _, err := pool.Exec(ctx, `UPDATE programs SET scope='{"access":"RESTRICTED","allowed_principal_ids":[]}'::jsonb WHERE tenant_id=$1::uuid`, tenant); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: 1, Decision: "REVIEWED", RequestKey: nextKey}); !errors.Is(err, ErrAssessmentForbidden) && !errors.Is(err, ErrNotFound) {
+	if _, err := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: currentVersion, Decision: "REVIEWED", RequestKey: nextKey}); !errors.Is(err, ErrAssessmentForbidden) && !errors.Is(err, ErrNotFound) {
 		t.Fatalf("restricted retry: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `UPDATE programs SET scope='{"access":"INTERNAL"}'::jsonb WHERE tenant_id=$1::uuid`, tenant); err != nil {
@@ -458,7 +607,7 @@ func TestPostgresResponseReviewAcceptsVerifiedTenantSlug(t *testing.T) {
 	// An expired database-clock session cannot recover a receipt even if the service clock lags.
 	service.now = func() time.Time { return now.Add(-time.Minute) }
 	expiredCtx := identity.WithActor(ctx, identity.Actor{TenantID: slug, LegalEntityID: entity, PrincipalID: reviewer, Kind: "PERSON", ExpiresAt: now.Add(-time.Second)})
-	if _, err := service.RecordResponseReview(expiredCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: 1, Decision: "REVIEWED", RequestKey: nextKey}); !errors.Is(err, ErrAssessmentForbidden) {
+	if _, err := service.RecordResponseReview(expiredCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: currentVersion, Decision: "REVIEWED", RequestKey: nextKey}); !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatalf("expired retry: %v", err)
 	}
 	service.now = nil
@@ -466,7 +615,7 @@ func TestPostgresResponseReviewAcceptsVerifiedTenantSlug(t *testing.T) {
 	if _, err := pool.Exec(ctx, `UPDATE responsibility_assignments SET valid_until=clock_timestamp()-interval '1 second' WHERE tenant_id=$1::uuid`, tenant); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: 1, Decision: "REVIEWED", RequestKey: nextKey}); !errors.Is(err, ErrAssessmentForbidden) {
+	if _, err := service.RecordResponseReview(actorCtx, slug, entity, response, RecordResponseReviewInput{ExpectedVersion: currentVersion, Decision: "REVIEWED", RequestKey: nextKey}); !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatalf("revoked retry: %v", err)
 	}
 }

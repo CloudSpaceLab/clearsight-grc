@@ -3,6 +3,7 @@ package evidence
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -25,7 +26,7 @@ func TestResponseReviewDecisionsDefaultUnavailableWhileHistoryRemainsReadable(t 
 		t.Fatal("unavailable review wrote records")
 	}
 	s.ConfigureDemoResponseReviewDecisions(true)
-	if _, err = s.RecordResponseReview(ctx, "tenant", "entity", "response", RecordResponseReviewInput{Decision: "REVIEWED"}); err != nil {
+	if _, err = s.RecordResponseReview(ctx, "tenant", "entity", "response", RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: "00000000-0000-4000-8000-000000000001"}); err != nil {
 		t.Fatal(err)
 	}
 	s.ConfigureDemoResponseReviewDecisions(false)
@@ -50,9 +51,26 @@ func TestResponseReviewRejectsSessionExpiryDuringReview(t *testing.T) {
 		}
 		return "policy:rule", nil
 	})
-	_, err := s.RecordResponseReview(ctx, "tenant", "entity", "response", RecordResponseReviewInput{Decision: "REVIEWED"})
+	_, err := s.RecordResponseReview(ctx, "tenant", "entity", "response", RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: "00000000-0000-4000-8000-000000000001"})
 	if !errors.Is(err, ErrAssessmentForbidden) || calls != 1 || len(store.events) != 0 || len(store.outbox) != 0 || len(store.responseReviews["response"]) != 0 {
 		t.Fatalf("expired actor recorded a review: err=%v calls=%d events=%d outbox=%d", err, calls, len(store.events), len(store.outbox))
+	}
+}
+
+func TestResponseReviewRequiresRequestKey(t *testing.T) {
+	s, store, ctx := assessmentFixture(t)
+	s.ConfigureDemoResponseReviewDecisions(true)
+	s.WithResponseReviewAuthorizer(func(context.Context, identity.Actor, CompletedResponseSummary) (string, error) {
+		return "policy:rule", nil
+	})
+	for _, key := range []string{"", "invalid"} {
+		_, err := s.RecordResponseReview(ctx, "tenant", "entity", "response", RecordResponseReviewInput{Decision: "REVIEWED", RequestKey: key})
+		if !errors.Is(err, ErrAssessmentInvalid) {
+			t.Fatalf("key %q: %v", key, err)
+		}
+	}
+	if len(store.events) != 0 || len(store.outbox) != 0 || len(store.responseReviews["response"]) != 0 {
+		t.Fatal("invalid key wrote a review")
 	}
 }
 
@@ -62,11 +80,12 @@ func TestWholeResponseReviewRecordsIndependentVersionedDecision(t *testing.T) {
 	s.WithResponseReviewAuthorizer(func(context.Context, identity.Actor, CompletedResponseSummary) (string, error) {
 		return "policy:rule", nil
 	})
-	input := RecordResponseReviewInput{ExpectedVersion: 0, Decision: "REVIEWED", Comment: "Reviewed the report."}
+	input := RecordResponseReviewInput{ExpectedVersion: 0, Decision: "REVIEWED", Comment: "Reviewed the report.", RequestKey: "00000000-0000-4000-8000-000000000001"}
 	first, err := s.RecordResponseReview(ctx, "tenant", "entity", "response", input)
 	if err != nil || first.Version != 1 || first.ReviewerID != "reviewer" || first.AuthorityRoute != "policy:rule" || first.ResponseRevision != 1 {
 		t.Fatalf("review=%+v err=%v", first, err)
 	}
+	input.RequestKey = "00000000-0000-4000-8000-000000000002"
 	if _, err := s.RecordResponseReview(ctx, "tenant", "entity", "response", input); !errors.Is(err, ErrAssessmentConflict) {
 		t.Fatalf("stale review: %v", err)
 	}
@@ -107,7 +126,7 @@ func TestResponseReviewHistoryRequiresScopedReadAndReportsPermission(t *testing.
 		t.Fatalf("initial=%+v err=%v", initial, err)
 	}
 	for i := int64(0); i < 2; i++ {
-		if _, err = s.RecordResponseReview(ctx, "tenant", "entity", "response", RecordResponseReviewInput{ExpectedVersion: i, Decision: "REVIEWED"}); err != nil {
+		if _, err = s.RecordResponseReview(ctx, "tenant", "entity", "response", RecordResponseReviewInput{ExpectedVersion: i, Decision: "REVIEWED", RequestKey: fmt.Sprintf("00000000-0000-4000-8000-%012d", i+1)}); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -98,7 +98,7 @@ func (s *DistributionService) RecordResponseReview(ctx context.Context, tenant, 
 	}
 	input.Comment = strings.TrimSpace(input.Comment)
 	input.RequestKey = strings.ToLower(strings.TrimSpace(input.RequestKey))
-	if input.RequestKey != "" && !responseReviewRequestKeyPattern.MatchString(input.RequestKey) {
+	if !responseReviewRequestKeyPattern.MatchString(input.RequestKey) {
 		return ResponseReview{}, ErrAssessmentInvalid
 	}
 	if input.ExpectedVersion < 0 || (input.Decision != "REVIEWED" && input.Decision != "CHANGES_REQUESTED") || len(input.Comment) > 4000 || (input.Decision == "CHANGES_REQUESTED" && input.Comment == "") {
