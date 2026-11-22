@@ -14,7 +14,7 @@ function ActivityRegister() {
   }, [search, attempt]);
   async function more() { if (!cursor || !hasMore || busy) return; const token = generation.current; setBusy(true); setMoreError(false);
     try { const page = await listProcessingActivities({ search: search || undefined, cursor }); if (generation.current === token) { if (page.next_cursor === cursor) { setMoreError(true); return; } setItems((current) => [...current, ...page.rows]); setCursor(page.next_cursor); setHasMore(page.has_more); } }
-    catch { if (generation.current === token) setMoreError(true); } finally { if (generation.current === token) setBusy(false); }
+    catch (error) { if (generation.current === token) { const kind = typeof error === "object" && error !== null && "kind" in error ? error.kind : undefined; if (kind === "unauthorized" || kind === "forbidden") { setItems([]); setCursor(undefined); setHasMore(false); setState("error"); } else setMoreError(true); } } finally { if (generation.current === token) setBusy(false); }
   }
   function submit(event: FormEvent) { event.preventDefault(); setSearch(draft.trim()); }
   return <section><header className="v-page-heading"><div><p className="v-eyebrow">Privacy</p><h1>Processing activities</h1></div></header><form className="v-program-search" onSubmit={submit}><label htmlFor="v-privacy-search">Find a processing activity</label><div><input id="v-privacy-search" maxLength={200} value={draft} onChange={(event) => setDraft(event.target.value)}/><button>Search</button></div></form>

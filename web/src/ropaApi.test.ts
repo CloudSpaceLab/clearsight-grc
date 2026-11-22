@@ -90,6 +90,11 @@ describe("ROPA API", () => {
     await expect(fetchProcessingActivity("activity-1")).rejects.toMatchObject({ message: "The processing activity could not be loaded. Try again.", kind: "not_found" });
   });
 
+  it.each([401, 403])("preserves access-denial status %s for register recovery", async (status) => {
+    fetchMock.mockResolvedValueOnce(new Response("{}", { status }));
+    await expect(listProcessingActivities({ cursor: "next" })).rejects.toMatchObject({ kind: status === 401 ? "unauthorized" : "forbidden" });
+  });
+
   it("turns a service failure into a register recovery message without exposing the response code", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "ropa_unavailable", message: "ropa_unavailable" } }), { status: 500 }));
     const failure = await fetchDashboard().catch((error: unknown) => error);

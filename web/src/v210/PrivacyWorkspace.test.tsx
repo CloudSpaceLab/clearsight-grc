@@ -18,3 +18,12 @@ it("rejects a different activity returned for the requested identifier", async (
   expect(await screen.findByRole("heading", { name: "Processing activity unavailable" })).toBeTruthy();
   expect(screen.queryByText("Customer records")).toBeNull();
 });
+it("clears previously loaded activities if access is revoked during pagination", async () => {
+  api.listProcessingActivities.mockResolvedValueOnce({ rows: [activity], has_more: true, next_cursor: "next" })
+    .mockRejectedValueOnce(Object.assign(new Error("Forbidden"), { kind: "forbidden" }));
+  render(<PrivacyWorkspace/>);
+  expect(await screen.findByRole("link", { name: "Customer records" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("Processing activities unavailable");
+  expect(screen.queryByText("Customer records")).toBeNull();
+});
