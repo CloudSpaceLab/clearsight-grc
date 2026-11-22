@@ -16,7 +16,12 @@ import "./vendor-review.css";
 
 type LoadState = "loading" | "ready" | "error";
 
-export function VendorReview({ relationship, assessmentId, onBack, onActivated, backLabel = "Vendors" }: { relationship: VendorRelationshipAggregate; assessmentId?: string; onBack: () => void; onActivated?: (value: VendorRelationshipAggregate["relationship"]) => void; backLabel?: string }) {
+type VendorReviewProps = { relationship: VendorRelationshipAggregate; assessmentId?: string; onBack: () => void; onActivated?: (value: VendorRelationshipAggregate["relationship"]) => void; backLabel?: string };
+export function VendorReview(props: VendorReviewProps) {
+  const relationship = props.relationship.relationship;
+  return <VendorReviewScoped key={JSON.stringify([relationship.tenant_id, relationship.legal_entity_id, relationship.id, props.assessmentId ?? null])} {...props}/>;
+}
+function VendorReviewScoped({ relationship, assessmentId, onBack, onActivated, backLabel = "Vendors" }: VendorReviewProps) {
   const [assessment, setAssessment] = useState<VendorAssessment | null>(null);
   const [setup, setSetup] = useState<VendorAssessmentSetupStatus>();
   const [review, setReview] = useState<VendorAssessmentReviewView>();
@@ -36,6 +41,8 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
   const [historical, setHistorical] = useState(false);
   const [authority, setAuthority] = useState<"checking" | "allowed" | "unavailable">("checking");
   const [clarificationAllowed, setClarificationAllowed] = useState(false);
+  const reviewLock = useRef(false); const reviewGeneration = useRef(0);
+  useEffect(() => { reviewGeneration.current++; reviewLock.current = false; setBusy(false); return () => { reviewGeneration.current++; }; }, [relationship.relationship.id, relationship.relationship.tenant_id, relationship.relationship.legal_entity_id, assessmentId, assessment?.id, assessment?.version]);
   useEffect(() => { setMode("view"); setUncertain(false); setStale(false); setCommandError(""); }, [relationship.relationship.id, relationship.relationship.tenant_id, relationship.relationship.legal_entity_id, assessmentId]);
   useEffect(() => {
     let active = true; setState("loading"); setReview(undefined); setAssessment(null); setSetup(undefined); setHistorical(false);
@@ -82,10 +89,14 @@ export function VendorReview({ relationship, assessmentId, onBack, onActivated, 
     else setUncertain(true);
   }
   async function beginReview() {
-    if (!assessment || busy || authority !== "allowed") return;
-    setBusy(true);
-    try { await startVendorAssessmentReview(assessment.id, { expected_version: assessment.version }); reload(); }
-    catch (error) { commandFailed(error); } finally { setBusy(false); }
+    if (!assessment || busy || reviewLock.current || authority !== "allowed" || !relationship.relationship.tenant_id || !relationship.relationship.legal_entity_id) return;
+    reviewLock.current = true; setBusy(true); const token = reviewGeneration.current;
+    try {
+      const result = await startVendorAssessmentReview(assessment.id, { expected_version: assessment.version });
+      if (token !== reviewGeneration.current) return;
+      if (!result || result.id !== assessment.id || result.tenant_id !== relationship.relationship.tenant_id || result.legal_entity_id !== relationship.relationship.legal_entity_id || result.relationship_id !== relationship.relationship.id || result.version !== assessment.version + 1 || result.status !== "UNDER_REVIEW" || !result.reviewer_principal_id || !result.review_started_at || Number.isNaN(Date.parse(result.review_started_at)) || (assessment.submission_id && result.submission_id !== assessment.submission_id) || (assessment.current_request_id && result.current_request_id !== assessment.current_request_id)) throw new Error("Unconfirmed");
+      reload();
+    } catch (error) { if (token === reviewGeneration.current) { if (error instanceof ApiError && [401, 403, 404].includes(error.status)) clearAssessmentAccess(); else { if (error instanceof ApiError && error.status >= 400 && error.status < 500) reviewLock.current = false; commandFailed(error); } } } finally { if (token === reviewGeneration.current) setBusy(false); }
   }
   async function retrySetup() {
     if (!assessment || setupLock.current || authority !== "allowed" || action !== "setup") return;

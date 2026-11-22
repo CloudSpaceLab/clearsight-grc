@@ -603,3 +603,40 @@ func jsonInt(value int64) string {
 	data, _ := json.Marshal(value)
 	return string(data)
 }
+
+func TestStartVendorAssessmentReviewReceiptBindsCurrentScopeAndVersion(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, true)
+	deadline := time.Now().UTC().Add(7 * 24 * time.Hour).Format(time.RFC3339)
+	sendBody := []byte(`{"expected_version":` + jsonInt(fixture.assessment.Version) + `,"audience":"security@vendor.example","deadline":"` + deadline + `","invitation_ttl_minutes":60}`)
+	sent := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(sent, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+fixture.assessment.ID+"/send-request", bytes.NewReader(sendBody)))
+	if sent.Code != http.StatusOK {
+		t.Fatalf("send failed: %d %s", sent.Code, sent.Body.String())
+	}
+	var outcome thirdparty.SendRequestOutcome
+	if err := json.NewDecoder(sent.Body).Decode(&outcome); err != nil {
+		t.Fatal(err)
+	}
+	submitted, err := fixture.service.RecordAssessmentSubmitted(context.Background(), thirdparty.AssessmentSubmittedInput{Scope: thirdparty.Scope{TenantID: "bank", LegalEntityID: "entity-a"}, AssessmentID: outcome.Assessment.ID, ExpectedVersion: outcome.Assessment.Version, CausationID: "consumer-1", EventID: "event-1", RequestID: outcome.Request.ID, SubmissionID: "submission-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := []byte(`{"expected_version":` + jsonInt(submitted.Version) + `}`)
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+submitted.ID+"/review/start", bytes.NewReader(body)))
+	if response.Code != http.StatusOK {
+		t.Fatalf("review failed: %d %s", response.Code, response.Body.String())
+	}
+	var started thirdparty.Assessment
+	if err = json.NewDecoder(response.Body).Decode(&started); err != nil {
+		t.Fatal(err)
+	}
+	if started.ID != submitted.ID || started.TenantID != submitted.TenantID || started.LegalEntityID != submitted.LegalEntityID || started.RelationshipID != submitted.RelationshipID || started.Version != submitted.Version+1 || started.Status != thirdparty.AssessmentUnderReview || started.ReviewerPrincipalID != "verified-owner" || started.ReviewStartedAt == nil || started.SubmissionID != submitted.SubmissionID || started.CurrentRequestID != submitted.CurrentRequestID {
+		t.Fatalf("unexpected review receipt: %#v", started)
+	}
+	stale := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(stale, httptest.NewRequest(http.MethodPost, "/api/v1/vendor-assessments/"+submitted.ID+"/review/start", bytes.NewReader(body)))
+	if stale.Code != http.StatusConflict {
+		t.Fatalf("stale retry: %d %s", stale.Code, stale.Body.String())
+	}
+}
