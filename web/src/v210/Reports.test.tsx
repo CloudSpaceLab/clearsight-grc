@@ -6,9 +6,34 @@ const authority = vi.hoisted(() => ({ resolveAuthority: vi.fn() }));
 vi.mock("../reportingApi", () => api);
 vi.mock("../api", () => authority);
 const context = { tenant: { id: "bank" }, legal_entity: { id: "entity" }, actor: { id: "person" } } as never;
-const definition = { id: "definition", legal_entity_id: "entity", name: "Operational risk summary", description: "Risk posture", dataset: "PROGRAMS", status: "ACTIVE", effective: true, current_version: 2, format: "PDF", scope_kind: "LEGAL_ENTITY" };
-const run = { id: "run", legal_entity_id: "entity", definition_id: "definition", definition_code: "RISK", definition_version: 2, status: "READY", format: "PDF", expires_at: "2099-01-01T00:00:00Z", as_of: "2026-11-20T10:00:00Z", created_at: "2026-11-20T10:00:00Z", source_boundary: { population: 4, population_complete: true, captured_at: "2026-11-20T10:00:00Z" } };
+const definition = { id: "definition", legal_entity_id: "entity", name: "Operational risk summary", description: "Risk posture", dataset: "MATTERS", status: "ACTIVE", effective: true, current_version: 2, format: "PDF", scope_kind: "LEGAL_ENTITY" };
+const run = { id: "run", legal_entity_id: "entity", definition_id: "definition", definition_code: "RISK", definition_version: 2, dataset: "MATTERS", status: "READY", format: "PDF", expires_at: "2099-01-01T00:00:00Z", as_of: "2026-11-20T10:00:00Z", created_at: "2026-11-20T10:00:00Z", source_boundary: { population: 4, population_complete: true, captured_at: "2026-11-20T10:00:00Z" } };
 beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); Object.defineProperty(navigator, "locks", { configurable: true, value: { request: vi.fn(async (_key: string, _options: unknown, callback: (lock: unknown) => Promise<unknown>) => callback({ name: "report" })) } }); api.listReportDefinitions.mockResolvedValue([definition]); api.listReportRunPage.mockResolvedValue({ items: [run] }); authority.resolveAuthority.mockResolvedValue({ principal: { id: "person" }, rule_id: "rule", policy_version: "v1" }); });
+for (const dataset of ["PROGRAMS", "MATTER_BOARD_BRIEF"]) it(`does not offer contained ${dataset} reports`, async () => {
+  api.listReportDefinitions.mockResolvedValue([{ ...definition, dataset }]);
+  api.listReportRunPage.mockResolvedValue({ items: [{ ...run, dataset }] });
+  render(<Reports context={context} enableGeneration/>);
+  fireEvent.click(await screen.findByRole("button", { name: "View Operational risk summary" }));
+  expect(screen.getAllByText("Report unavailable. Contact your administrator.").length).toBeGreaterThan(0);
+  expect(screen.queryByRole("button", { name: "Generate report" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Download RISK" })).toBeNull();
+});
+it("retains an uncertain report request without retrying after its dataset is contained", async () => {
+  api.createIdempotentReportRun.mockRejectedValueOnce(new Error("connection lost"));
+  const first = render(<Reports context={context} enableGeneration/>);
+  fireEvent.click(await screen.findByRole("button", { name: "View Operational risk summary" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Generate report" }));
+  await screen.findByText("Report request status unknown. Check recent reports before requesting another.");
+  const key = api.createIdempotentReportRun.mock.calls[0]![2];
+  first.unmount();
+  api.listReportDefinitions.mockResolvedValue([{ ...definition, dataset: "PROGRAMS" }]);
+  render(<Reports context={context} enableGeneration/>);
+  fireEvent.click(await screen.findByRole("button", { name: "View Operational risk summary" }));
+  expect(await screen.findByText("Report unavailable. Contact your administrator.")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Retry report request" })).toBeNull();
+  expect(api.createIdempotentReportRun).toHaveBeenCalledTimes(1);
+  expect(Array.from({ length: localStorage.length }, (_, index) => localStorage.getItem(localStorage.key(index)!)).some((value) => value?.includes(key))).toBe(true);
+});
 it("shows scoped report definitions and recent report status", async () => {
   render(<Reports context={context}/>);
   expect(await screen.findByText("Operational risk summary")).toBeTruthy();

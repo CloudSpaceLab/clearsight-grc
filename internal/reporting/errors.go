@@ -33,6 +33,9 @@ var (
 	ErrReportExpired = errors.New("reporting: report file expired")
 	// ErrReportNotReady identifies a scoped run that cannot yet produce bytes.
 	ErrReportNotReady = errors.New("reporting: report is not ready")
+	// ErrProgramReportUnavailable contains Program-derived artifacts until their
+	// source and download access policies can be checked end to end.
+	ErrProgramReportUnavailable = errors.New("reporting: Program report access unavailable")
 	// ErrReportBoundStopped identifies a terminal bounded-stop receipt.
 	ErrReportBoundStopped = errors.New("reporting: report stopped at a configured bound")
 )

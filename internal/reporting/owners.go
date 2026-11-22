@@ -29,6 +29,9 @@ func (s *Service) ListOwners(ctx context.Context, scope ReportScope, dataset Rep
 	if !validReportDataset(dataset) {
 		return nil, ErrInvalid
 	}
+	if dataset == DatasetPrograms {
+		return nil, ErrProgramReportUnavailable
+	}
 	if limit <= 0 || limit > maxReportOwnerOptions {
 		limit = maxReportOwnerOptions
 	}

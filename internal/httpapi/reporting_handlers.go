@@ -441,6 +441,8 @@ func writeReportError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, reporting.ErrAuthorityUnavailable):
 		httpx.WriteError(w, http.StatusServiceUnavailable, "report_authority_unavailable", "Report permissions unavailable. No changes made. Try again.")
+	case errors.Is(err, reporting.ErrProgramReportUnavailable):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "report_access_unavailable", "Report unavailable. Contact your administrator.")
 	case errors.Is(err, reporting.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "report_not_found", "This report definition or run is not available in your legal entity.")
 	case errors.Is(err, reporting.ErrReportDownloadForbidden):

@@ -31,10 +31,11 @@ const (
 	DecisionReject   = "REJECT"
 	DecisionRetire   = "RETIRE"
 
-	FailureRowLimitExceeded       = "row_limit_exceeded"
-	FailureByteLimitExceeded      = "byte_limit_exceeded"
-	FailureRetryBudgetExhausted   = "retry_budget_exhausted"
-	FailureSourceBoundaryMismatch = "source_boundary_mismatch"
+	FailureRowLimitExceeded        = "row_limit_exceeded"
+	FailureByteLimitExceeded       = "byte_limit_exceeded"
+	FailureRetryBudgetExhausted    = "retry_budget_exhausted"
+	FailureSourceBoundaryMismatch  = "source_boundary_mismatch"
+	FailureProgramScopeUnavailable = "program_scope_unavailable"
 
 	reportClaimBatch = 1
 	maxDecisionNote  = 1000
@@ -177,58 +178,13 @@ type MatterBoardBriefAvailability struct {
 }
 
 func (s *Service) MatterBoardBriefAvailability(ctx context.Context, scope ReportScope, matterID string) (MatterBoardBriefAvailability, error) {
-	actor, verifiedScope, err := s.scopedActor(ctx, scope)
-	if err != nil {
+	if _, _, err := s.scopedActor(ctx, scope); err != nil {
 		return MatterBoardBriefAvailability{}, err
 	}
-	matterID = strings.TrimSpace(matterID)
-	if matterID == "" || !isUUID(matterID) || s.repo == nil {
+	if strings.TrimSpace(matterID) == "" || !isUUID(strings.TrimSpace(matterID)) || s.repo == nil {
 		return MatterBoardBriefAvailability{}, ErrInvalid
 	}
-	definitions, err := s.repo.ListDefinitions(ctx, verifiedScope, false)
-	if err != nil {
-		return MatterBoardBriefAvailability{}, err
-	}
-	now := s.now()
-	matches := make([]ReportDefinition, 0, 2)
-	for _, definition := range definitions {
-		if definition.Dataset == DatasetMatterBoardBrief &&
-			definition.ScopeKind == ScopeMatter &&
-			definition.ScopeRef == matterID &&
-			definition.Format == FormatPDF &&
-			definition.Status == DefinitionActive &&
-			definitionIsEffective(definition, now) {
-			matches = append(matches, definition)
-		}
-	}
-	if len(matches) == 0 {
-		return MatterBoardBriefAvailability{AuthorityAvailable: true, Reason: "No active board brief setup is available for this issue."}, nil
-	}
-	if len(matches) > 1 {
-		return MatterBoardBriefAvailability{AuthorityAvailable: true, Reason: "More than one active board brief setup is available. Use Reports to choose one."}, nil
-	}
-	availability := MatterBoardBriefAvailability{Definition: &matches[0]}
-	if s.authority == nil {
-		availability.Reason = "Board brief authority could not be checked."
-		return availability, nil
-	}
-	resolution, err := s.authority.Resolve(ctx, authority.ResolveInput{
-		TenantID: verifiedScope.TenantID, LegalEntityID: verifiedScope.LegalEntityID,
-		ObjectType: "REPORT_RUN", ObjectID: verifiedScope.LegalEntityID,
-		Responsibility: authority.ResponsibilityPerformer,
-		DecisionType:   "report.run.create", Materiality: 3, At: now,
-	})
-	if err != nil {
-		availability.Reason = "Board brief authority could not be checked."
-		return availability, nil
-	}
-	availability.AuthorityAvailable = true
-	if strings.TrimSpace(resolution.PolicyVersion) == "" || !resolution.AllowsPrincipal(actor.PrincipalID) {
-		availability.Reason = "Board brief generation is not assigned to you."
-		return availability, nil
-	}
-	availability.CanRun = true
-	return availability, nil
+	return MatterBoardBriefAvailability{Reason: "Report unavailable. Contact your administrator."}, nil
 }
 
 func (s *Service) ListDefinitions(ctx context.Context, scope ReportScope, includeRetired bool) ([]ReportDefinition, error) {
@@ -496,6 +452,9 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 		}
 		existing, err := receipts.FindRunReceipt(ctx, scope, actor.PrincipalID, key, fingerprint)
 		if err == nil {
+			if programDerivedReportUnavailable(existing.Dataset) {
+				return ReportRun{}, ErrProgramReportUnavailable
+			}
 			if isPrivacyDataset(existing.Dataset) && !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
 				return ReportRun{}, ErrPrivacyReadForbidden
 			}
@@ -511,6 +470,9 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 	}
 	if definition.TenantID != scope.TenantID || definition.LegalEntityID != scope.LegalEntityID {
 		return ReportRun{}, ErrNotFound
+	}
+	if programDerivedReportUnavailable(definition.Dataset) {
+		return ReportRun{}, ErrProgramReportUnavailable
 	}
 	if isPrivacyDataset(definition.Dataset) && !identity.HasPermission(actor, identity.PermissionPrivacyRead) {
 		return ReportRun{}, ErrPrivacyReadForbidden
@@ -577,6 +539,9 @@ func (s *Service) ExecuteRun(ctx context.Context, requested ReportRun) (ReportRu
 	run := claimedRuns[0]
 	if err := validateClaimedRun(run); err != nil {
 		return ReportRun{}, err
+	}
+	if programDerivedReportUnavailable(run.Dataset) {
+		return run, s.failRun(ctx, run, FailureProgramScopeUnavailable, ErrProgramReportUnavailable)
 	}
 	if run.AttemptCount > MaxReportRunTries {
 		return run, s.failRun(ctx, run, FailureRetryBudgetExhausted, ErrConflict)
@@ -788,6 +753,9 @@ func (s *Service) Open(ctx context.Context, scope ReportScope, runID string) (Re
 		strings.TrimSpace(run.RequestedByRef) != actor.PrincipalID {
 		return ReportRun{}, nil, ErrReportDownloadForbidden
 	}
+	if programDerivedReportUnavailable(run.Dataset) {
+		return ReportRun{}, nil, ErrProgramReportUnavailable
+	}
 	if run.Status == RunFailed && run.FailureCode == FailureRowLimitExceeded {
 		return ReportRun{}, nil, ErrReportBoundStopped
 	}
@@ -821,6 +789,10 @@ func (s *Service) Open(ctx context.Context, scope ReportScope, runID string) (Re
 
 func isPrivacyDataset(dataset ReportDataset) bool {
 	return dataset == DatasetProcessingActivities || dataset == DatasetProcessingActivityExceptions
+}
+
+func programDerivedReportUnavailable(dataset ReportDataset) bool {
+	return dataset == DatasetPrograms || dataset == DatasetMatterBoardBrief
 }
 
 func (s *Service) completeRun(ctx context.Context, scope ReportScope, run ReportRun) (ReportRun, error) {
