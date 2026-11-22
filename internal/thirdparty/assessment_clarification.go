@@ -134,7 +134,8 @@ func (s *AssessmentRequestService) RequestClarification(ctx context.Context, _ A
 		return AssessmentClarificationOutcome{}, err
 	}
 	if preparedLink.InvitationID != "" {
-		return AssessmentClarificationOutcome{Assessment: preparedAssessment, State: SendRequestDelivered}, nil
+		// An issued invitation alone does not prove that email was delivered.
+		return AssessmentClarificationOutcome{Assessment: preparedAssessment, State: SendRequestDeliveryUnknown}, nil
 	}
 	if s.captureBase == nil {
 		return clarificationPreparedOutcome(preparedAssessment, "Set the secure capture address, then issue the clarification invitation."), nil

@@ -153,3 +153,20 @@ func assessmentUnderReviewFixture(t *testing.T, service *AssessmentService, repo
 	repo.assessmentMu.Unlock()
 	return assessment
 }
+
+func TestClarificationDoesNotClaimDeliveryWithoutDeliveryReceipt(t *testing.T) {
+	base, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := assessmentUnderReviewFixture(t, base, repo, relationship)
+	wrapped := assessmentIssuedWithoutDeliveryRepo{AssessmentRepository: repo}
+	serviceAssessment := NewAssessmentService(wrapped, newAssessmentGuard())
+	serviceAssessment.now = base.now
+	evidenceStub := &assessmentEvidenceStub{repo: wrapped, assessmentID: assessment.ID}
+	service, err := NewAssessmentRequestService(serviceAssessment, wrapped, evidenceStub, assessmentFormReaderStub{form: activeAssessmentForm()}, nil, "https://capture.example.test/respond", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	outcome, err := service.RequestClarification(assessmentContext(), assessmentActor(), assessment.ID, RequestAssessmentClarificationInput{ExpectedVersion: assessment.Version, RequestFields: []string{"contact_email"}, Message: "Provide the current security contact.", Audience: "security@vendor.example", Deadline: assessment.ReviewDueAt.Add(-time.Hour), InvitationTTLMinutes: 60})
+	if err != nil || outcome.State != SendRequestDeliveryUnknown {
+		t.Fatalf("delivery reported without receipt: state=%q err=%v", outcome.State, err)
+	}
+}

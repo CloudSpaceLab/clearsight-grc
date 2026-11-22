@@ -84,6 +84,13 @@ export type ReissueVendorAssessmentRequestInput = {
 
 export type VendorAssessmentRequestSummary = {
   id: string;
+  tenant_id?: string;
+  legal_entity_id?: string;
+  subject_type?: string;
+  subject_id?: string;
+  form_template_id?: string;
+  form_template_version?: number;
+  origin?: { type: string; id: string; version: number };
   status: string;
   deadline?: string;
   updated_at?: string;
@@ -92,7 +99,8 @@ export type VendorAssessmentRequestSummary = {
 export type VendorAssessmentSendState =
   | "REQUEST_READY_INVITATION_NOT_ISSUED"
   | "LINK_CREATED_EMAIL_NOT_SENT"
-  | "DELIVERED";
+  | "DELIVERED"
+  | "DELIVERY_UNKNOWN";
 
 export type VendorAssessmentSendOutcome = {
   assessment: VendorAssessment;

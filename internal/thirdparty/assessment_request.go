@@ -20,6 +20,7 @@ const (
 	SendRequestReadyInvitationNotIssued = "REQUEST_READY_INVITATION_NOT_ISSUED"
 	SendRequestLinkCreatedEmailNotSent  = "LINK_CREATED_EMAIL_NOT_SENT"
 	SendRequestDelivered                = "DELIVERED"
+	SendRequestDeliveryUnknown          = "DELIVERY_UNKNOWN"
 )
 
 var ErrCapturePublicBaseURLInvalid = errors.New("capture public base URL is invalid")
@@ -281,7 +282,10 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 		return SendRequestOutcome{}, err
 	}
 	if preparedLink.InvitationID != "" {
-		return SendRequestOutcome{Assessment: preparedAssessment, Request: request, State: SendRequestDelivered}, nil
+		// An invitation proves access was issued, not that email was delivered.
+		// A valid issued request normally advances the assessment to COLLECTING;
+		// reload rather than inventing a delivery receipt for inconsistent state.
+		return SendRequestOutcome{Assessment: preparedAssessment, Request: request, State: SendRequestDeliveryUnknown}, nil
 	}
 	if s.captureBase == nil {
 		return preparedOutcome(preparedAssessment, request, "Set the secure capture address, then issue the invitation."), nil

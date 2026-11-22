@@ -448,6 +448,13 @@ func TestSendVendorAssessmentRequestBuildsLinkFromConfiguredBaseNotHost(t *testi
 	if outcome.State != thirdparty.SendRequestLinkCreatedEmailNotSent || !strings.HasPrefix(outcome.CaptureURL, "https://capture.example.test/respond#form_access=") || strings.Contains(outcome.CaptureURL, "attacker.example") {
 		t.Fatalf("unexpected send response: %#v", outcome)
 	}
+	parsedDeadline, err := time.Parse(time.RFC3339, deadline)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if outcome.Assessment.ID != fixture.assessment.ID || outcome.Assessment.TenantID != fixture.assessment.TenantID || outcome.Assessment.LegalEntityID != fixture.assessment.LegalEntityID || outcome.Assessment.RelationshipID != fixture.assessment.RelationshipID || outcome.Assessment.Status != thirdparty.AssessmentCollecting || outcome.Assessment.Version <= fixture.assessment.Version || outcome.Assessment.Version > fixture.assessment.Version+2 || outcome.Assessment.CurrentRequestID != outcome.Request.ID || outcome.Request.ID == "" || outcome.Request.TenantID != fixture.assessment.TenantID || outcome.Request.LegalEntityID != fixture.assessment.LegalEntityID || outcome.Request.SubjectType != "VENDOR_RELATIONSHIP" || outcome.Request.SubjectID != fixture.assessment.RelationshipID || outcome.Request.FormTemplateID != fixture.assessment.FormTemplateID || outcome.Request.FormTemplateVersion != fixture.assessment.FormTemplateVersion || outcome.Request.Origin.Type != thirdparty.AssessmentRequestOrigin || outcome.Request.Origin.ID != fixture.assessment.ID || outcome.Request.Origin.Version != 1 || !outcome.Request.Deadline.Equal(parsedDeadline) {
+		t.Fatalf("send receipt did not bind the scoped assessment and request: %#v", outcome)
+	}
 }
 
 func TestSendVendorAssessmentErrorDoesNotEchoRecipientOrToken(t *testing.T) {

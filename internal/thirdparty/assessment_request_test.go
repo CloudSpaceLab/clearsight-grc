@@ -539,3 +539,30 @@ func activeAssessmentForm() monitoring.FormTemplate {
 		Lifecycle:    monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 3},
 	}
 }
+
+type assessmentIssuedWithoutDeliveryRepo struct{ AssessmentRepository }
+
+func (r assessmentIssuedWithoutDeliveryRepo) PrepareAssessmentRequest(ctx context.Context, record PrepareAssessmentRequestRecord) (AssessmentRequestLink, Assessment, error) {
+	link, current, err := r.AssessmentRepository.PrepareAssessmentRequest(ctx, record)
+	if err == nil {
+		link.InvitationID = "already-issued"
+	}
+	return link, current, err
+}
+
+func TestSendAssessmentRequestDoesNotClaimDeliveryWithoutDeliveryReceipt(t *testing.T) {
+	base, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := mustReadyAssessment(t, base, mustStartAssessment(t, base, relationship))
+	wrapped := assessmentIssuedWithoutDeliveryRepo{AssessmentRepository: repo}
+	serviceAssessment := NewAssessmentService(wrapped, newAssessmentGuard())
+	serviceAssessment.now = base.now
+	evidenceStub := &assessmentEvidenceStub{repo: wrapped, assessmentID: assessment.ID}
+	service, err := NewAssessmentRequestService(serviceAssessment, wrapped, evidenceStub, assessmentFormReaderStub{form: activeAssessmentForm()}, nil, "https://capture.example.test/respond", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	outcome, err := service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{ExpectedVersion: assessment.Version, Audience: "security@vendor.example", Deadline: time.Date(2026, 9, 8, 10, 0, 0, 0, time.UTC), InvitationTTLMinutes: 60})
+	if err != nil || outcome.State != SendRequestDeliveryUnknown {
+		t.Fatalf("delivery reported without receipt: state=%q err=%v", outcome.State, err)
+	}
+}
