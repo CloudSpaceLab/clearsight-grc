@@ -79,6 +79,14 @@ it("preserves safe response filters when returning to a scoped response", async 
   expect((await screen.findByRole("link", { name: "← Response" })).getAttribute("href")).toBe(destination);
 });
 
+it("preserves response submission dates when returning to a scoped response", async () => {
+  const destination = "#/forms/responses/revision-1?response_from=2026-11-01&response_through=2026-11-22&response_subject=PROGRAM";
+  window.history.replaceState(null, "", `#/documents?response_revision_id=revision-1&return_to=${encodeURIComponent(destination)}`);
+  documents.loadDocuments.mockResolvedValue({ items: [] });
+  render(<Documents/>);
+  expect((await screen.findByRole("link", { name: "← Response" })).getAttribute("href")).toBe(destination);
+});
+
 it("rejects an untrusted response return query", async () => {
   const destination = "#/forms/responses/revision-1?response_concern=HIGH&return_to=https://example.test";
   window.history.replaceState(null, "", `#/documents?response_revision_id=revision-1&return_to=${encodeURIComponent(destination)}`);

@@ -133,3 +133,41 @@ it("allows correction after a definite validation rejection", async () => {
 it("does not submit without verified account scope", async () => {
  render(<Responses id="response-2"/>); expect(await screen.findByText("Review unavailable.")).toBeTruthy(); expect(screen.queryByRole("button",{name:"Save review"})).toBeNull(); expect(review.recordResponseReview).not.toHaveBeenCalled();
 });
+
+it("loads an earlier response only from the same distribution",async()=>{
+ responses.loadCompletedResponse.mockResolvedValueOnce(detail).mockResolvedValueOnce({response:{...summary,id:"response-1",revision:1,current:false},revision:{id:"response-1",revision:1,current:false},answers:[],documents:[]});
+ render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); fireEvent.click(await screen.findByRole("button",{name:"Load earlier responses"}));
+ const link=await screen.findByRole("link",{name:"Response version 1"}); expect(link.getAttribute("href")).toBe("#/forms/responses/response-1?distribution_id=distribution-1"); expect(responses.loadCompletedResponse).toHaveBeenLastCalledWith("response-1");
+});
+it("does not display or follow an earlier response from another distribution",async()=>{
+ responses.loadCompletedResponse.mockResolvedValueOnce(detail).mockResolvedValueOnce({response:{...summary,id:"response-1",revision:1,current:false,distribution_id:"other"},revision:{id:"response-1",revision:1,current:false},answers:[],documents:[]});
+ render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); fireEvent.click(await screen.findByRole("button",{name:"Load earlier responses"})); expect(await screen.findByText("Earlier responses unavailable.")).toBeTruthy(); expect(screen.queryByRole("link",{name:"Response version 1"})).toBeNull(); expect(screen.getByRole("button",{name:"Load earlier responses"})).toBeTruthy();
+});
+
+it("loads the revision chain one authorized response at a time",async()=>{
+ const first={...detail,response:{...summary,revision:3},revision:{id:"response-2",revision:3,current:true,supersedes_revision_id:"response-1"}};
+ const middle={response:{...summary,id:"response-1",revision:2,current:false},revision:{id:"response-1",revision:2,current:false,supersedes_revision_id:"response-0"},answers:[],documents:[]};
+ const oldest={response:{...summary,id:"response-0",revision:1,current:false},revision:{id:"response-0",revision:1,current:false},answers:[],documents:[]};
+ responses.loadCompletedResponse.mockResolvedValueOnce(first).mockResolvedValueOnce(middle).mockResolvedValueOnce(oldest);
+ render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); fireEvent.click(await screen.findByRole("button",{name:"Load earlier responses"})); expect(await screen.findByRole("link",{name:"Response version 2"})).toBeTruthy(); fireEvent.click(screen.getByRole("button",{name:"Load earlier responses"})); expect(await screen.findByRole("link",{name:"Response version 1"})).toBeTruthy(); expect(screen.queryByRole("button",{name:"Load earlier responses"})).toBeNull(); expect(responses.loadCompletedResponse.mock.calls.map((c)=>c[0])).toEqual(["response-2","response-1","response-0"]);
+});
+it("rejects an inconsistent historical revision",async()=>{
+ responses.loadCompletedResponse.mockResolvedValueOnce(detail).mockResolvedValueOnce({response:{...summary,id:"response-1",revision:2,current:false},revision:{id:"response-1",revision:2,current:false},answers:[],documents:[]}); render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); fireEvent.click(await screen.findByRole("button",{name:"Load earlier responses"})); expect(await screen.findByText("Earlier responses unavailable.")).toBeTruthy(); expect(screen.queryByRole("link",{name:"Response version 2"})).toBeNull();
+});
+
+it("clears previously loaded versions when earlier access is denied",async()=>{
+ const first={...detail,response:{...summary,revision:3},revision:{id:"response-2",revision:3,current:true,supersedes_revision_id:"response-1"}};const middle={response:{...summary,id:"response-1",revision:2,current:false},revision:{id:"response-1",revision:2,current:false,supersedes_revision_id:"response-0"},answers:[],documents:[]};
+ responses.loadCompletedResponse.mockResolvedValueOnce(first).mockResolvedValueOnce(middle).mockRejectedValueOnce(new ApiError(403,"Forbidden")); render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); fireEvent.click(await screen.findByRole("button",{name:"Load earlier responses"})); expect(await screen.findByRole("link",{name:"Response version 2"})).toBeTruthy(); fireEvent.click(screen.getByRole("button",{name:"Load earlier responses"})); expect(await screen.findByText("Earlier responses unavailable.")).toBeTruthy(); expect(screen.queryByRole("link",{name:"Response version 2"})).toBeNull();
+});
+it("discards an earlier response returned after changing selection",async()=>{
+ let finish!: (value:unknown)=>void; responses.loadCompletedResponse.mockResolvedValueOnce(detail).mockReturnValueOnce(new Promise(resolve=>{finish=resolve})).mockResolvedValueOnce({response:{...summary,id:"new",revision:1},revision:{id:"new",revision:1,current:true},answers:[],documents:[]});
+ const view=render(<Responses id="response-2" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); fireEvent.click(await screen.findByRole("button",{name:"Load earlier responses"})); view.rerender(<Responses id="new" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); await screen.findByRole("heading",{name:"Security review"}); await waitFor(()=>expect(responses.loadCompletedResponse).toHaveBeenCalledWith("new")); finish({response:{...summary,id:"response-1",revision:1,current:false},revision:{id:"response-1",revision:1,current:false},answers:[],documents:[]}); await waitFor(()=>expect(screen.queryByRole("link",{name:"Response version 1"})).toBeNull());
+});
+
+it("continues through a long history with a bounded moving window",async()=>{
+ responses.loadCompletedResponse.mockImplementation(async(id:string)=>{const version=Number(id.split("-").at(-1));return {response:{...summary,id,revision:version,current:version===28},revision:{id,revision:version,current:version===28,...(version>1?{supersedes_revision_id:`response-${version-1}`}:{})},answers:[],documents:[]};});
+ render(<Responses id="response-28" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
+ for(let version=27;version>=2;version--){fireEvent.click(await screen.findByRole("button",{name:"Load earlier responses"}));await screen.findByRole("link",{name:`Response version ${version}`});}
+ expect(screen.queryByRole("link",{name:"Response version 27"})).toBeNull(); expect(screen.getByRole("link",{name:"Response version 2"})).toBeTruthy();
+ fireEvent.click(screen.getByRole("button",{name:"Load earlier responses"}));expect(await screen.findByRole("link",{name:"Response version 1"})).toBeTruthy();expect(screen.queryByRole("button",{name:"Load earlier responses"})).toBeNull();
+});

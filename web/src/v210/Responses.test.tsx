@@ -500,3 +500,58 @@ it("rejects an overlong typed search without issuing a query",async()=>{
 it("shows only a stored valid concern band",async()=>{
  responses.loadCompletedResponses.mockResolvedValue({items:[{...summary,score:{state:"FINAL",final:true,mode:"COMPLIANCE",raw_score:42,band:"HIGH"}},{...summary,id:"unknown",title:"Unknown",score:{state:"FINAL",final:false,mode:"COMPLIANCE",raw_score:42,band:"CRITICAL"}},{...summary,id:"missing",title:"Missing"}]}); render(<Responses/>); expect(await screen.findByText("High concern")).toBeTruthy(); expect(screen.getAllByText("Concern unknown")).toHaveLength(2); expect(screen.queryByText("Critical concern")).toBeNull();
 });
+
+it("applies the inclusive UTC submission dates to the server query and next page", async () => {
+ responses.loadCompletedResponses.mockResolvedValue({items:[summary],next_cursor:"page-2"});
+ render(<Responses/>); await screen.findByText(/Ada Bello/);
+ fireEvent.change(screen.getByLabelText("Submitted from (UTC)"),{target:{value:"2026-11-01"}});
+ fireEvent.change(screen.getByLabelText("Submitted through (UTC)"),{target:{value:"2026-11-30"}});
+ await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({completed_from:"2026-11-01T00:00:00Z",completed_until:"2026-11-30T23:59:59.999999Z"})));
+ fireEvent.click(await screen.findByRole("button",{name:"Load more"})); await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({cursor:"page-2",completed_from:"2026-11-01T00:00:00Z",completed_until:"2026-11-30T23:59:59.999999Z"})));
+ expect(screen.getByRole("link",{name:"Access review"}).getAttribute("href")).toContain("response_from=2026-11-01");
+});
+it("rejects a reversed submission range without querying",async()=>{
+ render(<Responses/>); await screen.findByText(/Ada Bello/); fireEvent.change(screen.getByLabelText("Submitted from (UTC)"),{target:{value:"2026-12-01"}}); await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({completed_from:"2026-12-01T00:00:00Z"}))); responses.loadCompletedResponses.mockClear();
+ fireEvent.change(screen.getByLabelText("Submitted through (UTC)"),{target:{value:"2026-11-01"}}); expect(await screen.findByText("Check the submission dates.")).toBeTruthy(); expect(responses.loadCompletedResponses).not.toHaveBeenCalled();
+});
+
+it("blocks malformed date filters from the link until cleared",async()=>{
+ const old=window.location.hash; window.history.replaceState(null,"","#/forms/responses?response_from=2026-02-30"); render(<Responses/>);
+ expect(await screen.findByText("Check the submission dates.")).toBeTruthy(); expect(responses.loadCompletedResponses).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole("button",{name:"Clear dates"})); await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenCalledWith(expect.not.objectContaining({completed_from:expect.anything()}))); window.history.replaceState(null,"",old||"#/forms/responses");
+});
+it("restores date filters from a response detail link",async()=>{
+ const old=window.location.hash; window.history.replaceState(null,"","#/forms/responses/revision-1?response_from=2026-11-01&response_through=2026-11-30"); render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
+ expect((await screen.findByRole("link",{name:"← Responses"})).getAttribute("href")).toBe("#/forms/responses?response_from=2026-11-01&response_through=2026-11-30"); window.history.replaceState(null,"",old||"#/forms/responses");
+});
+
+it("filters responses by subject on the server and retains it across pagination",async()=>{
+ responses.loadCompletedResponses.mockResolvedValueOnce({items:[summary],next_cursor:"initial"}).mockResolvedValueOnce({items:[summary],next_cursor:"next"}).mockResolvedValueOnce({items:[]}); render(<Responses/>); await screen.findByText(/Ada Bello/);
+ fireEvent.change(screen.getByLabelText("Subject"),{target:{value:"MATTER"}}); await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({subject_type:"MATTER"})));
+ expect((await screen.findByRole("link",{name:"Access review"})).getAttribute("href")).toContain("response_subject=MATTER"); fireEvent.click(screen.getByRole("button",{name:"Load more"})); await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({subject_type:"MATTER",cursor:"next"})));
+});
+it("blocks an unsupported subject in a link rather than broadening the query",async()=>{
+ const old=window.location.hash; window.history.replaceState(null,"","#/forms/responses?response_subject=OTHER"); render(<Responses/>); expect(await screen.findByText("Choose an available subject." )).toBeTruthy(); expect(responses.loadCompletedResponses).not.toHaveBeenCalled(); fireEvent.click(screen.getByRole("button",{name:"Clear subject"})); await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenCalled()); window.history.replaceState(null,"",old||"#/forms/responses");
+});
+
+it("retains the selected subject through response and previous-version navigation",async()=>{
+ const old=window.location.hash; window.history.replaceState(null,"","#/forms/responses/revision-1?response_subject=MATTER&response_from=2026-11-01"); responses.loadCompletedResponse.mockResolvedValue({response:{...summary,distribution_id:"distribution"},revision:{id:"revision-1",revision:2,current:true,supersedes_revision_id:"previous"},answers:[],documents:[]});
+ render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
+ expect((await screen.findByRole("link",{name:"← Responses"})).getAttribute("href")).toContain("response_subject=MATTER");
+ const previous=(screen.getByRole("link",{name:"Previous response"}) as HTMLAnchorElement).getAttribute("href")??""; expect(previous).toContain("response_subject=MATTER"); expect(previous).toContain("distribution_id=distribution"); window.history.replaceState(null,"",old||"#/forms/responses");
+});
+it("discards an older page when subject changes",async()=>{
+ let finish!: (value: unknown)=>void; responses.loadCompletedResponses.mockResolvedValueOnce({items:[summary],next_cursor:"old"}).mockReturnValueOnce(new Promise(resolve=>{finish=resolve})).mockResolvedValueOnce({items:[{...summary,id:"new",title:"New scope"}]});
+ render(<Responses/>); fireEvent.click(await screen.findByRole("button",{name:"Load more"})); fireEvent.change(screen.getByLabelText("Subject"),{target:{value:"PROGRAM"}}); expect(await screen.findByText("New scope")).toBeTruthy(); await act(async()=>{finish({items:[{...summary,id:"stale",title:"Stale scope"}]});}); expect(screen.queryByText("Stale scope")).toBeNull();
+});
+it("does not broaden a link with duplicate subject filters",async()=>{
+ const old=window.location.hash; window.history.replaceState(null,"","#/forms/responses?response_subject=MATTER&response_subject=PROGRAM"); render(<Responses/>); expect(await screen.findByText("Choose an available subject.")).toBeTruthy(); expect(responses.loadCompletedResponses).not.toHaveBeenCalled(); window.history.replaceState(null,"",old||"#/forms/responses");
+});
+
+it.each(["response_concern=HIGH&response_concern=LOW","response_concern=UNKNOWN","response_sort=UNKNOWN","response_sort=CONCERN_DESC&response_sort=COMPLETED_DESC","response_from=2026-01-01&response_from=2026-02-01","response_through=2026-01-01&response_through=2026-02-01"])("does not broaden a malformed filter link: %s",async(query)=>{
+ const old=window.location.hash; window.history.replaceState(null,"",`#/forms/responses?${query}`); render(<Responses/>); expect(await screen.findByText("Check the response filters.")).toBeTruthy(); expect(responses.loadCompletedResponses).not.toHaveBeenCalled(); fireEvent.click(screen.getByRole("button",{name:"Clear filters"})); await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenCalled()); window.history.replaceState(null,"",old||"#/forms/responses");
+});
+
+it("removes malformed filter parameters when clearing them",async()=>{
+ const old=window.location.hash;window.history.replaceState(null,"","#/forms/responses?response_concern=UNKNOWN"); render(<Responses/>);fireEvent.click(await screen.findByRole("button",{name:"Clear filters"}));await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenCalled()); expect(window.location.hash).not.toContain("response_concern");window.history.replaceState(null,"",old||"#/forms/responses");
+});

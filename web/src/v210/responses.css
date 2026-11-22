@@ -32,7 +32,13 @@
 
 .v-response-filters { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 16px; }
 .v-response-filters label { display: grid; gap: 6px; color: var(--v-muted, #536b8c); font-size: 0.8rem; }
-.v-response-filters select { min-height: var(--v-field-height); min-width: 180px; padding: 0 12px; border: 1px solid var(--v-field-border); border-radius: var(--v-field-radius); background: var(--v-field-background); color: var(--v-field-text); }
-@media (max-width: 480px) { .v-response-filters label { flex: 1 1 100%; } .v-response-filters select { width: 100%; } }
+.v-response-filters input, .v-response-filters select { min-height: var(--v-field-height); min-width: 180px; padding: 0 12px; border: 1px solid var(--v-field-border); border-radius: var(--v-field-radius); background: var(--v-field-background); color: var(--v-field-text); }
+@media (max-width: 480px) { .v-response-filters label { flex: 1 1 100%; } .v-response-filters input, .v-response-filters select { width: 100%; } }
 
 .v-response-state { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (min-width: 481px) and (max-width: 900px) { .v-response-filters label { flex: 1 1 calc(33.333% - 12px); } .v-response-filters input, .v-response-filters select { width: 100%; } }
+
+.v-response-versions { margin-bottom: 20px; }
+.v-response-versions ul { list-style: none; padding: 0; }
+.v-response-versions li { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 10px 0; border-top: 1px solid #e5edf7; }
+.v-response-versions li span { color: #536c90; font-size: 12px; }

@@ -17,35 +17,44 @@ export function Responses({ id, reviewScope }: { id?: string; reviewScope?: Revi
 function ResponseList() {
   const [items, setItems] = useState<CompletedResponseSummary[]>([]);
   const [cursor, setCursor] = useState<string>();
-  const [state, setState] = useState<"loading" | "ready" | "error" | "invalid">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "error" | "invalid" | "invalidDates" | "invalidSubject" | "invalidFilters">("loading");
   const initial = responseFilters();
   const [search, setSearch] = useState(initial.search); const [draft, setDraft] = useState(initial.search);
   const [concern, setConcern] = useState<"" | ResponseConcernBand>(initial.concern);
   const [sort, setSort] = useState<ResponseSort>(initial.sort);
+  const [from, setFrom] = useState(initial.from); const [through, setThrough] = useState(initial.through);
+  const [subject, setSubject] = useState(initial.subject);
+  const [invalidFilters, setInvalidFilters] = useState(initial.invalid);
   const [retry, setRetry] = useState(0); const [moreBusy, setMoreBusy] = useState(false); const [moreError, setMoreError] = useState(false);
   const generation = useRef(0);
   const moreLock = useRef<number | null>(null);
   useEffect(() => {
     const token = ++generation.current; moreLock.current = null; setItems([]); setCursor(undefined); setMoreBusy(false); setMoreError(false);
+    if (invalidFilters) { setState("invalidFilters"); return () => { generation.current++; }; }
     if (new TextEncoder().encode(search.trim()).length > 200) { setState("invalid"); return () => { generation.current++; }; }
+    if ((from && !validUTCDate(from)) || (through && !validUTCDate(through)) || (from && through && from > through)) { setState("invalidDates"); return () => { generation.current++; }; }
+    if (subject && !validResponseSubject(subject)) { setState("invalidSubject"); return () => { generation.current++; }; }
     setState("loading");
-    loadCompletedResponses({ search, current_only: false, limit: 25, sort, ...(concern ? {bands: [concern]} : {}) }).then((page) => { if (token === generation.current) { setItems(page.items); setCursor(page.next_cursor); setState("ready"); } }).catch(() => { if (token === generation.current) setState("error"); });
+    loadCompletedResponses({ search, current_only: false, limit: 25, sort, ...(concern ? {bands: [concern]} : {}), ...(subject ? {subject_type: subject} : {}), ...(from ? {completed_from: `${from}T00:00:00Z`} : {}), ...(through ? {completed_until: `${through}T23:59:59.999999Z`} : {}) }).then((page) => { if (token === generation.current) { setItems(page.items); setCursor(page.next_cursor); setState("ready"); } }).catch(() => { if (token === generation.current) setState("error"); });
     return () => { generation.current++; };
-  }, [search, concern, sort, retry]);
+  }, [search, concern, sort, subject, from, through, invalidFilters, retry]);
   async function more() {
     if (!cursor || moreBusy || moreLock.current !== null) return; const token = generation.current; moreLock.current = token; setMoreBusy(true); setMoreError(false);
-    try { const page = await loadCompletedResponses({ search, current_only: false, limit: 25, sort, ...(concern ? {bands: [concern]} : {}), cursor }); if (page.next_cursor === cursor) throw new Error("Response page unavailable"); if (token === generation.current) { setItems((value) => [...value, ...page.items]); setCursor(page.next_cursor); } }
+    try { const page = await loadCompletedResponses({ search, current_only: false, limit: 25, sort, ...(concern ? {bands: [concern]} : {}), ...(subject ? {subject_type: subject} : {}), ...(from ? {completed_from: `${from}T00:00:00Z`} : {}), ...(through ? {completed_until: `${through}T23:59:59.999999Z`} : {}), cursor }); if (page.next_cursor === cursor) throw new Error("Response page unavailable"); if (token === generation.current) { setItems((value) => [...value, ...page.items]); setCursor(page.next_cursor); } }
     catch (error) { if (token === generation.current) { if (accessDenied(error)) { setItems([]); setCursor(undefined); setState("error"); } else setMoreError(true); } }
     finally { if (moreLock.current === token) moreLock.current = null; if (token === generation.current) setMoreBusy(false); }
   }
   return <section className="v-responses"><header className="v-page-heading"><div><p className="v-eyebrow">Forms</p><h1>Responses</h1></div></header>
     <nav className="v-local-nav" aria-label="Form views"><a href="#/forms">Forms</a><a href="#/forms/responses" aria-current="page">Responses</a></nav>
     <form className="v-program-search" onSubmit={(event) => { event.preventDefault(); setSearch(draft.trim()); }}><label htmlFor="v-response-search">Find a response</label><div><input id="v-response-search" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Form title"/><button>Search</button></div></form>
-    <div className="v-response-filters"><label>Concern<select value={concern} onChange={(event) => setConcern(event.target.value as "" | ResponseConcernBand)}><option value="">All concern levels</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MODERATE">Moderate</option><option value="LOW">Low</option></select></label><label>Sort responses<select value={sort} onChange={(event) => setSort(event.target.value as ResponseSort)}><option value="COMPLETED_DESC">Recently submitted</option><option value="CONCERN_DESC">Highest concern</option></select></label></div>
+    <div className="v-response-filters"><label>Subject<select value={subject} onChange={(event) => setSubject(event.target.value)}><option value="">All subjects</option><option value="PROGRAM">Programs</option><option value="MATTER">Issues and changes</option><option value="VENDOR_RELATIONSHIP">Vendor services</option>{subject && !validResponseSubject(subject) && <option value={subject} disabled>Unavailable subject</option>}</select></label><label>Concern<select value={concern} onChange={(event) => setConcern(event.target.value as "" | ResponseConcernBand)}><option value="">All concern levels</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MODERATE">Moderate</option><option value="LOW">Low</option></select></label><label>Sort responses<select value={sort} onChange={(event) => setSort(event.target.value as ResponseSort)}><option value="COMPLETED_DESC">Recently submitted</option><option value="CONCERN_DESC">Highest concern</option></select></label><label>Submitted from (UTC)<input type="date" value={from} onChange={(event) => setFrom(event.target.value)}/></label><label>Submitted through (UTC)<input type="date" value={through} onChange={(event) => setThrough(event.target.value)}/></label></div>
     {state === "loading" && <p role="status">Loading responses…</p>}
     {state === "invalid" && <p role="alert">Search is too long. Shorten the form title.</p>}
+    {state === "invalidFilters" && <div><p role="alert">Check the response filters.</p><button type="button" onClick={() => {clearResponseFilterParams(["response_search", "response_concern", "response_sort", "response_subject", "response_from", "response_through", "response_invalid"]); setSearch(""); setDraft(""); setConcern(""); setSort("COMPLETED_DESC"); setSubject(""); setFrom(""); setThrough(""); setInvalidFilters(false);}}>Clear filters</button></div>}
+    {state === "invalidSubject" && <div><p role="alert">Choose an available subject.</p><button type="button" onClick={() => {clearResponseFilterParams(["response_subject"]); setSubject("");}}>Clear subject</button></div>}
+    {state === "invalidDates" && <div><p role="alert">Check the submission dates.</p><button type="button" onClick={() => {clearResponseFilterParams(["response_from", "response_through"]); setFrom(""); setThrough("");}}>Clear dates</button></div>}
     {state === "error" && <div className="v-panel"><p role="alert">Responses unavailable.</p><button onClick={() => setRetry(retry + 1)}>Try again</button></div>}
-    {state === "ready" && <div className="v-panel v-response-list">{items.length === 0 ? <p>No responses match this search.</p> : <ul>{items.map((item) => <li key={item.id}><div><a href={`#/forms/responses/${encodeURIComponent(item.id)}${responseFilterQuery({search,concern,sort})}`}>{item.title}</a><small>{submitter(item)} · {timestampLabel(item.completed_at)}</small>{responseScoreLabel(item.score) && <small>{responseScoreLabel(item.score)}</small>}</div><div className="v-response-state"><span className={`v-status${responseConcern(item.score).high ? " v-status--high" : ""}`}>{responseConcern(item.score).label}</span><span className="v-status">{item.current ? "Current response" : "Earlier response"}</span></div></li>)}</ul>}{moreError && <p role="alert">More responses unavailable.</p>}{cursor && <button onClick={() => void more()} disabled={moreBusy}>{moreBusy ? "Loading…" : "Load more"}</button>}</div>}
+    {state === "ready" && <div className="v-panel v-response-list">{items.length === 0 ? <p>No responses match this search.</p> : <ul>{items.map((item) => <li key={item.id}><div><a href={`#/forms/responses/${encodeURIComponent(item.id)}${responseFilterQuery({search,concern,sort,subject,from,through,invalid:invalidFilters})}`}>{item.title}</a><small>{submitter(item)} · {timestampLabel(item.completed_at)}</small>{responseScoreLabel(item.score) && <small>{responseScoreLabel(item.score)}</small>}</div><div className="v-response-state"><span className={`v-status${responseConcern(item.score).high ? " v-status--high" : ""}`}>{responseConcern(item.score).label}</span><span className="v-status">{item.current ? "Current response" : "Earlier response"}</span></div></li>)}</ul>}{moreError && <p role="alert">More responses unavailable.</p>}{cursor && <button onClick={() => void more()} disabled={moreBusy}>{moreBusy ? "Loading…" : "Load more"}</button>}</div>}
   </section>;
 }
 
@@ -53,19 +62,21 @@ type Details = { response: CompletedResponseDetail; review?: ResponseReviewPage 
 function ResponseDetail({ id, reviewScope }: { id: string; reviewScope?: ReviewScope }) {
  const storageKey = reviewScope && reviewScope.tenant && reviewScope.entity && reviewScope.actor ? "clearsight:review:" + JSON.stringify([reviewScope.tenant,reviewScope.entity,reviewScope.actor,id]) : undefined;
  const [pending, setPending] = useState<PendingReview | null | undefined>(() => readPendingReview(storageKey));
-  const [data, setData] = useState<Details>(); const [state, setState] = useState<"loading" | "ready" | "error" | "invalid">("loading");
+  const [data, setData] = useState<Details>(); const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0); const [decision, setDecision] = useState<"" | ResponseReviewDecision>(""); const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false); const [saveError, setSaveError] = useState<"" | "validation" | "conflict" | "forbidden" | "unknown" | "committed" | "storage">(""); const [saved, setSaved] = useState(false);
   const [historyBusy, setHistoryBusy] = useState(false); const [historyError, setHistoryError] = useState(false);
   const [documentsBusy, setDocumentsBusy] = useState(false); const [documentsError, setDocumentsError] = useState(false);
+  const [earlier, setEarlier] = useState<Array<Pick<CompletedResponseDetail, "response" | "revision">>>([]); const [earlierBusy, setEarlierBusy] = useState(false); const [earlierError, setEarlierError] = useState(false);
   const generation = useRef(0);
   const saveLock = useRef(false);
   const historyLock = useRef<number | null>(null);
   const documentsLock = useRef<number | null>(null);
+  const earlierLock = useRef<number | null>(null);
   useEffect(() => {
     const token = ++generation.current; setState("loading"); setData(undefined); setSaveError(""); setSaved(false);
-    historyLock.current = null; documentsLock.current = null;
-    setHistoryBusy(false); setHistoryError(false); setDocumentsBusy(false); setDocumentsError(false);
+    historyLock.current = null; documentsLock.current = null; earlierLock.current = null;
+    setHistoryBusy(false); setHistoryError(false); setDocumentsBusy(false); setDocumentsError(false); setEarlier([]); setEarlierBusy(false); setEarlierError(false);
     Promise.allSettled([loadCompletedResponse(id), loadResponseReviews(id)]).then(([response, review]) => {
       if (token !== generation.current) return;
       if (response.status === "rejected" || !matchesResponseScope(response.value, id)) { setState("error"); return; }
@@ -115,6 +126,21 @@ function ResponseDetail({ id, reviewScope }: { id: string; reviewScope?: ReviewS
     catch (error) { if (token === generation.current) { if (accessDenied(error)) setData((value) => value ? { ...value, response: { ...value.response, documents: undefined, documents_next_cursor: undefined } } : value); else setDocumentsError(true); } }
     finally { if (documentsLock.current === token) documentsLock.current = null; if (token === generation.current) setDocumentsBusy(false); }
   }
+  async function loadEarlier() {
+    if (!data || earlierBusy || earlierLock.current !== null) return;
+    const distribution = data.response.response.distribution_id;
+    const last = earlier.at(-1) ?? data.response;
+    const nextID = last.revision.supersedes_revision_id;
+    const previousRevision = last.revision.revision;
+    if (!validHistoryIdentifier(distribution) || !validHistoryIdentifier(nextID) || nextID === id || earlier.some((item) => item.revision.id === nextID) || !Number.isSafeInteger(previousRevision) || previousRevision < 2) { setEarlierError(true); return; }
+    const token = generation.current; earlierLock.current = token; setEarlierBusy(true); setEarlierError(false);
+    try {
+      const item = await loadCompletedResponse(nextID);
+      if (!item?.response || !item.revision || item.response.id !== nextID || item.revision.id !== nextID || item.response.distribution_id !== distribution || item.response.current !== false || item.revision.current !== false || !Number.isSafeInteger(item.revision.revision) || item.revision.revision < 1 || item.revision.revision >= previousRevision || item.response.revision !== item.revision.revision) throw new Error("Earlier response unavailable");
+      if (token === generation.current) setEarlier((value) => [...value, {response:item.response, revision:item.revision}].slice(-25));
+    } catch (error) { if (token === generation.current) { if (accessDenied(error)) setEarlier([]); setEarlierError(true); } }
+    finally { if (earlierLock.current === token) earlierLock.current = null; if (token === generation.current) setEarlierBusy(false); }
+  }
   if (state === "loading") return <p role="status">Loading response…</p>;
   if (state === "error" || !data) return <section className="v-responses"><div className="v-panel"><h1>Response unavailable</h1><button className="v-primary" onClick={() => setAttempt(attempt + 1)}>Try again</button>{documentReturnDestination() && <p><a href={documentReturnDestination()}>View documents</a></p>}</div></section>;
   const { response: { response, revision, answers, documents, documents_next_cursor: documentsNext }, review } = data;
@@ -122,13 +148,14 @@ function ResponseDetail({ id, reviewScope }: { id: string; reviewScope?: ReviewS
   const canReview = Boolean(storageKey) && pending === undefined && isCurrent && answers && documents && !documentsNext && review?.may_review && (!saveError || saveError === "validation");
   const commentTooLong = new TextEncoder().encode(comment.trim()).length > 4000;
   const returnToDocuments = documentReturnDestination();
-  const previousHref = revision.supersedes_revision_id ? previousResponseHref(revision.supersedes_revision_id, response.distribution_id) : undefined;
+  const previousHref = revision.supersedes_revision_id && Number.isSafeInteger(response.revision) && response.revision === revision.revision && response.revision > 1 ? previousResponseHref(revision.supersedes_revision_id, response.distribution_id) : undefined;
   const documentHref = scopedDocumentsHref("response", id, undefined, response.distribution_id || undefined, responseFilterQuery(responseFilters()));
   return <section className="v-responses"><a className="v-back" href={returnToDocuments ?? `#/forms/responses${responseFilterQuery(responseFilters())}`}>{returnToDocuments ? "← Documents" : "← Responses"}</a><header className="v-page-heading"><div><p className="v-eyebrow">Response · Version {response.revision}</p><h1>{response.title}</h1></div><span className="v-status">{isCurrent ? "Current response" : "Earlier response"}</span></header>
     <div className="v-response-meta"><span>Submitted by <strong>{submitter(response)}</strong></span>{response.submission_recipient?.label && <span><span>Access recipient</span> <strong>{response.submission_recipient.label}</strong></span>}<span>Submitted <strong>{timestampLabel(response.completed_at)}</strong></span><span>Form version <strong>{response.form_template_version}</strong></span></div>
     {response.submission_recipient?.label && <p>Access recipient does not confirm who submitted the response.</p>}
-    {revision.supersedes_revision_id && <p>{previousHref ? <a href={previousHref}>Previous response</a> : "Earlier response unavailable."}</p>}
     {documentHref && <p><a href={documentHref}>View response documents</a></p>}
+    {revision.supersedes_revision_id && earlier.length === 0 && <p>{previousHref ? <a href={previousHref}>Previous response</a> : "Earlier response unavailable."}</p>}
+    {previousHref && Number.isSafeInteger(revision.revision) && revision.revision > 1 && <section className="v-panel v-response-versions"><h2>Earlier responses</h2>{earlier.length > 0 && <ul>{earlier.map((item) => <li key={item.revision.id}><a href={previousResponseHref(item.revision.id,response.distribution_id)}>Response version {item.revision.revision}</a><span>{timestampLabel(item.response.completed_at)}</span></li>)}</ul>}{earlierError && <p role="alert">Earlier responses unavailable.</p>}{(earlier.length === 0 || earlier.at(-1)?.revision.supersedes_revision_id) && <button type="button" disabled={earlierBusy} onClick={() => void loadEarlier()}>{earlierBusy ? "Loading…" : "Load earlier responses"}</button>}</section>}
     <section className="v-panel v-response-answers"><h2>Answers</h2>{!answers ? <p role="alert">Answers unavailable. Reload before reviewing.</p> : answers.length === 0 ? <p>No answers recorded.</p> : <dl>{answers.map(({ field_id, label, type, value }) => <div key={field_id}><dt>{label}</dt><dd>{answerLabel(type, value)}{value?.document && <span className="v-answer-document">{value.document.document_type && <span>Type: {value.document.document_type}</span>}{value.document.reference && <span>Reference: {value.document.reference}</span>}{value.document.issued_by && <span>Issued by: {value.document.issued_by}</span>}{value.document.issued_on && <span>Issued: {dateLabel(value.document.issued_on)}</span>}{value.document.expires_on && <span>Expires: {dateLabel(value.document.expires_on)}</span>}</span>}</dd></div>)}</dl>}</section>
     <section className="v-panel v-response-documents"><h2>Documents</h2>{!documents ? <p role="alert">Documents unavailable. Reload before reviewing.</p> : documents.length === 0 && !documentsNext ? <p>No documents submitted.</p> : <ul>{documents.map((document) => <li key={document.id}><span>{document.file_name}</span>{document.artifact_status === "AVAILABLE" || (document.artifact_status === "STORED_UNSCANNED" && document.demo_unscanned_allowed) ? <a href={documentContentURL(document, true)}>Download</a> : <small>File unavailable</small>}</li>)}</ul>}{documentsNext && <><p>More documents must be loaded before review.</p>{documentsError && <p role="alert">Additional documents unavailable.</p>}<button disabled={documentsBusy} onClick={() => void moreDocuments()}>{documentsBusy ? "Loading…" : "Load more documents"}</button></>}</section>
     <section className="v-panel v-response-review"><h2>Review</h2>{!review ? <><p role="alert">Review unavailable.</p><button onClick={() => setAttempt(attempt + 1)}>Reload response</button></> : <>
@@ -153,17 +180,35 @@ function readPendingReview(key?: string): PendingReview | null | undefined {
   return {...item, input: {...input, comment: ""}, needsComment: true};
  } catch { return null; }
 }
-function responseFilters(): {search: string; concern: "" | ResponseConcernBand; sort: ResponseSort} {
- const params = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
- const band = params.get("response_concern"); const order = params.get("response_sort");
- return { search: (params.get("response_search") ?? ""), concern: band === "LOW" || band === "MODERATE" || band === "HIGH" || band === "CRITICAL" ? band : "", sort: order === "CONCERN_DESC" ? order : "COMPLETED_DESC" };
+function clearResponseFilterParams(keys: string[]) {
+ const hash = window.location.hash; const split = hash.indexOf("?");
+ if (split < 0) return;
+ const params = new URLSearchParams(hash.slice(split + 1)); keys.forEach((key) => params.delete(key));
+ const query = params.toString(); const url = new URL(window.location.href);
+ window.history.replaceState(window.history.state, "", url.pathname + url.search + hash.slice(0, split) + (query ? "?" + query : ""));
 }
-function responseFilterQuery(filters: {search: string; concern: "" | ResponseConcernBand; sort: ResponseSort}) {
+function responseFilters(): {search: string; concern: "" | ResponseConcernBand; sort: ResponseSort; subject: string; from: string; through: string; invalid: boolean} {
+ const params = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
+ const band = params.get("response_concern"); const order = params.get("response_sort"); const subjects = params.getAll("response_subject");
+ const invalid = ["response_search","response_concern","response_sort","response_from","response_through"].some((key) => params.getAll(key).length > 1) || params.has("response_invalid") || (band !== null && band !== "" && !["LOW","MODERATE","HIGH","CRITICAL"].includes(band)) || (order !== null && order !== "" && order !== "COMPLETED_DESC" && order !== "CONCERN_DESC");
+ return { search: (params.get("response_search") ?? ""), concern: band === "LOW" || band === "MODERATE" || band === "HIGH" || band === "CRITICAL" ? band : "", sort: order === "CONCERN_DESC" ? order : "COMPLETED_DESC", subject: subjects.length > 1 ? "INVALID" : subjects[0] ?? "", from: params.get("response_from") ?? "", through: params.get("response_through") ?? "", invalid };
+}
+function responseFilterQuery(filters: {search: string; concern: "" | ResponseConcernBand; sort: ResponseSort; subject: string; from: string; through: string; invalid: boolean}) {
  const params = new URLSearchParams();
  if (filters.search) params.set("response_search", filters.search);
  if (filters.concern) params.set("response_concern", filters.concern);
+ if (filters.subject) params.set("response_subject", filters.subject);
  if (filters.sort !== "COMPLETED_DESC") params.set("response_sort", filters.sort);
+ if (filters.from) params.set("response_from", filters.from);
+ if (filters.through) params.set("response_through", filters.through);
+ if (filters.invalid) params.set("response_invalid", "1");
  const query = params.toString(); return query ? `?${query}` : "";
+}
+function validResponseSubject(value: string): boolean { return value === "PROGRAM" || value === "MATTER" || value === "VENDOR_RELATIONSHIP"; }
+function validUTCDate(value: string): boolean {
+ if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith("0000-")) return false;
+ const date = new Date(`${value}T00:00:00Z`);
+ return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 function responseConcern(score?: ResponseScore): {label: string; high: boolean} {
  const valid = responseScoreLabel(score);
@@ -198,7 +243,10 @@ function previousResponseHref(id: string, distribution: string | undefined) {
   const query = params.toString();
   try { return `#/forms/responses/${encodeURIComponent(id)}?${query}`; } catch { return undefined; }
 }
-function validHistoryIdentifier(value: unknown): value is string { return typeof value === "string" && value.length > 0 && value.length <= 200 && value.trim() === value && value !== "*" && !/[\u0000-\u001f\u007f]/.test(value); }
+function validHistoryIdentifier(value: unknown): value is string {
+ if (typeof value !== "string" || value.length === 0 || value.length > 200 || value.trim() !== value || value === "*" || /[\u0000-\u001f\u007f]/.test(value)) return false;
+ try { encodeURIComponent(value); return true; } catch { return false; }
+}
 function accessDenied(error: unknown) { return ["unauthorized", "forbidden"].includes(apiErrorKind(error)); }
 function timestampLabel(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.exec(value);
