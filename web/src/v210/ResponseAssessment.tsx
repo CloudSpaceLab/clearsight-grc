@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { loadResponseAssessment, recordResponseAssessment, type ResponseAssessmentDetail } from "../formAssessmentApi";
 import { apiErrorKind } from "../http";
+import { timestampLabel } from "./recordedTime";
 
 type Scope = {tenant:string; entity:string; actor:string};
 type Attempt = {key:string; version:number; field:string; outcome:string; reason?:string};
@@ -14,6 +15,15 @@ function validFields(value: ResponseAssessmentDetail): boolean {
   if (a && (!["NONE","MANUAL","AUTOMATIC","AUTOMATIC_REVIEW"].includes(a.mode) || (a.rubric!==undefined && (!Array.isArray(a.rubric) || a.rubric.some(r=>!r || typeof r.id!=="string" || !r.id || typeof r.label!=="string") || new Set(a.rubric.map(r=>r.id)).size!==a.rubric.length)))) return false;
   const d=item.decision; return !d || (typeof d.outcome_id==="string" && typeof d.rationale==="string" && (d.reviewer_display_name===undefined || typeof d.reviewer_display_name==="string"));
  });
+}
+function assessedResult(value: ResponseAssessmentDetail): {label:string; asOf?:string} | undefined {
+ if (value.state==="NOT_REQUIRED") return undefined;
+ if (value.version===0) return {label:"Assessment result pending."};
+ const score=value.assessed_score;
+ const counts=[value.required_count,value.reviewed_required_count,value.reviewed_count];
+ if (counts.some(n=>!Number.isSafeInteger(n) || n<0) || value.reviewed_required_count>value.required_count || value.reviewed_required_count>value.reviewed_count || !score || (score.mode!=="RISK" && score.mode!=="COMPLIANCE") || typeof score.raw_score!=="number" || !Number.isFinite(score.raw_score) || score.raw_score<0 || score.raw_score>100 || (score.state!=="FINAL" && score.state!=="PROVISIONAL") || (score.state==="FINAL" && (score.final!==true || value.state!=="ASSESSED" || value.required_count!==value.reviewed_required_count || (value.required_count===0 && value.reviewed_count===0))) || (score.state==="PROVISIONAL" && (score.final!==false || (value.state!=="AWAITING_REVIEW" && value.state!=="IN_REVIEW"))) || !score.calculated_at) return {label:"Assessed score unavailable."};
+ const time=timestampLabel(score.calculated_at); if(time==="time unavailable") return {label:"Assessed score unavailable."};
+ return {label:`Assessed ${score.mode==="RISK" ? "risk" : "compliance"} score: ${score.raw_score} / 100 · ${score.state==="FINAL" ? "Final" : "Provisional"}`,asOf:time};
 }
 function readAttempt(key?:string): Attempt | null | undefined {
  if (!key) return undefined;
@@ -43,13 +53,14 @@ export function ResponseAssessment({id,scope,current,formID,formVersion,revision
  function save(event:FormEvent,field:string) {event.preventDefault();if(!storageKey || !data || pending!==undefined || !outcomes[field] || !reasons[field]?.trim())return;try{const attempt:Attempt={key:crypto.randomUUID(),version:data.version,field,outcome:outcomes[field],reason:reasons[field].trim()};sessionStorage.setItem(storageKey,JSON.stringify({key:attempt.key,version:attempt.version,field:attempt.field,outcome:attempt.outcome}));setPending(attempt);setSaved(false);void submit(attempt)}catch{setError("storage")}}
  if(state==="loading") return <section className="v-panel v-field-assessment"><h2>Field assessments</h2><p>Loading assessments…</p></section>;
  if(state==="error" || !data) return <section className="v-panel v-field-assessment"><h2>Field assessments</h2><p>Assessments unavailable. Reload the response.</p></section>;
- const pendingField=pending && data.fields.find(x=>x.field.id===pending.field); const canAct=Boolean(storageKey && scope && Number.isSafeInteger(revision) && revision>0 && current && data.current && data.may_review);
- return <section className="v-panel v-field-assessment"><h2>Field assessments</h2>{saved && <p role="status">Assessment saved.</p>}{data.fields.filter(x=>x.field.assessment?.mode==="MANUAL" || x.field.assessment?.mode==="AUTOMATIC_REVIEW").length===0 && <p>No fields require assessment.</p>}
+ const pendingField=pending && data.fields.find(x=>x.field.id===pending.field); const canAct=Boolean(storageKey && scope && Number.isSafeInteger(revision) && revision>0 && current && data.current && data.may_review); const result=assessedResult(data);
+ return <section className="v-panel v-field-assessment"><h2>Field assessments</h2>{saved && <p role="status">Assessment saved.</p>}{result && pending===undefined && <div><h3>Assessed result</h3><p>{result.label}</p>{result.asOf && <p>Calculated {result.asOf}{!data.current && " · Earlier response"}</p>}</div>}{data.fields.filter(x=>x.field.assessment?.mode==="MANUAL" || x.field.assessment?.mode==="AUTOMATIC_REVIEW").length===0 && <p>No fields require assessment.</p>}
  {data.fields.filter(x=>x.field.assessment?.mode==="MANUAL" || x.field.assessment?.mode==="AUTOMATIC_REVIEW").map(({field,decision,may_review})=><div className="v-assessment-field" key={field.id}><h3>{field.label}</h3>{decision && <p>{field.assessment?.rubric?.find(x=>x.id===decision.outcome_id)?.label ?? "Outcome unavailable"} · {decision.reviewer_display_name || "Reviewer name unavailable"}</p>}{decision?.rationale && <p>{decision.rationale}</p>}
  {canAct && may_review && !field.assessment?.rubric?.length && <p>Assessment outcomes unavailable.</p>}{canAct && may_review && Boolean(field.assessment?.rubric?.length) && pending===undefined && <form onSubmit={e=>save(e,field.id)}><label>Outcome for {field.label}<select required value={outcomes[field.id]??""} onChange={e=>setOutcomes({...outcomes,[field.id]:e.target.value})}><option value="">Select outcome</option>{field.assessment?.rubric?.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}</select></label><label>Reason for {field.label}<textarea required value={reasons[field.id]??""} onChange={e=>setReasons({...reasons,[field.id]:e.target.value})}/></label>{new TextEncoder().encode(reasons[field.id]??"").length>4000 && <p role="alert">Reason is too long. Shorten it.</p>}<button className="v-primary" disabled={busy || new TextEncoder().encode(reasons[field.id]??"").length>4000}>Save assessment</button></form>}</div>)}
  {!canAct && <p>Assessment decisions unavailable.</p>}{error==="validation" && <p role="alert">Assessment not saved. Check the outcome and reason.</p>}{error==="storage" && <p role="alert">Assessment not saved. Browser storage is unavailable.</p>}{pending===null && <p role="alert">Assessment status unavailable. Check assessment history before saving.</p>}
  {pending && <div>{busy ? <p role="status">Saving assessment…</p> : <p role="alert">Assessment status unknown. Retrying will submit the same assessment.</p>}{pendingField ? <><p>{pendingField.field.label} · {pendingField.field.assessment?.rubric?.find(r=>r.id===pending.outcome)?.label ?? "Outcome unavailable"}</p>{pending.reason ? <label>Reason for {pendingField.field.label}<textarea readOnly value={pending.reason}/></label> : <label>Original reason for {pendingField.field.label}<textarea value={reasons[pending.field]??""} onChange={e=>setReasons({...reasons,[pending.field]:e.target.value})}/></label>}{new TextEncoder().encode(pending.reason ?? reasons[pending.field]??"").length>4000 && <p role="alert">Reason is too long. Shorten it.</p>}<button className="v-primary" disabled={busy || !canAct || !pendingField.may_review || error==="forbidden" || !(pending.reason ?? reasons[pending.field]??"").trim() || new TextEncoder().encode(pending.reason ?? reasons[pending.field]??"").length>4000} onClick={()=>void submit(pending,true)}>Retry assessment</button></> : <p>Assessment unavailable. Reload the response.</p>}{error==="forbidden" && <p role="alert">Assessment unavailable. Reload to check access.</p>}</div>}</section>;
 }
+
 
 
 

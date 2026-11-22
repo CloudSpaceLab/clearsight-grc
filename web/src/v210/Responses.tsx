@@ -6,6 +6,7 @@ import { documentContentURL, loadDocuments } from "../submittedDocumentApi";
 import { apiErrorKind } from "../http";
 import { documentReturnDestination, scopedDocumentsHref } from "./documentReturn";
 import { ResponseAssessment } from "./ResponseAssessment";
+import { timestampLabel } from "./recordedTime";
 import "./responses.css";
 
 type ReviewScope = { tenant: string; entity: string; actor: string };
@@ -158,7 +159,7 @@ function ResponseDetail({ id, reviewScope }: { id: string; reviewScope?: ReviewS
     {documentHref && <p><a href={documentHref}>View response documents</a></p>}
     {revision.supersedes_revision_id && earlier.length === 0 && <p>{previousHref ? <a href={previousHref}>Previous response</a> : "Earlier response unavailable."}</p>}
     {previousHref && Number.isSafeInteger(revision.revision) && revision.revision > 1 && <section className="v-panel v-response-versions"><h2>Earlier responses</h2>{earlier.length > 0 && <ul>{earlier.map((item) => <li key={item.revision.id}><a href={previousResponseHref(item.revision.id,response.distribution_id)}>Response version {item.revision.revision}</a><span>{timestampLabel(item.response.completed_at)}</span></li>)}</ul>}{earlierError && <p role="alert">Earlier responses unavailable.</p>}{(earlier.length === 0 || earlier.at(-1)?.revision.supersedes_revision_id) && <button type="button" disabled={earlierBusy} onClick={() => void loadEarlier()}>{earlierBusy ? "Loading…" : "Load earlier responses"}</button>}</section>}
-    <section className="v-panel v-response-result"><h2>Form result</h2><p>{result.label}</p>{result.concern && <span className={`v-status${result.concern.high ? " v-status--high" : ""}`}>{result.concern.label}</span>}</section>
+    <section className="v-panel v-response-result"><h2>Submitted result</h2><p>{result.label}</p>{result.concern && <span className={`v-status${result.concern.high ? " v-status--high" : ""}`}>{result.concern.label}</span>}</section>
     <section className="v-panel v-response-answers"><h2>Answers</h2>{!answers ? <p role="alert">Answers unavailable. Reload before reviewing.</p> : answers.length === 0 ? <p>No answers recorded.</p> : <dl>{answers.map(({ field_id, label, type, value }) => <div key={field_id}><dt>{label}</dt><dd>{answerLabel(type, value)}{value?.document && <span className="v-answer-document">{value.document.document_type && <span>Type: {value.document.document_type}</span>}{value.document.reference && <span>Reference: {value.document.reference}</span>}{value.document.issued_by && <span>Issued by: {value.document.issued_by}</span>}{value.document.issued_on && <span>Issued: {dateLabel(value.document.issued_on)}</span>}{value.document.expires_on && <span>Expires: {dateLabel(value.document.expires_on)}</span>}</span>}</dd></div>)}</dl>}</section>
     <ResponseAssessment id={id} scope={reviewScope} current={Boolean(isCurrent && answers && documents && !documentsNext)} formID={response.form_template_id} formVersion={response.form_template_version} revision={response.revision}/>
     <section className="v-panel v-response-documents"><h2>Documents</h2>{!documents ? <p role="alert">Documents unavailable. Reload before reviewing.</p> : documents.length === 0 && !documentsNext ? <p>No documents submitted.</p> : <ul>{documents.map((document) => <li key={document.id}><span>{document.file_name}</span>{document.artifact_status === "AVAILABLE" || (document.artifact_status === "STORED_UNSCANNED" && document.demo_unscanned_allowed) ? <a href={documentContentURL(document, true)}>Download</a> : <small>File unavailable</small>}</li>)}</ul>}{documentsNext && <><p>More documents must be loaded before review.</p>{documentsError && <p role="alert">Additional documents unavailable.</p>}<button disabled={documentsBusy} onClick={() => void moreDocuments()}>{documentsBusy ? "Loading…" : "Load more documents"}</button></>}</section>
@@ -263,16 +264,7 @@ function validHistoryIdentifier(value: unknown): value is string {
  try { encodeURIComponent(value); return true; } catch { return false; }
 }
 function accessDenied(error: unknown) { return ["unauthorized", "forbidden"].includes(apiErrorKind(error)); }
-function timestampLabel(value: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.exec(value);
-  if (!match) return "time unavailable";
-  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
-  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  if (month < 1 || month > 12 || day < 1 || day > days[month - 1]! || Number(match[4]) > 23 || Number(match[5]) > 59 || Number(match[6]) > 59) return "time unavailable";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "time unavailable" : `${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23", timeZone: "UTC" }).format(date)} UTC`;
-}
+
 function dateLabel(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "date unavailable" : new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(date); }
 function answerLabel(type?: string, answer?: CaptureAnswerValue) {
   if (!answer) return "No answer";
@@ -298,3 +290,4 @@ function answerLabel(type?: string, answer?: CaptureAnswerValue) {
   if (fieldType === "photo") return "Photo submitted";
   return `${count} ${count === 1 ? "document" : "documents"} submitted`;
 }
+

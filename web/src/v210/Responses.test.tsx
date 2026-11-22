@@ -559,7 +559,7 @@ it("removes malformed filter parameters when clearing them",async()=>{
 it("shows the verified recorded form result on the exact response",async()=>{
  const score={state:"FINAL",final:true,mode:"COMPLIANCE",direction:"LOW_IS_POOR",raw_score:42,band:"HIGH",coverage:0.9,profile_version:"policy-1"};
  responses.loadCompletedResponse.mockResolvedValue({response:{...summary,score},revision:{id:"revision-1",revision:2,current:true,score},answers:[],documents:[]}); render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
- expect(await screen.findByText("Form compliance score: 42 / 100 · Final")).toBeTruthy(); expect(screen.getByText("High concern")).toBeTruthy();
+ expect(await screen.findByText("Form compliance score: 42 / 100 · Final")).toBeTruthy(); expect(screen.getByRole("heading",{name:"Submitted result"})).toBeTruthy(); expect(screen.getByText("High concern")).toBeTruthy();
 });
 it("does not present conflicting response and revision scores",async()=>{
  const score={state:"FINAL",final:true,mode:"COMPLIANCE",raw_score:42,band:"HIGH"}; responses.loadCompletedResponse.mockResolvedValue({response:{...summary,score},revision:{id:"revision-1",revision:2,current:true,score:{...score,raw_score:90}},answers:[],documents:[]}); render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); expect(await screen.findByText("Score unavailable")).toBeTruthy(); expect(screen.queryByText(/42 \/ 100/)).toBeNull(); expect(screen.queryByText(/90 \/ 100/)).toBeNull();
