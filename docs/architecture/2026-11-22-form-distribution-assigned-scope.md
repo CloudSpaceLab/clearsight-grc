@@ -1,0 +1,7 @@
+# Assigned form request read prerequisite
+
+Status: private PostgreSQL query only; no HTTP route or public service calls it. The distribution read containment remains active.
+
+The query returns only non-draft Program or Matter distributions for the verified active person named as an internal To recipient. The linked request must match the distribution, tenant, legal entity, subject, form and form version, and must name the same person. Revoked assignments, cancelled or expired requests, revoked or superseded distributions, any non-null request origin, archived distributions, missing or restricted subjects, inactive or expired identities and entities, and ambiguous tenant aliases are excluded. Subject scope uses the existing Program/Matter recipient predicate. Filtering precedes keyset pagination in PostgreSQL.
+
+This is not the complete distribution visibility policy. Creators, Program owners, current authority routes, reviewers, vendor relationships, third-party origins, exact distribution detail, recipient lists and response revision history remain unimplemented. An assignment alone must not reveal another recipient's contact details or a response they cannot read. Memory adapters do not implement this query. Do not connect this query to the public list or remove the gate until the complete policy, indexed detail and revision predicates, delegation, session, pagination, performance and authorization evidence are reviewed.
