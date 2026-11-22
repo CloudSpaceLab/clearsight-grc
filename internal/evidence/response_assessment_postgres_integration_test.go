@@ -11,6 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -71,7 +72,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 		t.Fatal(err)
 	}
 	config := pool.Config()
-	config.MaxConns = 1
+	config.MaxConns = 4
 	assessmentPool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		t.Fatal(err)
@@ -99,7 +100,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	})
 	service.assessmentDecisionsEnabled = true // Exercise the unexposed transaction in isolation.
 	ctx = identity.WithActor(ctx, identity.Actor{Kind: "PERSON", TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: now.Add(time.Hour)})
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	baseline, err := service.GetResponseAssessment(ctx, tenant, entity, reviewer, response)
 	if err != nil || !baseline.MayReview {
@@ -219,7 +220,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	// A recipient change must not race a review after its conflict check.
 	entered, release, done := make(chan struct{}), make(chan struct{}), make(chan error, 1)
 	go func() {
-		_, writeErr := service.store.(responseAssessmentStore).WriteResponseAssessment(ctx, tenant, entity, reviewer, response, func(context.Context, assessmentMaterial) bool { return true }, func(context.Context, assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error) {
+		_, writeErr := service.store.(responseAssessmentStore).WriteResponseAssessment(ctx, tenant, entity, reviewer, response, RecordResponseAssessmentInput{}, func(context.Context, assessmentMaterial) bool { return true }, func(context.Context, assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error) {
 			close(entered)
 			<-release
 			return assessmentSnapshot{}, nil, ErrAssessmentForbidden
@@ -243,10 +244,42 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	if !errors.Is(changeErr, context.DeadlineExceeded) {
 		t.Fatalf("request change did not wait on the assessment lock: %v", changeErr)
 	}
-	input := RecordResponseAssessmentInput{Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report does not identify tested systems."}}}
-	v, err := service.RecordResponseAssessment(ctx, tenant, entity, response, input)
+	key := mustResponseWorkspaceID(t)
+	input := RecordResponseAssessmentInput{RequestKey: key, Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report does not identify tested systems."}}}
+	originalInput := input
+	originalInput.Decisions = append([]FieldAssessmentInput(nil), input.Decisions...)
+	type assessmentAttempt struct {
+		value ResponseAssessment
+		err   error
+	}
+	startAttempts := make(chan struct{})
+	attempts := make(chan assessmentAttempt, 2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			<-startAttempts
+			value, e := service.RecordResponseAssessment(ctx, tenant, entity, response, input)
+			attempts <- assessmentAttempt{value, e}
+		}()
+	}
+	close(startAttempts)
+	first, second := <-attempts, <-attempts
+	if first.err != nil || second.err != nil || first.value.Version != 1 || second.value.Version != 1 || first.value.Fields[0].Decision.ID != second.value.Fields[0].Decision.ID {
+		t.Fatalf("concurrent keyed attempts: %+v / %+v", first, second)
+	}
+	v := first.value
+	down, err := os.ReadFile("../../migrations/000155_response_assessment_request_key.down.sql")
 	if err != nil {
 		t.Fatal(err)
+	}
+	rollbackConn, err := pool.Acquire(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, rollbackErr := rollbackConn.Exec(ctx, string(down))
+	_, _ = rollbackConn.Exec(ctx, "ROLLBACK")
+	rollbackConn.Release()
+	if rollbackErr == nil || !strings.Contains(rollbackErr.Error(), "assessment request receipts exist") {
+		t.Fatalf("populated receipt rollback: %v", rollbackErr)
 	}
 	if v.Version != 1 || v.State != "ASSESSED" {
 		t.Fatalf("assessment %+v", v)
@@ -257,13 +290,99 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	if err != nil || sourceID != policy || sourceType != "POLICY" || sourceRule != "bank-review" || sourceVersion == "" || !decisionTime.Equal(assessmentTime) || !decisionTime.Equal(eventTime) || !decisionTime.Equal(outboxTime) {
 		t.Fatalf("assessment receipt: source=%s/%s/%s/%s times=%v/%v/%v/%v err=%v", sourceType, sourceID, sourceRule, sourceVersion, decisionTime, assessmentTime, eventTime, outboxTime, err)
 	}
+	material, err := readResponseAssessmentMaterial(ctx, pool, tenant, entity, reviewer, response, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayTx, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayActor, _ := identity.FromContext(ctx)
+	replayRequest := assessmentReplayRequest{Key: key, ExpectedVersion: 0, Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report does not identify tested systems."}}}
+	replayed, err := lookupAssessmentReplay(ctx, replayTx, replayActor, material, replayRequest)
+	if err != nil || replayed.Version != 1 || replayed.Decisions["score"].ID != v.Fields[0].Decision.ID {
+		t.Fatalf("authorized historical receipt: %+v %v", replayed, err)
+	}
+	changed := replayRequest
+	changed.Decisions = []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Changed rationale."}}
+	if _, err = lookupAssessmentReplay(ctx, replayTx, replayActor, material, changed); !errors.Is(err, ErrAssessmentConflict) {
+		t.Fatalf("changed payload: %v", err)
+	}
+	changedVersion := replayRequest
+	changedVersion.ExpectedVersion++
+	if _, err = lookupAssessmentReplay(ctx, replayTx, replayActor, material, changedVersion); !errors.Is(err, ErrAssessmentConflict) {
+		t.Fatalf("changed expected version: %v", err)
+	}
+	wrongResponse := material
+	wrongResponse.Summary.ID = mustResponseWorkspaceID(t)
+	wrongResponse.Revision.ID = wrongResponse.Summary.ID
+	if _, err = lookupAssessmentReplay(ctx, replayTx, replayActor, wrongResponse, replayRequest); !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("cross-response receipt access: %v", err)
+	}
+	expiredActor := replayActor
+	expiredActor.ExpiresAt = time.Now().Add(-time.Second)
+	if _, err = lookupAssessmentReplay(ctx, replayTx, expiredActor, material, replayRequest); !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("expired receipt access: %v", err)
+	}
+	otherActor := replayActor
+	otherActor.PrincipalID = actor
+	if _, err = lookupAssessmentReplay(ctx, replayTx, otherActor, material, replayRequest); !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("cross-actor receipt access: %v", err)
+	}
+	_ = replayTx.Rollback(ctx)
+	repeatable, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = lookupAssessmentReplay(ctx, repeatable, replayActor, material, replayRequest); !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("repeatable read receipt access: %v", err)
+	}
+	_ = repeatable.Rollback(ctx)
+	if _, err = pool.Exec(ctx, `UPDATE capture_requests SET fields=jsonb_set(fields,'{0,assessment,reviewer_role}', '"OTHER"'::jsonb) WHERE tenant_id=$1::uuid`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	changedRoleTx, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = lookupAssessmentReplay(ctx, changedRoleTx, replayActor, material, replayRequest); !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("changed field role exposed receipt: %v", err)
+	}
+	_ = changedRoleTx.Rollback(ctx)
+	if _, err = pool.Exec(ctx, `UPDATE capture_requests SET fields=jsonb_set(fields,'{0,assessment,reviewer_role}', '"RISK"'::jsonb) WHERE tenant_id=$1::uuid`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = pool.Exec(ctx, `UPDATE routing_policies SET status='RETIRED' WHERE id=$1::uuid`, policy); err != nil {
+		t.Fatal(err)
+	}
+	revokedTx, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = lookupAssessmentReplay(ctx, revokedTx, replayActor, material, replayRequest); !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("revoked receipt access: %v", err)
+	}
+	_ = revokedTx.Rollback(ctx)
+	if _, err = service.RecordResponseAssessment(ctx, tenant, entity, response, originalInput); !errors.Is(err, ErrAssessmentForbidden) {
+		t.Fatalf("revoked command replay: %v", err)
+	}
+	if _, err = pool.Exec(ctx, `UPDATE routing_policies SET status='ACTIVE' WHERE id=$1::uuid`, policy); err != nil {
+		t.Fatal(err)
+	}
 	var snapshotSource string
 	if err = pool.QueryRow(ctx, `SELECT decisions->'score'->>'authority_source_id' FROM capture_response_assessments WHERE tenant_id=$1::uuid AND version=1`, tenant).Scan(&snapshotSource); err != nil || snapshotSource != policy || v.Fields[0].Decision == nil || v.Fields[0].Decision.AuthoritySourceID != policy || !v.Fields[0].Decision.AssessedAt.Equal(decisionTime) || v.AssessedScore == nil || !v.AssessedScore.CalculatedAt.Equal(decisionTime) {
 		t.Fatalf("snapshot or response receipt differs: source=%q response=%+v err=%v", snapshotSource, v, err)
 	}
-	if _, err = service.RecordResponseAssessment(ctx, tenant, entity, response, input); !errors.Is(err, ErrAssessmentConflict) {
-		t.Fatalf("replay=%v", err)
+	if replay, replayErr := service.RecordResponseAssessment(ctx, tenant, entity, response, input); replayErr != nil || replay.Version != v.Version || replay.Fields[0].Decision.ID != v.Fields[0].Decision.ID {
+		t.Fatalf("replay=%+v err=%v", replay, replayErr)
 	}
+	changedInput := originalInput
+	changedInput.Decisions = []FieldAssessmentInput{{FieldID: "score", OutcomeID: "good", Rationale: "Changed rationale."}}
+	if _, err = service.RecordResponseAssessment(ctx, tenant, entity, response, changedInput); !errors.Is(err, ErrAssessmentConflict) {
+		t.Fatalf("changed command replay: %v", err)
+	}
+	input.RequestKey = ""
 	var decisions, outbox int
 	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_field_assessments WHERE tenant_id=$1::uuid),(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_ASSESSED')`, tenant).Scan(&decisions, &outbox); err != nil || decisions != 1 || outbox != 1 {
 		t.Fatalf("counts %d %d %v", decisions, outbox, err)
@@ -277,6 +396,19 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	if v2.Fields[0].Decision.SupersedesID != v.Fields[0].Decision.ID {
 		t.Fatal("correction lost immutable predecessor")
 	}
+	oldResult, err := service.RecordResponseAssessment(ctx, tenant, entity, response, originalInput)
+	if err != nil || oldResult.Version != 1 || oldResult.Fields[0].Decision.ID != v.Fields[0].Decision.ID {
+		t.Fatalf("historical command receipt: %+v %v", oldResult, err)
+	}
+	historyTx, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if err != nil {
+		t.Fatal(err)
+	}
+	older, err := lookupAssessmentReplay(ctx, historyTx, replayActor, material, replayRequest)
+	if err != nil || older.Version != 1 || older.Decisions["score"].ID != v.Fields[0].Decision.ID {
+		t.Fatalf("later version changed receipt: %+v %v", older, err)
+	}
+	_ = historyTx.Rollback(ctx)
 	trigger := "bank_assessment_outbox_fail_" + strings.ReplaceAll(tenant, "-", "")
 	_, err = pool.Exec(ctx, fmt.Sprintf(`CREATE FUNCTION %s() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.aggregate_id='%s'::uuid AND NEW.event_type='FORM_RESPONSE_ASSESSED' THEN RAISE EXCEPTION 'injected outbox failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER %s BEFORE INSERT ON outbox_events FOR EACH ROW EXECUTE FUNCTION %s()`, trigger, response, trigger, trigger), pgx.QueryExecModeSimpleProtocol)
 	if err != nil {
@@ -286,12 +418,20 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 		_, _ = pool.Exec(context.Background(), fmt.Sprintf(`DROP TRIGGER IF EXISTS %s ON outbox_events; DROP FUNCTION IF EXISTS %s()`, trigger, trigger), pgx.QueryExecModeSimpleProtocol)
 	})
 	input.ExpectedVersion = 2
+	input.RequestKey = mustResponseWorkspaceID(t)
 	if _, err = service.RecordResponseAssessment(ctx, tenant, entity, response, input); err == nil {
 		t.Fatal("outbox failure committed an assessment")
 	}
 	var versions int
 	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_assessments WHERE tenant_id=$1::uuid),(SELECT count(*) FROM capture_field_assessments WHERE tenant_id=$1::uuid)`, tenant).Scan(&versions, &decisions); err != nil || versions != 2 || decisions != 2 {
 		t.Fatalf("failed transaction left rows: versions=%d decisions=%d err=%v", versions, decisions, err)
+	}
+	_, err = pool.Exec(ctx, fmt.Sprintf(`DROP TRIGGER %s ON outbox_events; DROP FUNCTION %s()`, trigger, trigger), pgx.QueryExecModeSimpleProtocol)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if retried, retryErr := service.RecordResponseAssessment(ctx, tenant, entity, response, input); retryErr != nil || retried.Version != 3 {
+		t.Fatalf("retry after rolled-back write: %+v %v", retried, retryErr)
 	}
 	_, err = pool.Exec(ctx, `UPDATE capture_field_assessments SET decision='{}' WHERE tenant_id=$1::uuid`, tenant)
 	if err == nil {
@@ -300,7 +440,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	service.WithAssessmentAuthorizer(func(context.Context, identity.Actor, CompletedResponseSummary, formcontract.Field) (string, error) {
 		return "", errors.New("revoked")
 	})
-	input.ExpectedVersion = 2
+	input.ExpectedVersion = 3
 	if _, err = service.RecordResponseAssessment(ctx, tenant, entity, response, input); !errors.Is(err, ErrAssessmentForbidden) {
 		t.Fatal(err)
 	}

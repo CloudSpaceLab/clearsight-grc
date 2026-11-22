@@ -28,6 +28,7 @@ type FieldAssessmentInput struct {
 type RecordResponseAssessmentInput struct {
 	ExpectedVersion int64                  `json:"expected_version"`
 	Decisions       []FieldAssessmentInput `json:"decisions"`
+	RequestKey      string                 `json:"-"`
 }
 type FieldAssessmentDecision struct {
 	ID                     string    `json:"id"`
@@ -113,7 +114,7 @@ type assessmentReadAuthorizer func(context.Context, assessmentMaterial) bool
 
 type responseAssessmentStore interface {
 	ReadResponseAssessment(context.Context, string, string, string, string, assessmentReadAuthorizer) (assessmentMaterial, error)
-	WriteResponseAssessment(context.Context, string, string, string, string, assessmentReadAuthorizer, func(context.Context, assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error)) (assessmentMaterial, error)
+	WriteResponseAssessment(context.Context, string, string, string, string, RecordResponseAssessmentInput, assessmentReadAuthorizer, func(context.Context, assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error)) (assessmentMaterial, error)
 	ReadAssessmentSummary(context.Context, string, string) (*ResponseAssessmentSummary, error)
 }
 
@@ -147,6 +148,14 @@ func (s *DistributionService) RecordResponseAssessment(ctx context.Context, tena
 	if !s.assessmentDecisionsEnabled {
 		return ResponseAssessment{}, ErrAssessmentUnavailable
 	}
+	input.RequestKey = strings.ToLower(strings.TrimSpace(input.RequestKey))
+	if input.RequestKey != "" && !responseReviewRequestKeyPattern.MatchString(input.RequestKey) {
+		return ResponseAssessment{}, ErrAssessmentInvalid
+	}
+	input.Decisions = append([]FieldAssessmentInput(nil), input.Decisions...)
+	for i := range input.Decisions {
+		input.Decisions[i].Rationale = strings.TrimSpace(input.Decisions[i].Rationale)
+	}
 	if input.ExpectedVersion < 0 || len(input.Decisions) < 1 || len(input.Decisions) > formcontract.MaxFields {
 		return ResponseAssessment{}, ErrAssessmentInvalid
 	}
@@ -155,7 +164,7 @@ func (s *DistributionService) RecordResponseAssessment(ctx context.Context, tena
 		return ResponseAssessment{}, ErrAssessmentInvalid
 	}
 	var committed ResponseAssessment
-	written, err := store.WriteResponseAssessment(ctx, tenant, entity, actor.PrincipalID, response, s.assessmentReadAuthority(ctx, tenant, entity, actor.PrincipalID), func(ctx context.Context, m assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error) {
+	written, err := store.WriteResponseAssessment(ctx, tenant, entity, actor.PrincipalID, response, input, s.assessmentReadAuthority(ctx, tenant, entity, actor.PrincipalID), func(ctx context.Context, m assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error) {
 		if assessmentRespondentConflict(m, actor.PrincipalID) {
 			return assessmentSnapshot{}, nil, ErrAssessmentForbidden
 		}

@@ -81,7 +81,10 @@ func (s *MemoryDistributionStore) ReadResponseAssessment(ctx context.Context, te
 	defer s.mu.RUnlock()
 	return s.assessmentMaterialLocked(ctx, tenant, entity, principal, response, authorize)
 }
-func (s *MemoryDistributionStore) WriteResponseAssessment(ctx context.Context, tenant, entity, principal, response string, authorize assessmentReadAuthorizer, apply func(context.Context, assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error)) (assessmentMaterial, error) {
+func (s *MemoryDistributionStore) WriteResponseAssessment(ctx context.Context, tenant, entity, principal, response string, input RecordResponseAssessmentInput, authorize assessmentReadAuthorizer, apply func(context.Context, assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error)) (assessmentMaterial, error) {
+	if input.RequestKey != "" {
+		return assessmentMaterial{}, ErrAssessmentUnavailable
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	m, err := s.assessmentMaterialLocked(ctx, tenant, entity, principal, response, authorize)

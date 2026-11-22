@@ -102,7 +102,7 @@ func readResponseAssessmentMaterial(ctx context.Context, q assessmentQueryer, te
 	m.Snapshot, err = readPostgresAssessmentSnapshot(ctx, q, summary.TenantID, response)
 	return m, err
 }
-func (s *PostgresDistributionStore) WriteResponseAssessment(ctx context.Context, tenant, entity, principal, response string, authorize assessmentReadAuthorizer, apply func(context.Context, assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error)) (assessmentMaterial, error) {
+func (s *PostgresDistributionStore) WriteResponseAssessment(ctx context.Context, tenant, entity, principal, response string, input RecordResponseAssessmentInput, authorize assessmentReadAuthorizer, apply func(context.Context, assessmentMaterial) (assessmentSnapshot, []FieldAssessmentDecision, error)) (assessmentMaterial, error) {
 	actor, ok := identity.FromContext(ctx)
 	if !ok || !strings.EqualFold(strings.TrimSpace(actor.Kind), "PERSON") || actor.TenantID != tenant || actor.PrincipalID != principal || (actor.LegalEntityID != entity && actor.LegalEntityID != "*") || actor.ExpiresAt.IsZero() {
 		return assessmentMaterial{}, ErrAssessmentForbidden
@@ -113,6 +113,15 @@ func (s *PostgresDistributionStore) WriteResponseAssessment(ctx context.Context,
 	}
 	defer tx.Rollback(ctx)
 	ctx = authority.WithPostgresTransaction(ctx, tx)
+	canonical, err := responseReviewTenant(ctx, tx, tenant)
+	if err != nil {
+		return assessmentMaterial{}, err
+	}
+	if input.RequestKey != "" {
+		if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, canonical+":"+entity+":"+principal+":"+input.RequestKey); err != nil {
+			return assessmentMaterial{}, err
+		}
+	}
 	var current bool
 	err = tx.QueryRow(ctx, `SELECT r.is_current AND d.status NOT IN ('REVOKED','SUPERSEDED') FROM capture_response_revisions r JOIN tenants t ON t.id=r.tenant_id JOIN capture_form_distributions d ON d.id=r.distribution_id AND d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id `+completedResponseRequestJoinsSQL()+` WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id=$2::uuid AND r.id=$3::uuid AND ((`+completedResponseVisibilitySQL(4, 5)+`) OR (`+vendorAssessmentCandidateSQL()+`)) FOR UPDATE OF r,d`, tenant, entity, response, principal, time.Now().UTC()).Scan(&current)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -124,11 +133,59 @@ func (s *PostgresDistributionStore) WriteResponseAssessment(ctx context.Context,
 	if !current {
 		return assessmentMaterial{}, ErrAssessmentConflict
 	}
-	m, err := readResponseAssessmentMaterial(ctx, tx, tenant, entity, principal, response, authorize, true)
+	m, err := readResponseAssessmentMaterial(ctx, tx, tenant, entity, principal, response, responseReviewScopedAuthorizer(authorize, canonical, tenant), true)
 	if err != nil {
 		return assessmentMaterial{}, err
 	}
-	next, decisions, err := apply(ctx, m)
+	if input.RequestKey != "" {
+		var exists bool
+		if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM capture_response_assessments WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND request_reviewer_id=$3::uuid AND request_key=$4::uuid)`, canonical, entity, principal, input.RequestKey).Scan(&exists); err != nil {
+			return assessmentMaterial{}, err
+		}
+		if exists {
+			// Rebuild the caller's result from the version preceding the receipt;
+			// the final lookup independently checks current authority in one statement.
+			prior := assessmentSnapshot{}
+			if input.ExpectedVersion > 0 {
+				var score, decisions []byte
+				err = tx.QueryRow(ctx, `SELECT version,state,required_count,reviewed_required_count,reviewed_count,score_result,decisions FROM capture_response_assessments WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND response_revision_id=$3::uuid AND version=$4`, canonical, entity, response, input.ExpectedVersion).Scan(&prior.Version, &prior.Result.State, &prior.Result.RequiredCount, &prior.Result.ReviewedRequiredCount, &prior.Result.ReviewedCount, &score, &decisions)
+				if errors.Is(err, pgx.ErrNoRows) {
+					return assessmentMaterial{}, ErrAssessmentForbidden
+				}
+				if err != nil {
+					return assessmentMaterial{}, err
+				}
+				prior.Result.Version = prior.Version
+				if err = json.Unmarshal(score, &prior.Result.Score); err != nil {
+					return assessmentMaterial{}, err
+				}
+				if err = json.Unmarshal(decisions, &prior.Decisions); err != nil {
+					return assessmentMaterial{}, err
+				}
+			}
+			candidate := m
+			candidate.Snapshot = prior
+			scoped, ok := responseReviewAuthorityMaterial(candidate, canonical, tenant)
+			if !ok {
+				return assessmentMaterial{}, ErrAssessmentForbidden
+			}
+			if _, _, err = apply(ctx, scoped); err != nil {
+				return assessmentMaterial{}, err
+			}
+			var receipt assessmentSnapshot
+			receipt, err = lookupAssessmentReplay(ctx, tx, actor, m, assessmentReplayRequest{Key: input.RequestKey, ExpectedVersion: input.ExpectedVersion, Decisions: input.Decisions})
+			if err != nil {
+				return assessmentMaterial{}, err
+			}
+			m.Snapshot = receipt
+			return m, nil
+		}
+	}
+	scoped, ok := responseReviewAuthorityMaterial(m, canonical, tenant)
+	if !ok {
+		return assessmentMaterial{}, ErrAssessmentForbidden
+	}
+	next, decisions, err := apply(ctx, scoped)
 	if err != nil {
 		return assessmentMaterial{}, err
 	}
@@ -173,15 +230,25 @@ func (s *PostgresDistributionStore) WriteResponseAssessment(ctx context.Context,
 		}
 		roles = append(roles, role)
 	}
-	statement := authority.PostgresCurrentRouteCTEs() + `, inserted AS (INSERT INTO capture_response_assessments(tenant_id,legal_entity_id,response_revision_id,version,state,required_count,reviewed_required_count,reviewed_count,score_result,decisions,created_at)
+	var key, requestReviewer, requestPayload any
+	if input.RequestKey != "" {
+		encoded, e := assessmentReplayPayload(input.ExpectedVersion, input.Decisions)
+		if e != nil {
+			return assessmentMaterial{}, e
+		}
+		key = input.RequestKey
+		requestReviewer = principal
+		requestPayload = string(encoded)
+	}
+	statement := authority.PostgresCurrentRouteCTEs() + `, inserted AS (INSERT INTO capture_response_assessments(tenant_id,legal_entity_id,response_revision_id,version,state,required_count,reviewed_required_count,reviewed_count,score_result,decisions,created_at,request_key,request_reviewer_id,request_payload)
  SELECT DISTINCT r.tenant_id,r.legal_entity_id,r.id,$2::bigint,$3::text,$4::integer,$5::integer,$7::integer,jsonb_set($17::jsonb,'{calculated_at}',to_jsonb(statement_timestamp())),
- (SELECT jsonb_object_agg(k, CASE WHEN k=ANY($19::text[]) THEN v||jsonb_build_object('authority_source_type',CASE WHEN left(s.source_id,11)='assignment:' THEN 'ASSIGNMENT' ELSE 'POLICY' END,'authority_source_id',CASE WHEN left(s.source_id,11)='assignment:' THEN substring(s.source_id FROM 12) ELSE s.source_id END,'authority_rule_id',s.rule_id,'authority_policy_version',s.policy_version,'assessed_at',statement_timestamp()) ELSE v END) FROM jsonb_each($18::jsonb) AS x(k,v)),statement_timestamp() ` + responseReviewEligibilitySQL("") + `
+ (SELECT jsonb_object_agg(k, CASE WHEN k=ANY($19::text[]) THEN v||jsonb_build_object('authority_source_type',CASE WHEN left(s.source_id,11)='assignment:' THEN 'ASSIGNMENT' ELSE 'POLICY' END,'authority_source_id',CASE WHEN left(s.source_id,11)='assignment:' THEN substring(s.source_id FROM 12) ELSE s.source_id END,'authority_rule_id',s.rule_id,'authority_policy_version',s.policy_version,'assessed_at',statement_timestamp()) ELSE v END) FROM jsonb_each($18::jsonb) AS x(k,v)),statement_timestamp(),$21::uuid,$22::uuid,$23::jsonb ` + responseReviewEligibilitySQL("") + `
  AND r.is_current AND r.state IN ('FINAL','PROVISIONAL') AND d.status NOT IN ('REVOKED','SUPERSEDED') AND r.revision=$15
  AND s.policy_version||':'||s.rule_id=$16 AND NOT EXISTS (SELECT 1 FROM unnest($20::text[]) required(role) WHERE NOT EXISTS (SELECT 1 FROM effective role_origin WHERE role_origin.request_index=0 AND role_origin.principal_id=actor.id AND (upper(role_origin.seed_role_code)=upper(required.role) OR (role_origin.principal_id=role_origin.origin_id AND role_origin.seed_role_code='' AND upper(role_origin.seed_role)=upper(required.role))))) AND COALESCE((SELECT max(version) FROM capture_response_assessments prior WHERE prior.tenant_id=r.tenant_id AND prior.legal_entity_id=r.legal_entity_id AND prior.response_revision_id=r.id),0)=$2::bigint-1 RETURNING created_at)
  SELECT inserted.created_at, CASE WHEN left(s.source_id,11)='assignment:' THEN 'ASSIGNMENT' ELSE 'POLICY' END, CASE WHEN left(s.source_id,11)='assignment:' THEN substring(s.source_id FROM 12) ELSE s.source_id END,s.rule_id,s.policy_version FROM inserted CROSS JOIN selected s WHERE s.request_index=0 AND NOT s.ambiguous`
 	var now time.Time
 	var sourceType, sourceID, ruleID, policyVersion string
-	err = tx.QueryRow(ctx, statement, string(request), next.Version, next.Result.State, next.Result.RequiredCount, next.Result.ReviewedRequiredCount, principal, next.Result.ReviewedCount, response, m.Summary.TenantID, m.Summary.LegalEntityID, actor.TenantID, actor.LegalEntityID, actor.ExpiresAt, issuedAt, m.Revision.Revision, decisions[0].AuthorityRoute, string(score), string(decisionJSON), fieldIDs, roles).Scan(&now, &sourceType, &sourceID, &ruleID, &policyVersion)
+	err = tx.QueryRow(ctx, statement, string(request), next.Version, next.Result.State, next.Result.RequiredCount, next.Result.ReviewedRequiredCount, principal, next.Result.ReviewedCount, response, m.Summary.TenantID, m.Summary.LegalEntityID, actor.TenantID, actor.LegalEntityID, actor.ExpiresAt, issuedAt, m.Revision.Revision, decisions[0].AuthorityRoute, string(score), string(decisionJSON), fieldIDs, roles, key, requestReviewer, requestPayload).Scan(&now, &sourceType, &sourceID, &ruleID, &policyVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return assessmentMaterial{}, ErrAssessmentForbidden
 	}

@@ -61,7 +61,7 @@ func (a *API) recordResponseAssessment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	result, err := service.RecordResponseAssessment(r.Context(), actor.TenantID, entity, r.PathValue("revision_id"), evidence.RecordResponseAssessmentInput{ExpectedVersion: *body.ExpectedVersion, Decisions: body.Decisions})
+	result, err := service.RecordResponseAssessment(r.Context(), actor.TenantID, entity, r.PathValue("revision_id"), evidence.RecordResponseAssessmentInput{ExpectedVersion: *body.ExpectedVersion, Decisions: body.Decisions, RequestKey: r.Header.Get("Idempotency-Key")})
 	if err != nil {
 		writeResponseAssessmentError(w, err)
 		return
