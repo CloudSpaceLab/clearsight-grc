@@ -198,3 +198,7 @@ export function retireMatterLink(matterID: string, linkID: string, expectedVersi
     rationale,
   });
 }
+
+export function recordMatterOutcomeResult(matterID: string, expectedVersion: number, input: { contractID:string; result:string; rationale:string }): Promise<MatterAggregate> {
+  return continuityCommand<MatterAggregate>(`/api/v1/matters/${encodeURIComponent(matterID)}/verification-results`, { expected_version: expectedVersion, contract_id: input.contractID, result: input.result, rationale: input.rationale, observations: {}, evidence_references: [] });
+}

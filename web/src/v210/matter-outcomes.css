@@ -4,3 +4,5 @@
 .v-matter-outcomes [role="alert"] { color: var(--v-color-danger-text); }
 .v-matter-outcomes textarea { width: 100%; min-height: 80px; padding: 10px 12px; border: 1px solid var(--v-field-border); border-radius: var(--v-field-radius); background: var(--v-field-background); color: var(--v-field-text); }
 .v-matter-outcomes li small { display: block; margin-top: 4px; }
+.v-matter-outcomes article > button { min-height: var(--v-button-height); padding: 0 16px; border: 1px solid var(--v-button-secondary-border); border-radius: var(--v-button-radius); background: var(--v-button-secondary-background); color: var(--v-button-secondary-text); }
+.v-matter-outcomes .v-intake-actions button:disabled { opacity: .55; cursor: not-allowed; }
