@@ -111,15 +111,17 @@ func (s *PostgresDistributionStore) AmendDistribution(ctx context.Context, tenan
 	if err := appendPostgresDistributionLifecycleEvent(ctx, tx, next, "FORM_DISTRIBUTION_AMENDED", input.ActorID, now); err != nil {
 		return AmendDistributionResult{}, err
 	}
+	// Build the receipt inside the transaction. If the authoritative bundle
+	// cannot be read, the amendment, event and outbox all roll back.
+	bundle, err := postgresBundleInTx(ctx, tx, next)
+	if err != nil {
+		return AmendDistributionResult{}, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return AmendDistributionResult{}, err
 	}
 	impact.EffectiveDeadline = next.Deadline
 	impact.EffectiveRouteExpiry = next.RouteExpiresAt
-	bundle, err := s.GetDistribution(ctx, next.TenantID, next.LegalEntityID, next.ID)
-	if err != nil {
-		return AmendDistributionResult{}, err
-	}
 	return AmendDistributionResult{Bundle: bundle, Impact: impact}, nil
 }
 

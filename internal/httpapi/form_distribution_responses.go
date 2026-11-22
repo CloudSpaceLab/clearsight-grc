@@ -9,6 +9,9 @@ import (
 )
 
 func (a *API) listFormDistributionResponses(w http.ResponseWriter, r *http.Request) {
+	if distributionReadUnavailable(w, r) {
+		return
+	}
 	service, ok := a.formDistributionService(w)
 	if !ok {
 		return

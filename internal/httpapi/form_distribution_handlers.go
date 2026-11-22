@@ -129,6 +129,9 @@ func (a *API) createFormDistribution(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusCreated, distributionBundleJSON(bundle))
 }
 func (a *API) getFormDistribution(w http.ResponseWriter, r *http.Request) {
+	if distributionReadUnavailable(w, r) {
+		return
+	}
 	service, ok := a.formDistributionService(w)
 	if !ok {
 		return
