@@ -79,6 +79,28 @@ func TestPostgresAssignedDistributionReadFiltersBeforePagination(t *testing.T) {
 	if _, e = pool.Exec(ctx, `UPDATE principals SET status='ACTIVE' WHERE id=$1::uuid`, recipient); e != nil {
 		t.Fatal(e)
 	}
+	matter := mustResponseWorkspaceID(t)
+	if _, e = pool.Exec(ctx, `INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,priority,title,summary,scope) VALUES($1::uuid,$2::uuid,$3::uuid,'ASSIGNED','CONTROL_GAP',3,'Assigned matter','Review','{"access":"INTERNAL"}'::jsonb)`, matter, tenant, entity); e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM matters WHERE id=$1::uuid`, matter) })
+	if _, e = pool.Exec(ctx, `UPDATE capture_form_distributions SET subject_type='MATTER',subject_id=$2::uuid WHERE id=$1::uuid; UPDATE capture_requests SET subject_type='MATTER',subject_id=$2 WHERE distribution_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, visible.Distribution.ID, matter); e != nil {
+		t.Fatal(e)
+	}
+	matterRows, e := store.listAssignedDistributions(actorCtx, DistributionListQuery{TenantID: tenant, LegalEntityID: entity, Limit: 1})
+	if e != nil || len(matterRows) != 1 || matterRows[0].ID != visible.Distribution.ID {
+		t.Fatalf("visible Matter: %+v %v", matterRows, e)
+	}
+	if _, e = pool.Exec(ctx, `UPDATE matters SET scope='{"access":"RESTRICTED","allowed_principal_ids":[]}'::jsonb WHERE id=$1::uuid`, matter); e != nil {
+		t.Fatal(e)
+	}
+	matterRows, e = store.listAssignedDistributions(actorCtx, DistributionListQuery{TenantID: tenant, LegalEntityID: entity, Limit: 1})
+	if e != nil || len(matterRows) != 0 {
+		t.Fatalf("restricted Matter: %+v %v", matterRows, e)
+	}
+	if _, e = pool.Exec(ctx, `UPDATE capture_form_distributions SET subject_type='PROGRAM',subject_id=$2::uuid WHERE id=$1::uuid; UPDATE capture_requests SET subject_type='PROGRAM',subject_id=$2 WHERE distribution_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, visible.Distribution.ID, program); e != nil {
+		t.Fatal(e)
+	}
 	for _, scenario := range []struct{ name, mutation, restore string }{
 		{"draft", `UPDATE capture_form_distributions SET status='DRAFT' WHERE id=$1::uuid`, `UPDATE capture_form_distributions SET status='OPEN' WHERE id=$1::uuid`},
 		{"request subject mismatch", `UPDATE capture_requests SET subject_id='other' WHERE distribution_id=$1::uuid`, `UPDATE capture_requests SET subject_id=$2 WHERE distribution_id=$1::uuid`},
