@@ -52,7 +52,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 				_ = tx.Commit(context.Background())
 			}
 		}
-		_, _ = pool.Exec(context.Background(), `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid; DELETE FROM org_positions WHERE tenant_id=$1::uuid; DELETE FROM role_templates WHERE tenant_id=$1::uuid; DELETE FROM third_party_relationships WHERE tenant_id=$1::uuid; DELETE FROM third_parties WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenant)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM authority_grants WHERE tenant_id=$1::uuid; DELETE FROM delegations WHERE tenant_id=$1::uuid; DELETE FROM segregation_rules WHERE tenant_id=$1::uuid; DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid; DELETE FROM org_positions WHERE tenant_id=$1::uuid; DELETE FROM role_templates WHERE tenant_id=$1::uuid; DELETE FROM third_party_relationships WHERE tenant_id=$1::uuid; DELETE FROM third_parties WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenant)
 		cleanupResponseWorkspaceTenant(context.Background(), pool, tenant)
 	})
 	_, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$2::uuid,'PERSON','Bank reviewer','ACTIVE',$3); UPDATE capture_requests SET fields='[{"id":"score","section_id":"general","label":"Evidence quality","type":"short_text","assessment":{"mode":"MANUAL","required":true,"weight":100,"reviewer_role":"RISK","rubric":[{"id":"poor","label":"Incomplete","points":80},{"id":"good","label":"Sufficient","points":10}]}}]'::jsonb WHERE tenant_id=$2::uuid; UPDATE capture_requests req SET subject_id=d.subject_id::text FROM capture_form_distributions d WHERE req.distribution_id=d.id AND req.tenant_id=$2::uuid; UPDATE capture_submissions SET answers='{"score":{"text":"Report supplied"}}'::jsonb WHERE tenant_id=$2::uuid`, pgx.QueryExecModeSimpleProtocol, reviewer, tenant, now)
@@ -454,7 +454,7 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 	seedCompletedResponseRows(t, ctx, pool, tenant, entity, owner, form, "review-docs-"+tenant, 1, now)
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `BEGIN; SET LOCAL session_replication_role='replica'; DELETE FROM capture_field_assessments WHERE tenant_id=$1::uuid; DELETE FROM capture_response_assessments WHERE tenant_id=$1::uuid; COMMIT`, pgx.QueryExecModeSimpleProtocol, tenant)
-		_, _ = pool.Exec(context.Background(), `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid; DELETE FROM org_positions WHERE tenant_id=$1::uuid; DELETE FROM role_templates WHERE tenant_id=$1::uuid; DELETE FROM third_party_relationships WHERE tenant_id=$1::uuid; DELETE FROM third_parties WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenant)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM authority_grants WHERE tenant_id=$1::uuid; DELETE FROM delegations WHERE tenant_id=$1::uuid; DELETE FROM segregation_rules WHERE tenant_id=$1::uuid; DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid; DELETE FROM org_positions WHERE tenant_id=$1::uuid; DELETE FROM role_templates WHERE tenant_id=$1::uuid; DELETE FROM third_party_relationships WHERE tenant_id=$1::uuid; DELETE FROM third_parties WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenant)
 		cleanupResponseWorkspaceTenant(context.Background(), pool, tenant)
 	})
 	_, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($4::uuid,$1::uuid,'PERSON','Bank reviewer','ACTIVE',$8);
@@ -552,6 +552,109 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 		if !errors.Is(err, ErrAssessmentConflict) {
 			t.Fatalf("retired distribution write: %v", err)
 		}
+	}
+	// The command and keyed replay must agree with the authoritative resolver
+	// when a field reviewer is acting through a currently valid delegation.
+	delegate := mustResponseWorkspaceID(t)
+	if _, err = pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$2::uuid,'PERSON','Delegated reviewer','ACTIVE',$3); UPDATE capture_form_distributions SET status='COMPLETED' WHERE tenant_id=$2::uuid; INSERT INTO delegations(tenant_id,legal_entity_id,from_principal_id,to_principal_id,responsibility,scope,starts_at,ends_at,status,created_by,approved_by,approved_at,version) VALUES($2::uuid,$4::uuid,$5::uuid,$1::uuid,'REVIEWER',jsonb_build_object('legal_entity_id',$4::text,'decision_type','forms.response.assess'),$3::timestamptz - interval '1 minute',$3::timestamptz + interval '1 hour','ACTIVE',$5::uuid,$6::uuid,$3,1)`, pgx.QueryExecModeSimpleProtocol, delegate, tenant, now, entity, reviewer, owner); err != nil {
+		t.Fatal(err)
+	}
+	delegateCtx := identity.WithActor(ctx, identity.Actor{Kind: "PERSON", TenantID: tenant, LegalEntityID: entity, PrincipalID: delegate, ExpiresAt: now.Add(time.Hour)})
+	resolution, err := router.Resolve(delegateCtx, authority.ResolveInput{TenantID: tenant, LegalEntityID: entity, ObjectType: "FORM_RESPONSE", ObjectID: response, Responsibility: authority.ResponsibilityReviewer, DecisionType: "forms.response.assess", Materiality: 3})
+	if err != nil || !resolution.AllowsPrincipalWithRole(delegate, "RISK") {
+		t.Fatalf("delegated route: %+v %v", resolution, err)
+	}
+	delegatedInput := RecordResponseAssessmentInput{RequestKey: mustResponseWorkspaceID(t), ExpectedVersion: 1, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "The report still omits tested systems."}}}
+	delegated, err := service.RecordResponseAssessment(delegateCtx, tenant, entity, response, delegatedInput)
+	if err != nil || delegated.Version != 2 || delegated.Fields[0].Decision == nil || delegated.Fields[0].Decision.ReviewerID != delegate {
+		t.Fatalf("delegated assessment: %+v %v", delegated, err)
+	}
+	replayed, err := service.RecordResponseAssessment(delegateCtx, tenant, entity, response, delegatedInput)
+	if err != nil || replayed.Version != 2 || replayed.Fields[0].Decision.ID != delegated.Fields[0].Decision.ID {
+		t.Fatalf("delegated receipt: %+v %v", replayed, err)
+	}
+	assertDelegateReplay := func(label string, allowed bool) {
+		t.Helper()
+		current, routeErr := router.Resolve(delegateCtx, authority.ResolveInput{TenantID: tenant, LegalEntityID: entity, ObjectType: "FORM_RESPONSE", ObjectID: response, Responsibility: authority.ResponsibilityReviewer, DecisionType: "forms.response.assess", Materiality: 3})
+		routeAllows := routeErr == nil && current.AllowsPrincipalWithRole(delegate, "RISK")
+		receipt, retryErr := service.RecordResponseAssessment(delegateCtx, tenant, entity, response, delegatedInput)
+		if routeAllows != allowed || (retryErr == nil) != allowed || (allowed && (receipt.Version != 2 || receipt.Fields[0].Decision.ID != delegated.Fields[0].Decision.ID)) || (!allowed && receipt.Version != 0) {
+			t.Fatalf("%s: route=%v (%v) receipt=%+v (%v)", label, routeAllows, routeErr, receipt, retryErr)
+		}
+	}
+	assertDelegateWriteRace := func(label string, mutate func() error) {
+		t.Helper()
+		original := service.assessmentAuthorizer
+		checked, resume, done := make(chan struct{}), make(chan struct{}), make(chan error, 1)
+		var once sync.Once
+		service.WithAssessmentAuthorizer(func(c context.Context, a identity.Actor, r CompletedResponseSummary, f formcontract.Field) (string, error) {
+			route, e := original(c, a, r, f)
+			if e == nil {
+				once.Do(func() { close(checked); <-resume })
+			}
+			return route, e
+		})
+		key := mustResponseWorkspaceID(t)
+		go func() {
+			_, e := service.RecordResponseAssessment(delegateCtx, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: key, ExpectedVersion: 2, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "A fresh review."}}})
+			done <- e
+		}()
+		select {
+		case <-checked:
+		case e := <-done:
+			service.WithAssessmentAuthorizer(original)
+			t.Fatalf("%s failed before authority check: %v", label, e)
+		case <-time.After(5 * time.Second):
+			close(resume)
+			service.WithAssessmentAuthorizer(original)
+			t.Fatalf("%s authority check timed out", label)
+		}
+		mutationErr := mutate()
+		close(resume)
+		writeErr := <-done
+		service.WithAssessmentAuthorizer(original)
+		if mutationErr != nil || !errors.Is(writeErr, ErrAssessmentForbidden) {
+			t.Fatalf("%s: mutation=%v write=%v", label, mutationErr, writeErr)
+		}
+	}
+	if _, err = pool.Exec(ctx, `INSERT INTO authority_grants(tenant_id,legal_entity_id,principal_id,decision_type,limits,valid_from,policy_version) VALUES($1::uuid,$2::uuid,$3::uuid,'forms.response.assess','{"max_materiality":2}'::jsonb,$4,'grant:v1')`, tenant, entity, delegate, now.Add(-time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	assertDelegateReplay("grant excludes materiality", false)
+	if _, err = pool.Exec(ctx, `UPDATE authority_grants SET limits='{"max_materiality":4}'::jsonb WHERE tenant_id=$1::uuid`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	assertDelegateReplay("grant permits materiality", true)
+	assertDelegateWriteRace("grant revoked at write", func() error {
+		_, e := pool.Exec(ctx, `UPDATE authority_grants SET limits='{"max_materiality":2}'::jsonb WHERE tenant_id=$1::uuid`, tenant)
+		return e
+	})
+	if _, err = pool.Exec(ctx, `DELETE FROM authority_grants WHERE tenant_id=$1::uuid`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	conflictRole, conflictPosition, conflictBinding := mustResponseWorkspaceID(t), mustResponseWorkspaceID(t), mustResponseWorkspaceID(t)
+	if _, err = pool.Exec(ctx, `INSERT INTO role_templates(id,tenant_id,code,name,valid_from) VALUES($1::uuid,$2::uuid,'CONFLICT','Conflicting role',$6); INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id,valid_from) VALUES($3::uuid,$2::uuid,$4::uuid,'CONFLICT','Conflicting role',$5::uuid,$6); INSERT INTO position_role_bindings(id,tenant_id,position_id,role_template_id,priority,valid_from) VALUES($7::uuid,$2::uuid,$3::uuid,$1::uuid,100,$6)`, pgx.QueryExecModeSimpleProtocol, conflictRole, tenant, conflictPosition, entity, delegate, now.Add(-time.Minute), conflictBinding); err != nil {
+		t.Fatal(err)
+	}
+	assertDelegateWriteRace("segregation added at write", func() error {
+		_, e := pool.Exec(ctx, `INSERT INTO segregation_rules(tenant_id,code,responsibility,prohibited_role_code,status,valid_from) VALUES($1::uuid,'NO-CONFLICT','REVIEWER','CONFLICT','ACTIVE',$2)`, tenant, now.Add(-time.Minute))
+		return e
+	})
+	assertDelegateReplay("segregation excludes reviewer", false)
+	if _, err = pool.Exec(ctx, `DELETE FROM segregation_rules WHERE tenant_id=$1::uuid`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	assertDelegateReplay("segregation removed", true)
+	assertDelegateWriteRace("delegation revoked at write", func() error {
+		_, e := pool.Exec(ctx, `UPDATE delegations SET status='REVOKED' WHERE tenant_id=$1::uuid AND to_principal_id=$2::uuid`, tenant, delegate)
+		return e
+	})
+	if receipt, retryErr := service.RecordResponseAssessment(delegateCtx, tenant, entity, response, delegatedInput); retryErr == nil || receipt.Version != 0 {
+		t.Fatalf("revoked delegate received receipt: %+v %v", receipt, retryErr)
+	}
+	var assessmentCount, eventCount int
+	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_assessments WHERE tenant_id=$1::uuid),(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_ASSESSED')`, tenant).Scan(&assessmentCount, &eventCount); err != nil || assessmentCount != 2 || eventCount != 2 {
+		t.Fatalf("delegated write counts: %d/%d %v", assessmentCount, eventCount, err)
 	}
 	service.WithAssessmentAuthorizer(nil)
 	page, err = service.ListDocuments(ctx, q)
