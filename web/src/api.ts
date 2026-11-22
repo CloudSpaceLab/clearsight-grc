@@ -382,6 +382,7 @@ function normalizeMatterAggregate(value: NullableMatterAggregate): MatterAggrega
     actions: arrayOrEmpty(value.actions),
     verification_contracts: arrayOrEmpty(value.verification_contracts),
     verification_results: arrayOrEmpty(value.verification_results),
+    outcome_data_complete: Object.prototype.hasOwnProperty.call(value, "verification_contracts") && (value.verification_contracts === null || Array.isArray(value.verification_contracts)) && Object.prototype.hasOwnProperty.call(value, "verification_results") && (value.verification_results === null || Array.isArray(value.verification_results)),
     response_packages: arrayOrEmpty(value.response_packages),
     closure: { ready: value.closure?.ready ?? false, reasons: arrayOrEmpty(value.closure?.reasons) },
   };

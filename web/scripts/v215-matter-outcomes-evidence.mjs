@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
+const output = path.resolve('../docs/evidence/2026-11-22-v215-matter-outcomes');
+await mkdir(output, {recursive:true});
+const browser = await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_BROWSER_PATH});
+try { for (const width of [1440,768,390]) {
+ const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});
+ await page.goto('http://127.0.0.1:43131/evidence/?fixture=matter-work',{waitUntil:'domcontentloaded'});
+ await page.evaluate(()=>{const original=window.fetch;window.fetch=async(input,init)=>{const url=new URL(typeof input==='string'?input:input instanceof URL?input.href:input.url,location.origin);const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
+ if(url.pathname==='/api/v1/matters/sample-issue/operations') return json({matter_id:'sample-issue',matter_version:1,authority_available:true,operations:[{command:'matter.outcome.define',can_act:true,candidates:[{id:'reviewer',display_name:'Ada Okafor'}]}],responsible_parties:[{scope:'OUTCOME_CHECK',subresource_id:'check-1',display_name:'Ada Okafor'},{scope:'OUTCOME_RESULT',subresource_id:'result-1',display_name:'Ada Okafor'}]});
+ if(url.pathname==='/api/v1/evidence/sources')return json({items:[]});
+ if(url.pathname==='/api/v1/matters/sample-issue' && (!init?.method || init.method==='GET')){const response=await original(input,init);const data=await response.json();return json({...data,actions:[],verification_contracts:[{id:'check-1',expected_outcome:'Privileged accounts have approved owners',status:'ACTIVE',scope:{description:'Privileged accounts',measurement_method:'Review access reports'},baseline:{description:'Four accounts need approval'},threshold:{success_condition:'All accounts approved'},observation_period_minutes:1440,failure_response:'BLOCK_CLOSE'}],verification_results:[{id:'result-1',contract_id:'check-1',result:'PASS',observed_at:'2026-11-20T10:00:00Z',rationale:'Owners confirmed'}]});}
+ if(url.pathname.startsWith('/api/v1/matters/sample-issue/') && init?.method==='POST')return json({error:'unavailable'},500);
+ return original(input,init)};location.hash='#/work/issues/sample-issue';});
+ await page.getByRole('heading',{name:'Outcome checks'}).waitFor();await page.getByRole('button',{name:'Define outcome check'}).waitFor();
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:path.join(output,`read-${width}.png`),fullPage:true});
+ await page.getByRole('button',{name:'Define outcome check'}).click();await page.getByLabel('Expected outcome').fill('Privileged account owners remain current');await page.getByLabel('Independent reviewer').selectOption('reviewer');await page.getByLabel('If the outcome is not achieved').selectOption('BLOCK_CLOSE');
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:path.join(output,`form-${width}.png`),fullPage:true});
+ await page.getByRole('button',{name:'Save outcome check'}).click();await page.getByText(/Outcome check status unknown/).waitFor();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:path.join(output,`unknown-${width}.png`),fullPage:true});await page.close();
+ } console.log('Synthetic outcome read, form and recovery rendered at 1440, 768 and 390.'); } finally {await browser.close();}

@@ -1,0 +1,9 @@
+# Issue outcome checks — partial v2.15 implementation
+
+The issue work detail previously had no outcome check definition or outcome history. This slice adds scoped check terms, historical reviewer labels and results, and an independently routed definition action. It uses the existing issue and outcome APIs. The v2.15 reference governs the shared shell; the reference does not establish outcome data, authority or this workflow.
+
+Definition is offered only for a matching issue version and authorized operation with eligible reviewer candidates. A matching command receipt is required before refresh; an uncertain response prevents another submission until the user explicitly reviews the current issue. Matching check content does not prove which command created it. Missing outcome arrays are unavailable rather than an empty result. Source choices are limited to active records returned for the current tenant and entity; manual measurement remains available if sources are unavailable.
+
+Synthetic screenshots in `docs/evidence/2026-11-22-v215-matter-outcomes/` show read, definition and uncertain-result states at 1440, 768 and 390 pixels. An initial mobile inspection identified history text running together; the supporting line was separated and the captures regenerated. Full-page captures include the fixed shell at the browser scroll position and are not production authorization evidence. All widths passed the script's horizontal overflow check. The existing `docs/evidence/2026-11-21-matter-work/` captures provide the preceding issue-work baseline.
+
+This is a partial workflow. Replacing or ending a check and recording a result are not yet implemented. The previous MatterOutcomePanel suite remains in place pending equivalent coverage. Existing aggregate reads load the full history; the client progressively displays it, but this is not server pagination. No production end-to-end or whole-screen acceptance is claimed.

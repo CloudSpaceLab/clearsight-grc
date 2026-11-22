@@ -52,6 +52,23 @@ func TestMatterOutcomeDefinitionHTTPStoresOnlyTheSelectedCurrentReviewer(t *test
 	if len(updated.VerificationContracts) != 1 || updated.VerificationContracts[0].AuthorityPrincipalID != "reviewer-1" {
 		t.Fatalf("stored outcome reviewer was not selected from the current route: %#v", updated.VerificationContracts)
 	}
+	contract := updated.VerificationContracts[0]
+	if updated.Matter.ID != matter.Matter.ID || updated.Matter.TenantID != "bank" || updated.Matter.LegalEntityID != "bank-ng" || updated.Matter.Version != 2 || contract.ID == "" || contract.TenantID != "bank" || contract.MatterID != matter.Matter.ID || contract.Version != 1 || contract.Status != continuity.VerificationActive || contract.ExpectedOutcome != "Posting remains available." || contract.ObservationPeriodMinutes != 1440 || contract.FailureResponse != "REOPEN" {
+		t.Fatalf("definition receipt = %#v", updated)
+	}
+	var baseline, scope, threshold map[string]any
+	if json.Unmarshal(contract.Baseline, &baseline) != nil || json.Unmarshal(contract.Scope, &scope) != nil || json.Unmarshal(contract.Threshold, &threshold) != nil || baseline["description"] != "Posting is unavailable." || scope["description"] != "Retail current accounts." || scope["measurement_method"] != "Review the daily posting availability report." || threshold["success_condition"] != "99.9% of postings succeed." {
+		t.Fatalf("definition terms = %#v", contract)
+	}
+	stale := httptest.NewRecorder()
+	handler.ServeHTTP(stale, httptest.NewRequest(http.MethodPost, "/api/v1/matters/"+matter.Matter.ID+"/verification-contracts", strings.NewReader(body)))
+	if stale.Code != http.StatusConflict {
+		t.Fatalf("stale definition returned %d: %s", stale.Code, stale.Body.String())
+	}
+	persisted, err := service.GetMatter(continuity.WithTrustedSystemScope(t.Context()), "bank", matter.Matter.ID)
+	if err != nil || persisted.Matter.Version != 2 || len(persisted.VerificationContracts) != 1 {
+		t.Fatalf("stale retry changed issue: %#v %v", persisted, err)
+	}
 }
 
 func TestMatterOutcomeDefinitionBindsSelectedReviewerFromCurrentRoute(t *testing.T) {

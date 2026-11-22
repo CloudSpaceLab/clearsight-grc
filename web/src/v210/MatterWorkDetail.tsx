@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { loadMatter, type RuntimeContext } from "../api";
 import type { MatterAggregate } from "../types";
 import { MatterResponses } from "./MatterResponses";
+import { MatterOutcomes } from "./MatterOutcomes";
 
 export function MatterWorkDetail({ id, context }: { id: string; context: RuntimeContext }) {
   const [matter, setMatter] = useState<MatterAggregate>();
@@ -27,6 +28,7 @@ export function MatterWorkDetail({ id, context }: { id: string; context: Runtime
     {state === "ready" && matter && <><header className="v-page-heading"><div><p className="v-eyebrow">{matter.matter.reference || "Issue"}</p><h1>{matter.matter.title}</h1></div><span className="v-status">{matter.status_label || "Status unavailable"}</span></header>
       <section className="v-panel"><h2>Issue details</h2><p>{matter.matter.summary || "Summary not recorded."}</p><dl><div><dt>Owner</dt><dd>{matter.owner_display_name || (matter.matter.owner_principal_id ? "Owner name unavailable" : "Owner not recorded")}</dd></div></dl></section>
       <section className="v-panel">{matter.matter.status === "DECISION_REQUIRED" || matter.decisions?.length ? <><h2>Decision</h2><p>Decision unavailable.</p></> : <><h2>Issue work</h2><p>Issue actions unavailable.</p></>}</section>
+      <MatterOutcomes key={`${tenant}:${entity}:${actor}:${id}:${matter.matter.version}`} aggregate={matter} onRefresh={() => setAttempt((value) => value + 1)} onAccessRevoked={() => { setMatter(undefined); setState("error"); }}/>
       <MatterResponses key={`${tenant}:${entity}:${actor}:${id}`} matterID={id}/>
     </>}
   </section>;

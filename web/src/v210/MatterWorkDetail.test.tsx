@@ -2,13 +2,15 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { MatterWorkDetail } from "./MatterWorkDetail";
 
-const api = vi.hoisted(() => ({ loadMatter: vi.fn() }));
+const api = vi.hoisted(() => ({ loadMatter: vi.fn(), loadEvidenceSources: vi.fn() }));
+const operations = vi.hoisted(() => ({ loadMatterOperations: vi.fn(), defineMatterOutcomeCheck: vi.fn() }));
+vi.mock("../matterOperationsApi", () => operations);
 const responses = vi.hoisted(() => ({ loadCompletedResponses: vi.fn() }));
 vi.mock("../api", () => api);
 vi.mock("../formsDistributionApi", () => responses);
 const context = { tenant: { id: "bank", name: "Bank" }, legal_entity: { id: "entity", name: "Bank" }, actor: { id: "person", name: "Person" }, mode: "LIVE" };
 const matter = { matter: { id: "issue-1", tenant_id: "bank", legal_entity_id: "entity", title: "Review access exception", summary: "Access needs review.", reference: "ISS-1", status: "DECISION_REQUIRED", version: 2 }, scope: { tenant_id: "bank", legal_entity_id: "entity", principal_id: "person", record_tenant_id: "bank", record_legal_entity_id: "entity" }, status_label: "Decision needed", owner_display_name: "Amina Bello", decisions: [] };
-beforeEach(() => { vi.resetAllMocks(); responses.loadCompletedResponses.mockResolvedValue({ items: [] }); });
+beforeEach(() => { vi.resetAllMocks(); api.loadEvidenceSources.mockResolvedValue([]); operations.loadMatterOperations.mockResolvedValue({matter_id:"issue-1",matter_version:2,authority_available:true,operations:[{command:"matter.outcome.define",can_act:true,candidates:[{id:"reviewer",display_name:"Ada Okafor"}]}]}); responses.loadCompletedResponses.mockResolvedValue({ items: [] }); });
 
 it("shows the scoped issue and the unavailable decision state", async () => {
   api.loadMatter.mockResolvedValue(matter);
@@ -56,3 +58,6 @@ it("distinguishes an unnamed recorded owner from an unassigned issue", async () 
   expect(await screen.findByText("Owner name unavailable")).toBeTruthy();
   expect(screen.queryByText("Owner not recorded")).toBeNull();
 });
+
+
+it("shows outcome definition only for the scoped Matter and current authority",async()=>{api.loadMatter.mockResolvedValue({...matter,actions:[],verification_contracts:[],verification_results:[]});render(<MatterWorkDetail id="issue-1" context={context}/>);expect(await screen.findByText("No outcome checks recorded.")).toBeTruthy();expect(await screen.findByRole("button",{name:"Define outcome check"})).toBeTruthy();expect(operations.loadMatterOperations).toHaveBeenCalledWith("issue-1");});
