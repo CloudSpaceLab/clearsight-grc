@@ -1,9 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { KeyIndicators } from "./KeyIndicators";
+import { ApiError } from "../http";
 
 const api = vi.hoisted(() => ({ loadIndicatorPopulation: vi.fn() }));
+const monitoring = vi.hoisted(() => ({ loadMonitoringResults: vi.fn() }));
 vi.mock("../indicatorApi", () => api);
+vi.mock("../monitoringApi", () => monitoring);
+vi.mock("./FocusedSheet", () => ({ FocusedSheet: ({ children }: { children: React.ReactNode }) => <div role="dialog">{children}</div> }));
 const indicator = { check_id: "c1", check_code: "KRI-1", check_name: "Failed backups", program_id: "p1", program_name: "Continuity", link: { kind: "KRI" }, state: "BREACH", reason: "Latest native measurement is outside its approved limit.", native_measurement: { value: "2", unit: "COUNT", limits: [{ operator: "LESS_OR_EQUAL", expected: "1" }], condition: "BREACHED" }, evaluated_at: "2026-11-19T10:00:00Z", freshness_minutes: 1440 };
 beforeEach(() => { vi.resetAllMocks(); });
 
@@ -18,6 +22,24 @@ it("shows the stored condition, value and approved limit", async () => {
   expect(screen.getByText(/^Evaluated /)).toBeTruthy();
   expect(screen.queryByText(/^Observed /)).toBeNull();
   expect(api.loadIndicatorPopulation).toHaveBeenCalledWith({ limit: 25 }, expect.any(AbortSignal));
+});
+
+it("opens the selected exact indicator revision and its history", async () => {
+  api.loadIndicatorPopulation.mockResolvedValue({ items: [{ indicator: { ...indicator, check_version: 4, link: { ...indicator.link, program_id: "p1", monitoring_check_id: "c1", monitoring_check_version: 4 } }, risks: [], risk_count: 0 }], complete: true });
+  monitoring.loadMonitoringResults.mockResolvedValue([]);
+  render(<KeyIndicators/>);
+  fireEvent.click(await screen.findByRole("button", { name: "View Failed backups" }));
+  expect(await screen.findByText("No evaluations recorded for this version.")).toBeTruthy();
+  expect(monitoring.loadMonitoringResults).toHaveBeenCalledWith("c1", 4);
+});
+
+it("clears indicator data when access is revoked on a later page", async () => {
+  api.loadIndicatorPopulation.mockResolvedValueOnce({ items: [{ indicator: { ...indicator, check_version: 4, link: { ...indicator.link, program_id: "p1", monitoring_check_id: "c1", monitoring_check_version: 4 } }, risks: [], risk_count: 0 }], complete: true, next_cursor: "next" }).mockRejectedValueOnce(new ApiError(403, "Denied"));
+  render(<KeyIndicators/>);
+  expect(await screen.findByRole("button", { name: "View Failed backups" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Load more indicators" }));
+  expect(await screen.findByText("Indicators unavailable.")).toBeTruthy();
+  expect(screen.queryByText("Failed backups")).toBeNull();
 });
 
 it("shows stale results as unknown and identifies the reason", async () => {
@@ -68,4 +90,11 @@ it("uses the authorized server filter for indicator type", async () => {
   fireEvent.change(screen.getByLabelText("Indicator type"), { target: { value: "KCI" } });
   await screen.findByText("No indicators found.");
   expect(api.loadIndicatorPopulation).toHaveBeenLastCalledWith({ limit: 25, kind: "KCI" }, expect.any(AbortSignal));
+});
+
+it("does not display a concern ratio without a valid denominator", async () => {
+  api.loadIndicatorPopulation.mockResolvedValue({ items: [{ indicator: { ...indicator, score: 12 }, risks: [], risk_count: 0 }], complete: true });
+  render(<KeyIndicators/>);
+  await screen.findByText("Failed backups");
+  expect(screen.queryByText(/^Concern:/)).toBeNull();
 });

@@ -184,6 +184,8 @@ export type CollectionSummary = {
 
 export type MonitoringResult = {
   id: string;
+  program_id?: string;
+  tenant_id?: string;
   monitoring_check_id: string;
   monitoring_check_version: number;
   evaluated_at: string;
