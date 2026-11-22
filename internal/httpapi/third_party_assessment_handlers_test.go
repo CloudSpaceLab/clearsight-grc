@@ -203,6 +203,49 @@ func TestStartAndGetCurrentVendorAssessmentUseVerifiedRouteScope(t *testing.T) {
 	}
 }
 
+// The active relationship is seeded directly; activation itself is covered separately.
+func TestStartFocusedReassessmentUsesVerifiedScopeAndSelectedFields(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, false)
+	managed := fixture.vendor.Relationship
+	managed.ID = "managed-relationship"
+	managed.Status = thirdparty.RelationshipActive
+	_, err := fixture.repository.CreateRelationship(context.Background(), thirdparty.CreateRecord{Vendor: fixture.vendor.Vendor, Relationship: managed, ActorID: "verified-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := "/api/v1/vendors/" + managed.ID + "/assessments"
+	send := func(body string) *httptest.ResponseRecorder {
+		r := httptest.NewRecorder()
+		fixture.handler.ServeHTTP(r, httptest.NewRequest(http.MethodPost, path, bytes.NewBufferString(body)))
+		return r
+	}
+	forged := send(`{"relationship_version":1,"review_kind":"PERIODIC","source_trigger":"annual-2026","form_template_id":"form-1","form_template_version":3,"scope_kind":"FOCUSED","selected_field_ids":["assurance_report"],"review_due_at":"2030-09-09T10:00:00Z","tenant_id":"other"}`)
+	if forged.Code != http.StatusForbidden {
+		t.Fatalf("forged scope = %d: %s", forged.Code, forged.Body.String())
+	}
+	stale := send(`{"relationship_version":2,"review_kind":"PERIODIC","source_trigger":"annual-2026","form_template_id":"form-1","form_template_version":3,"scope_kind":"FOCUSED","selected_field_ids":["assurance_report"],"review_due_at":"2030-09-09T10:00:00Z"}`)
+	if stale.Code != http.StatusConflict {
+		t.Fatalf("stale relationship = %d: %s", stale.Code, stale.Body.String())
+	}
+	body := `{"relationship_version":1,"review_kind":"PERIODIC","source_trigger":"annual-2026","form_template_id":"form-1","form_template_version":3,"scope_kind":"FOCUSED","selected_field_ids":["assurance_report"],"review_due_at":"2030-09-09T10:00:00Z","actor_id":"forged-owner"}`
+	response := send(body)
+	if response.Code != http.StatusAccepted {
+		t.Fatalf("start = %d: %s", response.Code, response.Body.String())
+	}
+	var assessment thirdparty.Assessment
+	if err := json.NewDecoder(response.Body).Decode(&assessment); err != nil {
+		t.Fatal(err)
+	}
+	if assessment.TenantID != "bank" || assessment.LegalEntityID != "entity-a" || assessment.RelationshipID != managed.ID || assessment.StartedByPrincipalID != "verified-owner" || assessment.ReviewKind != thirdparty.AssessmentReviewPeriodic || assessment.ScopeKind != thirdparty.AssessmentScopeFocused || len(assessment.SelectedFieldIDs) != 1 || assessment.SelectedFieldIDs[0] != "assurance_report" || assessment.FormTemplateID != "form-1" || assessment.FormTemplateVersion != 3 {
+		t.Fatalf("unexpected assessment: %#v", assessment)
+	}
+	replay := send(body)
+	var repeated thirdparty.Assessment
+	if replay.Code != http.StatusAccepted || json.NewDecoder(replay.Body).Decode(&repeated) != nil || repeated.ID != assessment.ID {
+		t.Fatalf("replay = %d: %#v", replay.Code, repeated)
+	}
+}
+
 func TestCancelVendorAssessmentUsesVerifiedOwnerAndCurrentVersion(t *testing.T) {
 	fixture := newAssessmentHTTPFixture(t, true)
 	body := []byte(`{"expected_version":` + jsonInt(fixture.assessment.Version) + `,"reason":"The proposed service is no longer being procured.","actor_id":"forged-owner"}`)
