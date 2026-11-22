@@ -555,3 +555,28 @@ it.each(["response_concern=HIGH&response_concern=LOW","response_concern=UNKNOWN"
 it("removes malformed filter parameters when clearing them",async()=>{
  const old=window.location.hash;window.history.replaceState(null,"","#/forms/responses?response_concern=UNKNOWN"); render(<Responses/>);fireEvent.click(await screen.findByRole("button",{name:"Clear filters"}));await vi.waitFor(()=>expect(responses.loadCompletedResponses).toHaveBeenCalled()); expect(window.location.hash).not.toContain("response_concern");window.history.replaceState(null,"",old||"#/forms/responses");
 });
+
+it("shows the verified recorded form result on the exact response",async()=>{
+ const score={state:"FINAL",final:true,mode:"COMPLIANCE",direction:"LOW_IS_POOR",raw_score:42,band:"HIGH",coverage:0.9,profile_version:"policy-1"};
+ responses.loadCompletedResponse.mockResolvedValue({response:{...summary,score},revision:{id:"revision-1",revision:2,current:true,score},answers:[],documents:[]}); render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);
+ expect(await screen.findByText("Form compliance score: 42 / 100 · Final")).toBeTruthy(); expect(screen.getByText("High concern")).toBeTruthy();
+});
+it("does not present conflicting response and revision scores",async()=>{
+ const score={state:"FINAL",final:true,mode:"COMPLIANCE",raw_score:42,band:"HIGH"}; responses.loadCompletedResponse.mockResolvedValue({response:{...summary,score},revision:{id:"revision-1",revision:2,current:true,score:{...score,raw_score:90}},answers:[],documents:[]}); render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); expect(await screen.findByText("Score unavailable")).toBeTruthy(); expect(screen.queryByText(/42 \/ 100/)).toBeNull(); expect(screen.queryByText(/90 \/ 100/)).toBeNull();
+});
+it("distinguishes an explicitly unscored response from a missing score",async()=>{
+ const score={state:"NOT_CONFIGURED",final:false}; responses.loadCompletedResponse.mockResolvedValueOnce({response:{...summary,score},revision:{id:"revision-1",revision:2,current:true,score},answers:[],documents:[]}).mockResolvedValueOnce({response:summary,revision:{id:"revision-1",revision:2,current:true},answers:[],documents:[]}); const view=render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); expect(await screen.findByText("Not scored")).toBeTruthy();view.unmount();render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>);expect(await screen.findByText("Score unavailable")).toBeTruthy();
+});
+
+it.each([
+ {name:"missing revision score", revisionScore:undefined, revisionNumber:2},
+ {name:"missing finality", revisionScore:{state:"FINAL",mode:"COMPLIANCE",raw_score:42}, revisionNumber:2, summaryScore:{state:"FINAL",mode:"COMPLIANCE",raw_score:42}},
+ {name:"different revision", revisionScore:{state:"FINAL",final:true,mode:"COMPLIANCE",raw_score:42}, revisionNumber:1},
+ {name:"different scoring profile", revisionScore:{state:"FINAL",final:true,mode:"COMPLIANCE",raw_score:42,profile_version:"other"}, revisionNumber:2},
+])("keeps an unverified form result unavailable: $name",async(test)=>{
+ const summaryScore=test.summaryScore??{state:"FINAL",final:true,mode:"COMPLIANCE",raw_score:42}; responses.loadCompletedResponse.mockResolvedValue({response:{...summary,score:summaryScore},revision:{id:"revision-1",revision:test.revisionNumber,current:true,score:test.revisionScore},answers:[],documents:[]}); render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); expect(await screen.findByText("Score unavailable")).toBeTruthy(); expect(screen.queryByText(/42 \/ 100/)).toBeNull();
+});
+
+it("does not call a contradictory score unscored",async()=>{
+ const score={state:"NOT_CONFIGURED",final:false,mode:"COMPLIANCE"}; responses.loadCompletedResponse.mockResolvedValue({response:{...summary,score},revision:{id:"revision-1",revision:2,current:true,score},answers:[],documents:[]}); render(<Responses id="revision-1" reviewScope={{tenant:"tenant",entity:"entity",actor:"reviewer"}}/>); expect(await screen.findByText("Score unavailable")).toBeTruthy(); expect(screen.queryByText("Not scored")).toBeNull();
+});

@@ -9,7 +9,7 @@
 .v-response-list > button { margin-top: 28px; }
 .v-response-meta { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-bottom: 20px; color: #627b9f; font-size: 12px; }
 .v-response-meta strong { color: #18335e; }
-.v-response-answers, .v-response-documents, .v-response-review { margin-bottom: 20px; }
+.v-response-result, .v-response-answers, .v-response-documents, .v-response-review { margin-bottom: 20px; }
 .v-response-documents ul { margin: 16px 0 0; padding: 0; list-style: none; }
 .v-response-documents li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid #e5edf7; color: #18335e; font-size: 13px; overflow-wrap: anywhere; }
 .v-response-documents li a { color: #246cf0; font-weight: 700; }

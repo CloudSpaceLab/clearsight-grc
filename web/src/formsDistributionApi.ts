@@ -275,13 +275,15 @@ function normalizeScore(raw: unknown): ResponseScore | undefined {
   const value = raw as Record<string, unknown>;
   const optionalNumber = (key: string) => typeof value[key] === "number" ? value[key] as number : undefined;
   const optionalString = (key: string) => typeof value[key] === "string" && value[key] ? value[key] as string : undefined;
+  const state = optionalString("state");
+  if (state !== "NOT_CONFIGURED" && state !== "FINAL" && state !== "PROVISIONAL" && state !== "FAILED") return undefined;
   return {
     mode: optionalString("mode") as ResponseScoreMode | undefined,
     direction: optionalString("direction") as ResponseScoreDirection | undefined,
     raw_score: optionalNumber("raw_score"), adverse_score: optionalNumber("adverse_score"),
     band: optionalString("band") as ResponseConcernBand | undefined,
     coverage: optionalNumber("coverage"), final: typeof value.final === "boolean" ? value.final : undefined,
-    state: (optionalString("state") ?? "NOT_CONFIGURED") as ResponseScoreState,
+    state,
     profile_version: optionalString("profile_version"), profile_checksum: optionalString("profile_checksum"),
     evaluator_version: optionalString("evaluator_version"), failure_code: optionalString("failure_code"),
     calculated_at: optionalString("calculated_at"),

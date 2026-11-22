@@ -21,3 +21,8 @@ it("uploads an internal document to the exact workspace without identity fields"
     expect(body.get("field_id")).toBe("field-1");
   } finally { fetchMock.mockRestore(); }
 });
+
+it("does not turn an incomplete score into an unscored result",async()=>{
+ const score={raw_score:42,mode:"COMPLIANCE"}; const fetchMock=vi.spyOn(globalThis,"fetch").mockResolvedValue(new Response(JSON.stringify({response:{id:"revision-1",score},revision:{id:"revision-1",score},answers:[],documents:[]}),{status:200,headers:{"Content-Type":"application/json"}}));
+ try {const result=await loadCompletedResponse("revision-1");expect(result.response.score).toBeUndefined();expect(result.revision.score).toBeUndefined();} finally {fetchMock.mockRestore();}
+});

@@ -148,6 +148,7 @@ function ResponseDetail({ id, reviewScope }: { id: string; reviewScope?: ReviewS
   const canReview = Boolean(storageKey) && pending === undefined && isCurrent && answers && documents && !documentsNext && review?.may_review && (!saveError || saveError === "validation");
   const commentTooLong = new TextEncoder().encode(comment.trim()).length > 4000;
   const returnToDocuments = documentReturnDestination();
+  const result = responseResult(response.score, revision.score, response.revision, revision.revision);
   const previousHref = revision.supersedes_revision_id && Number.isSafeInteger(response.revision) && response.revision === revision.revision && response.revision > 1 ? previousResponseHref(revision.supersedes_revision_id, response.distribution_id) : undefined;
   const documentHref = scopedDocumentsHref("response", id, undefined, response.distribution_id || undefined, responseFilterQuery(responseFilters()));
   return <section className="v-responses"><a className="v-back" href={returnToDocuments ?? `#/forms/responses${responseFilterQuery(responseFilters())}`}>{returnToDocuments ? "← Documents" : "← Responses"}</a><header className="v-page-heading"><div><p className="v-eyebrow">Response · Version {response.revision}</p><h1>{response.title}</h1></div><span className="v-status">{isCurrent ? "Current response" : "Earlier response"}</span></header>
@@ -156,6 +157,7 @@ function ResponseDetail({ id, reviewScope }: { id: string; reviewScope?: ReviewS
     {documentHref && <p><a href={documentHref}>View response documents</a></p>}
     {revision.supersedes_revision_id && earlier.length === 0 && <p>{previousHref ? <a href={previousHref}>Previous response</a> : "Earlier response unavailable."}</p>}
     {previousHref && Number.isSafeInteger(revision.revision) && revision.revision > 1 && <section className="v-panel v-response-versions"><h2>Earlier responses</h2>{earlier.length > 0 && <ul>{earlier.map((item) => <li key={item.revision.id}><a href={previousResponseHref(item.revision.id,response.distribution_id)}>Response version {item.revision.revision}</a><span>{timestampLabel(item.response.completed_at)}</span></li>)}</ul>}{earlierError && <p role="alert">Earlier responses unavailable.</p>}{(earlier.length === 0 || earlier.at(-1)?.revision.supersedes_revision_id) && <button type="button" disabled={earlierBusy} onClick={() => void loadEarlier()}>{earlierBusy ? "Loading…" : "Load earlier responses"}</button>}</section>}
+    <section className="v-panel v-response-result"><h2>Form result</h2><p>{result.label}</p>{result.concern && <span className={`v-status${result.concern.high ? " v-status--high" : ""}`}>{result.concern.label}</span>}</section>
     <section className="v-panel v-response-answers"><h2>Answers</h2>{!answers ? <p role="alert">Answers unavailable. Reload before reviewing.</p> : answers.length === 0 ? <p>No answers recorded.</p> : <dl>{answers.map(({ field_id, label, type, value }) => <div key={field_id}><dt>{label}</dt><dd>{answerLabel(type, value)}{value?.document && <span className="v-answer-document">{value.document.document_type && <span>Type: {value.document.document_type}</span>}{value.document.reference && <span>Reference: {value.document.reference}</span>}{value.document.issued_by && <span>Issued by: {value.document.issued_by}</span>}{value.document.issued_on && <span>Issued: {dateLabel(value.document.issued_on)}</span>}{value.document.expires_on && <span>Expires: {dateLabel(value.document.expires_on)}</span>}</span>}</dd></div>)}</dl>}</section>
     <section className="v-panel v-response-documents"><h2>Documents</h2>{!documents ? <p role="alert">Documents unavailable. Reload before reviewing.</p> : documents.length === 0 && !documentsNext ? <p>No documents submitted.</p> : <ul>{documents.map((document) => <li key={document.id}><span>{document.file_name}</span>{document.artifact_status === "AVAILABLE" || (document.artifact_status === "STORED_UNSCANNED" && document.demo_unscanned_allowed) ? <a href={documentContentURL(document, true)}>Download</a> : <small>File unavailable</small>}</li>)}</ul>}{documentsNext && <><p>More documents must be loaded before review.</p>{documentsError && <p role="alert">Additional documents unavailable.</p>}<button disabled={documentsBusy} onClick={() => void moreDocuments()}>{documentsBusy ? "Loading…" : "Load more documents"}</button></>}</section>
     <section className="v-panel v-response-review"><h2>Review</h2>{!review ? <><p role="alert">Review unavailable.</p><button onClick={() => setAttempt(attempt + 1)}>Reload response</button></> : <>
@@ -220,6 +222,17 @@ function responseConcern(score?: ResponseScore): {label: string; high: boolean} 
   case "LOW": return {label:"Low concern",high:false};
   default: return {label:"Concern unknown",high:false};
  }
+}
+function responseResult(summary: ResponseScore | undefined, revision: ResponseScore | undefined, summaryVersion: number, revisionVersion: number): {label: string; concern?: {label: string; high: boolean}} {
+ const unavailable = {label: "Score unavailable"};
+ if (!summary || !revision || !Number.isSafeInteger(summaryVersion) || summaryVersion < 1 || summaryVersion !== revisionVersion) return unavailable;
+ const keys: Array<keyof ResponseScore> = ["state", "mode", "direction", "raw_score", "adverse_score", "band", "coverage", "final", "profile_version", "profile_checksum", "evaluator_version", "calculated_at"];
+ if (keys.some((key) => !Object.is(summary[key], revision[key]))) return unavailable;
+ if (summary.state === "NOT_CONFIGURED") return summary.raw_score === undefined && summary.adverse_score === undefined && !summary.band && summary.final !== true && (!summary.mode || summary.mode === "NONE") ? {label: "Not scored"} : unavailable;
+ if ((summary.state === "FINAL" && summary.final !== true) || (summary.state === "PROVISIONAL" && summary.final !== false)) return unavailable;
+ const label = responseScoreLabel(summary);
+ if (!label || label === "Score unavailable") return unavailable;
+ return {label, concern: responseConcern(summary)};
 }
 function responseScoreLabel(score?: ResponseScore): string | undefined {
  if (!score || score.state === "NOT_CONFIGURED") return undefined;

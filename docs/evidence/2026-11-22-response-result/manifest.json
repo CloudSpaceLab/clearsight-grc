@@ -1,0 +1,38 @@
+[
+  {
+    "state": "provisional",
+    "width": 1440,
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "state": "unavailable",
+    "width": 1440,
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "state": "provisional",
+    "width": 768,
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "state": "unavailable",
+    "width": 768,
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "state": "provisional",
+    "width": 390,
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "state": "unavailable",
+    "width": 390,
+    "overflow": false,
+    "errors": []
+  }
+]
