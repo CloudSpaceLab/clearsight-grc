@@ -6,26 +6,47 @@ import type { ProgramAggregate } from '../types';
 import { decideRequirementReview, loadRequirementReviews, proposeRequirementReview, type RequirementReview, type RequirementReviewPage } from './requirementReviewApi';
 
 type Mode = { kind: 'propose'; requirement: string } | { kind: 'decide'; requirement: string; review: RequirementReview };
+function validReviewPage(result: RequirementReviewPage, aggregate: ProgramAggregate) {
+  return result.program_id === aggregate.program.id && result.program_version === aggregate.program.version && Array.isArray(result.items) && result.items.length <= 100 && typeof result.next_after_id === 'string' && (!result.next_after_id || (result.items.length === 100 && result.next_after_id.toLowerCase() === result.items[99]?.id?.toLowerCase())) && result.items.every((item, index) => Boolean(item.id && (index === 0 || result.items[index - 1]!.id.toLowerCase() < item.id.toLowerCase()) && item.tenant_id === aggregate.program.tenant_id && item.program_id === aggregate.program.id && item.requirement_id && item.proposed_by && typeof item.proposal_rationale === 'string' && item.proposal_rationale.trim() && ['PENDING', 'APPROVED', 'REJECTED'].includes(item.status) && Number.isSafeInteger(item.version) && item.version >= 1));
+}
 export function RequirementReviews({ aggregate, operations, onUpdated, disabled = false, onPendingChange }: { aggregate: ProgramAggregate; operations: ProgramOperation[]; onUpdated: (value: ProgramAggregate) => void; disabled?: boolean; onPendingChange?: (pending: boolean) => void }) {
   const [context, setContext] = useState<RuntimeContext>(); const [page, setPage] = useState<RequirementReviewPage>();
   const [loading, setLoading] = useState(true); const [attempt, setAttempt] = useState(0); const [error, setError] = useState(''); const [reason, setReason] = useState('');
   const [mode, setMode] = useState<Mode>(); const [busy, setBusy] = useState(false); const [notice, setNotice] = useState(''); const [locked, setLocked] = useState(false);
-  const generation = useRef(0); const inFlight = useRef(false); const reasonInput = useRef<HTMLTextAreaElement>(null); const restoreFocus = useRef<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false); const [moreError, setMoreError] = useState('');
+  const generation = useRef(0); const inFlight = useRef(false); const pageLock = useRef(false); const reasonInput = useRef<HTMLTextAreaElement>(null); const restoreFocus = useRef<string | null>(null);
   useEffect(() => { if (mode) reasonInput.current?.focus(); else if (restoreFocus.current) { const id = restoreFocus.current; restoreFocus.current = null; document.getElementById(id)?.focus(); } }, [mode]);
   useEffect(() => {
-    const token = ++generation.current; setLoading(true); setPage(undefined); setContext(undefined); setMode(undefined); setLocked(false); setError(''); inFlight.current = false;
+    const token = ++generation.current; setLoading(true); setPage(undefined); setContext(undefined); setMode(undefined); setLocked(false); setError(''); setMoreError(''); setLoadingMore(false); pageLock.current = false; inFlight.current = false;
     loadContext().then(async (actor) => ({ actor, result: await loadRequirementReviews(actor.tenant.id, aggregate.program.id) })).then(({ actor, result }) => {
       if (generation.current !== token) return;
-      if (!actor.actor.id || actor.actor.kind?.toUpperCase() === 'SERVICE' || !actor.legal_entity.id || actor.legal_entity.id !== aggregate.program.legal_entity_id || result.program_id !== aggregate.program.id || result.program_version !== aggregate.program.version || !Array.isArray(result.items) || typeof result.next_after_id !== 'string' || new Set(result.items.map((item) => item.id)).size !== result.items.length || result.items.some((item) => !item.id || item.tenant_id !== aggregate.program.tenant_id || item.program_id !== aggregate.program.id || !item.requirement_id || !item.proposed_by || typeof item.proposal_rationale !== 'string' || !item.proposal_rationale.trim() || !['PENDING', 'APPROVED', 'REJECTED'].includes(item.status) || !Number.isSafeInteger(item.version) || item.version < 1)) { setError('Requirement reviews unavailable.'); return; }
+      if (!actor.actor.id || actor.actor.kind?.toUpperCase() === 'SERVICE' || !actor.legal_entity.id || actor.legal_entity.id !== aggregate.program.legal_entity_id || !validReviewPage(result, aggregate)) { setError('Requirement reviews unavailable.'); return; }
       const pending = result.items.filter((item) => item.status === 'PENDING');
-      if (new Set(pending.map((item) => item.requirement_id)).size !== pending.length) { setError('Requirement reviews unavailable.'); return; }
-      setContext(actor); setPage(result);
+      if (new Set(pending.map((item) => item.requirement_id)).size !== pending.length || pending.some((item) => !aggregate.requirements.some((requirement) => requirement.id === item.requirement_id && requirement.status === 'DRAFT'))) { setError('Requirement reviews unavailable.'); return; }
+      setContext(actor); setPage({ ...result, items: pending });
     }).catch(() => { if (generation.current === token) setError('Requirement reviews unavailable.'); }).finally(() => { if (generation.current === token) setLoading(false); });
     return () => { generation.current++; onPendingChange?.(false); };
   }, [aggregate.program.id, aggregate.program.version, aggregate.program.tenant_id, attempt]);
   const can = (command: string) => operations.some((operation) => operation.command === command && operation.can_act);
   const actor = context?.actor.id;
   const reasonTooLong = new TextEncoder().encode(reason.trim()).length > 2000;
+  async function more() {
+    if (!page || !context || !page.next_after_id || pageLock.current || disabled || locked || busy) return;
+    const cursor = page.next_after_id; const token = generation.current; pageLock.current = true; setLoadingMore(true); setMoreError('');
+    try {
+      const latestActor = await loadContext();
+      if (latestActor.tenant.id !== context.tenant.id || latestActor.legal_entity.id !== context.legal_entity.id || latestActor.actor.id !== context.actor.id || latestActor.actor.kind?.toUpperCase() === 'SERVICE') throw new ApiError(403, 'Scope changed');
+      const next = await loadRequirementReviews(context.tenant.id, aggregate.program.id, cursor);
+      if (token !== generation.current) return;
+      const pending = [...page.items, ...next.items.filter((item) => item.status === 'PENDING')];
+      if (!validReviewPage(next, aggregate) || (next.next_after_id && next.next_after_id.toLowerCase() <= cursor.toLowerCase()) || next.items.some((item) => item.id.toLowerCase() <= cursor.toLowerCase()) || new Set(pending.map((item) => item.id)).size !== pending.length || new Set(pending.map((item) => item.requirement_id)).size !== pending.length || pending.some((item) => !aggregate.requirements.some((requirement) => requirement.id === item.requirement_id && requirement.status === 'DRAFT'))) throw new Error('invalid page');
+      setPage({ ...next, items: pending });
+    } catch (failure) {
+      if (token !== generation.current) return;
+      if (failure instanceof ApiError && [401, 403].includes(failure.status)) { setPage(undefined); setContext(undefined); setError('Requirement reviews unavailable.'); }
+      else setMoreError('More review history unavailable. Try again.');
+    } finally { if (token === generation.current) { pageLock.current = false; setLoadingMore(false); } }
+  }
   function open(next: Mode) { if (disabled || locked || busy) return; restoreFocus.current = `v-requirement-review-${encodeURIComponent(next.requirement)}`; onPendingChange?.(true); setMode(next); setReason(''); setError(''); setNotice(''); }
   async function submit(action: 'propose' | 'approve' | 'reject') {
     if (!mode || !context || !page || page.next_after_id || disabled || locked || inFlight.current || !reason.trim() || new TextEncoder().encode(reason.trim()).length > 2000) return;
@@ -58,8 +79,10 @@ export function RequirementReviews({ aggregate, operations, onUpdated, disabled 
   return <section className="v-requirement-reviews" aria-label="Requirement reviews">
     {notice && <p role="status">{notice}</p>}{error && <p role="alert">{error}{!locked && !mode && <button type="button" onClick={() => setAttempt((value) => value + 1)}>Try again</button>}</p>}
     {locked && <button type="button" onClick={() => window.location.reload()}>Reload Program</button>}
-    {page?.next_after_id && <p>Requirement reviews incomplete.</p>}
-    {page && aggregate.requirements.filter((requirement) => requirement.status === 'DRAFT').map((requirement) => {
+    {page?.next_after_id && <p>Review history incomplete.</p>}
+    {moreError && <p role="alert">{moreError}</p>}
+    {page?.next_after_id && <button type="button" disabled={loadingMore || disabled || locked || busy} onClick={() => void more()}>{loadingMore ? 'Loading…' : 'Load more reviews'}</button>}
+    {page && !page.next_after_id && aggregate.requirements.filter((requirement) => requirement.status === 'DRAFT').map((requirement) => {
       const pending = page.items.find((item) => item.requirement_id === requirement.id && item.status === 'PENDING');
       const available = !disabled && !locked && !busy && !mode && !page.next_after_id;
       return <div key={requirement.id}><strong>{requirement.title}</strong>{pending && <><p>Review pending</p><p>Reason for review: {pending.proposal_rationale}</p></>}

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { RequirementReviews } from './RequirementReviews';
+import { ApiError } from '../http';
 import type { ProgramAggregate } from '../types';
 const api = vi.hoisted(() => ({ loadContext: vi.fn(), loadProgram: vi.fn(), loadRequirementReviews: vi.fn(), proposeRequirementReview: vi.fn(), decideRequirementReview: vi.fn() }));
 vi.mock('../api', () => ({ loadContext: api.loadContext, loadProgram: api.loadProgram }));
@@ -9,6 +10,10 @@ const requirement = { id: 'r1', code: 'R1', title: 'Review access', statement: '
 const program = { id: 'p1', tenant_id: 'bank', legal_entity_id: 'entity', owner_principal_id: 'owner', authority_principal_id: 'checker', status: 'ACTIVE', version: 4 };
 const aggregate = { program, requirements: [requirement], applicability: [] } as unknown as ProgramAggregate;
 const review = { id: 'review1', tenant_id: 'bank', program_id: 'p1', requirement_id: 'r1', proposed_by: 'owner', proposal_rationale: 'Check this requirement', status: 'PENDING', version: 1 };
+function historyPage(page: number) {
+  const items = Array.from({ length: 100 }, (_, index) => ({ ...review, id: `review-${String(page * 100 + index).padStart(5, '0')}`, status: 'REJECTED', version: 2 }));
+  return { program_id: 'p1', program_version: 4, items, next_after_id: items[items.length - 1]!.id };
+}
 const operation = (command: string) => ({ command, can_act: true, label: '', responsibility: '', reason: '' });
 const ownerOps = [operation('program.requirement.review.propose')];
 const checkerOps = [operation('program.requirement.review.approve'), operation('program.requirement.review.reject')];
@@ -56,10 +61,92 @@ it('does not offer a decision to the maker even if an operation permits it', asy
   expect(screen.queryByRole('button', { name: 'Review Review access' })).toBeNull();
 });
 it('does not offer a proposal when review history is incomplete', async () => {
-  api.loadRequirementReviews.mockResolvedValue({ program_id: 'p1', program_version: 4, items: [], next_after_id: 'next' });
+  api.loadRequirementReviews.mockResolvedValue(historyPage(0));
   render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
-  expect(await screen.findByText('Requirement reviews incomplete.')).toBeTruthy();
+  expect(await screen.findByText('Review history incomplete.')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Send .* for review/ })).toBeNull();
+});
+it('rejects a first page whose continuation skips past its last row', async () => {
+  api.loadRequirementReviews.mockResolvedValue({ ...historyPage(0), next_after_id: 'review-99999' });
+  render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
+  expect(await screen.findByText('Requirement reviews unavailable.')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Send .* for review/ })).toBeNull();
+});
+it('rejects a first page with disordered review IDs', async () => {
+  const page = historyPage(0); [page.items[0], page.items[1]] = [page.items[1]!, page.items[0]!];
+  api.loadRequirementReviews.mockResolvedValue(page);
+  render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
+  expect(await screen.findByText('Requirement reviews unavailable.')).toBeTruthy();
+});
+it('rejects a subsequent page whose continuation skips past its last row', async () => {
+  api.loadRequirementReviews.mockResolvedValueOnce(historyPage(0)).mockResolvedValueOnce({ ...historyPage(1), next_after_id: 'review-99999' });
+  render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Load more reviews' }));
+  expect(await screen.findByText('More review history unavailable. Try again.')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Send .* for review/ })).toBeNull();
+});
+it('rejects a subsequent page with disordered review IDs', async () => {
+  const page = historyPage(1); [page.items[0], page.items[1]] = [page.items[1]!, page.items[0]!];
+  api.loadRequirementReviews.mockResolvedValueOnce(historyPage(0)).mockResolvedValueOnce(page);
+  render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Load more reviews' }));
+  expect(await screen.findByText('More review history unavailable. Try again.')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Send .* for review/ })).toBeNull();
+});
+it('loads the next scoped history page before allowing a proposal', async () => {
+  api.loadRequirementReviews.mockResolvedValueOnce(historyPage(0)).mockResolvedValueOnce({ program_id: 'p1', program_version: 4, items: [], next_after_id: '' });
+  render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Load more reviews' }));
+  expect(await screen.findByRole('button', { name: 'Send Review access for review' })).toBeTruthy();
+  expect(api.loadRequirementReviews).toHaveBeenLastCalledWith('bank', 'p1', historyPage(0).next_after_id);
+});
+it('does not expose actions if a later review page loses access', async () => {
+  const page = historyPage(0); page.items[0] = { ...page.items[0]!, status: 'PENDING', version: 1 };
+  api.loadRequirementReviews.mockResolvedValueOnce(page).mockRejectedValueOnce(new ApiError(403, 'denied'));
+  render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
+  expect(await screen.findByText('Review history incomplete.')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Load more reviews' }));
+  expect(await screen.findByText('Requirement reviews unavailable.')).toBeTruthy();
+  expect(screen.queryByText('Review history incomplete.')).toBeNull();
+  expect(screen.queryByRole('button', { name: /Send .* for review/ })).toBeNull();
+});
+it('does not advance when a history page repeats its cursor', async () => {
+  api.loadRequirementReviews.mockResolvedValueOnce(historyPage(0)).mockResolvedValueOnce(historyPage(0));
+  render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Load more reviews' }));
+  expect(await screen.findByText('More review history unavailable. Try again.')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Send .* for review/ })).toBeNull();
+});
+it('rejects a later history page with another Program version', async () => {
+  api.loadRequirementReviews.mockResolvedValueOnce(historyPage(0)).mockResolvedValueOnce({ program_id: 'p1', program_version: 5, items: [], next_after_id: '' });
+  render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Load more reviews' }));
+  expect(await screen.findByText('More review history unavailable. Try again.')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Send .* for review/ })).toBeNull();
+});
+it('rejects a history row at or before the previous cursor', async () => {
+  api.loadRequirementReviews.mockResolvedValueOnce(historyPage(0)).mockResolvedValueOnce({ program_id: 'p1', program_version: 4, items: [{ ...review, id: 'before', status: 'REJECTED' }], next_after_id: '' });
+  render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Load more reviews' }));
+  expect(await screen.findByText('More review history unavailable. Try again.')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Send .* for review/ })).toBeNull();
+});
+it('requests a history page only once during synchronous repeated activation', async () => {
+  api.loadRequirementReviews.mockResolvedValueOnce(historyPage(0)).mockReturnValueOnce(new Promise(() => {}));
+  render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
+  const button = await screen.findByRole('button', { name: 'Load more reviews' });
+  fireEvent.click(button); fireEvent.click(button);
+  await vi.waitFor(() => expect(api.loadRequirementReviews).toHaveBeenCalledTimes(2));
+});
+it('can reach the end of a long history without an arbitrary page cap', async () => {
+  for (let index = 0; index < 11; index++) api.loadRequirementReviews.mockResolvedValueOnce(historyPage(index));
+  api.loadRequirementReviews.mockResolvedValueOnce({ program_id: 'p1', program_version: 4, items: [], next_after_id: '' });
+  render(<RequirementReviews aggregate={aggregate} operations={ownerOps} onUpdated={() => {}}/>);
+  for (let index = 0; index < 11; index++) {
+    fireEvent.click(await screen.findByRole('button', { name: 'Load more reviews' }));
+    await vi.waitFor(() => expect(api.loadRequirementReviews).toHaveBeenCalledTimes(index + 2));
+  }
+  expect(await screen.findByRole('button', { name: 'Send Review access for review' })).toBeTruthy();
 });
 
 it('moves focus into the review and returns it on cancellation', async () => {

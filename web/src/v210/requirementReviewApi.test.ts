@@ -8,6 +8,10 @@ it('loads reviews for the scoped tenant and exact Program', async () => {
   await loadRequirementReviews('bank', 'program / 1');
   expect(mocks.requestJSON).toHaveBeenCalledWith('', '/api/v1/programs/program%20%2F%201/requirement-reviews?tenant_id=bank');
 });
+it('continues the exact Program review history with its cursor', async () => {
+  await loadRequirementReviews('bank', 'program / 1', 'cursor / 1');
+  expect(mocks.requestJSON).toHaveBeenCalledWith('', '/api/v1/programs/program%20%2F%201/requirement-reviews?tenant_id=bank&after_id=cursor+%2F+1');
+});
 it('sends the exact draft and current Program version without a browser actor', async () => {
   await proposeRequirementReview('program / 1', 'requirement / 1', 4, 'Review this');
   expect(mocks.continuityCommand).toHaveBeenCalledWith('/api/v1/programs/program%20%2F%201/requirements/requirement%20%2F%201/review', { expected_version: 4, rationale: 'Review this' });

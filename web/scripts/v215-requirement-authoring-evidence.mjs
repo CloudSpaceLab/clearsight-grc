@@ -16,7 +16,10 @@ try {
       window.fetch = async (input, init) => {
         const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, location.origin);
         if (url.pathname === '/api/v1/programs/sample-program/operations') return new Response(JSON.stringify({ program_id: 'sample-program', program_version: 1, authority_available: true, operations: [{ command: 'program.requirement.add', can_act: true }, { command: 'program.requirement.review.propose', can_act: true }, { command: 'program.applicability.decide', can_act: true }, { command: 'program.requirement.supersede', subresource_id: 'sample-requirement', can_act: true }] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-        if (url.pathname === '/api/v1/programs/sample-program/requirement-reviews') return new Response(JSON.stringify({ program_id: 'sample-program', program_version: 1, items: [], next_after_id: window.programReviewPagedFixture && !url.searchParams.has('after_id') ? 'sample-cursor' : '' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        if (url.pathname === '/api/v1/programs/sample-program/requirement-reviews') {
+          const items = window.programReviewPagedFixture && !url.searchParams.has('after_id') ? Array.from({ length: 100 }, (_, index) => ({ id: `sample-review-${String(index).padStart(3, '0')}`, tenant_id: 'sample-bank', program_id: 'sample-program', requirement_id: 'sample-draft', proposed_by: 'sample-person', proposal_rationale: 'Review this requirement.', status: 'REJECTED', version: 2 })) : [];
+          return new Response(JSON.stringify({ program_id: 'sample-program', program_version: 1, items, next_after_id: items.length ? items[99].id : '' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
         if (url.pathname === '/api/v1/programs/sample-program') {
           const response = await original(input, init);
           const value = await response.json();
