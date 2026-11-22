@@ -17,6 +17,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/alexedwards/scs/v2"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -48,6 +49,8 @@ func TestPostgresSessionStoreRejectsStaleCommitsAndRotation(t *testing.T) {
 		s.Put(c, sessionPrincipalID, "principal-1")
 		s.Put(c, sessionTenantID, "bank")
 		s.Put(c, sessionLegalEntityID, "entity-a")
+		s.Put(c, sessionSessionID, "session-1")
+		s.Put(c, sessionIssuedAt, time.Now().UTC().Add(-time.Minute))
 		token, _, e := s.Commit(c)
 		if e != nil {
 			t.Fatal(e)
@@ -81,6 +84,81 @@ func TestPostgresSessionStoreRejectsStaleCommitsAndRotation(t *testing.T) {
 			t.Fatal(e)
 		}
 		assertGone(token)
+	})
+	t.Run("OIDC proof binds the verified actor to loaded session", func(t *testing.T) {
+		token := create()
+		loaded := load(token)
+		actor := identity.Actor{Kind: "PERSON", TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "principal-1", SessionID: "session-1", AuthenticationMethod: "OIDC", IssuedAt: s.GetTime(loaded, sessionIssuedAt), ExpiresAt: s.Deadline(loaded)}
+		verified := identity.WithActor(loaded, actor)
+		proof, e := VerifiedOIDCSession(verified, actor)
+		if e != nil || proof.TokenHash != hashSessionToken(token) || len(proof.Data) == 0 {
+			t.Fatalf("valid proof missing: %v", e)
+		}
+		spoof := actor
+		spoof.PrincipalID = "other"
+		if _, e = VerifiedOIDCSession(verified, spoof); e == nil {
+			t.Fatal("mismatched actor accepted")
+		}
+		signed := actor
+		signed.AuthenticationMethod = "SSO"
+		if _, e = VerifiedOIDCSession(identity.WithActor(loaded, signed), signed); e == nil {
+			t.Fatal("signed identity accepted as OIDC")
+		}
+	})
+	t.Run("session transaction lock orders logout and rotation", func(t *testing.T) {
+		for _, action := range []string{"logout", "rotation"} {
+			t.Run(action, func(t *testing.T) {
+				token := create()
+				loaded := load(token)
+				actor := identity.Actor{Kind: "PERSON", TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "principal-1", SessionID: "session-1", AuthenticationMethod: "OIDC", IssuedAt: s.GetTime(loaded, sessionIssuedAt), ExpiresAt: s.Deadline(loaded)}
+				verified := identity.WithActor(loaded, actor)
+				tx, e := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+				if e != nil {
+					t.Fatal(e)
+				}
+				defer tx.Rollback(ctx)
+				if _, e = LockVerifiedOIDCSession(verified, tx, actor); e != nil {
+					t.Fatalf("lock session: %v", e)
+				}
+				other := load(token)
+				done := make(chan error, 1)
+				go func() {
+					if action == "logout" {
+						done <- s.Destroy(other)
+					} else {
+						done <- s.RenewToken(other)
+					}
+				}()
+				select {
+				case e := <-done:
+					t.Fatalf("%s did not wait for session lock: %v", action, e)
+				case <-time.After(150 * time.Millisecond):
+				}
+				if e = tx.Commit(ctx); e != nil {
+					t.Fatal(e)
+				}
+				if e = <-done; e != nil {
+					t.Fatalf("%s after release: %v", action, e)
+				}
+				if action == "rotation" {
+					newToken, _, commitErr := s.Commit(other)
+					if commitErr != nil {
+						t.Fatal(commitErr)
+					}
+					t.Cleanup(func() {
+						_, _ = pool.Exec(context.Background(), `DELETE FROM web_sessions WHERE token=$1`, hashSessionToken(newToken))
+					})
+				}
+				later, e := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+				if e != nil {
+					t.Fatal(e)
+				}
+				defer later.Rollback(ctx)
+				if _, e = LockVerifiedOIDCSession(verified, later, actor); e == nil {
+					t.Fatal("revoked original session accepted")
+				}
+			})
+		}
 	})
 	t.Run("logout wins against scope rotation", func(t *testing.T) {
 		token := create()

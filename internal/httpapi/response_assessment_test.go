@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"fmt"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -11,6 +12,14 @@ import (
 	"testing"
 	"time"
 )
+
+func TestResponseAssessmentDeadlineReturnsUnavailable(t *testing.T) {
+	w := httptest.NewRecorder()
+	writeResponseAssessmentError(w, fmt.Errorf("session wait: %w", context.DeadlineExceeded))
+	if w.Code != http.StatusServiceUnavailable || !strings.Contains(w.Body.String(), "assessment_unavailable") || strings.Contains(w.Body.String(), "session wait") {
+		t.Fatalf("deadline response: %d %s", w.Code, w.Body.String())
+	}
+}
 
 func TestResponseAssessmentPOSTUnavailableForAuthorizedActor(t *testing.T) {
 	service := evidence.NewDistributionService(evidence.NewMemoryDistributionStore(evidence.NewMemoryRepository(nil, nil), nil, nil)).WithAssessmentAuthorizer(func(context.Context, identity.Actor, evidence.CompletedResponseSummary, formcontract.Field) (string, error) {

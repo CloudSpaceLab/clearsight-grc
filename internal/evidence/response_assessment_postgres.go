@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/jackc/pgx/v5"
 	"strings"
@@ -17,6 +18,10 @@ import (
 type assessmentQueryer interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
+
+// This bounds the per-session share lock and all subsequent assessment work.
+// A commit error can be uncertain; callers recover using the same request key.
+const assessmentDecisionTimeout = 5 * time.Second
 
 // PostgreSQL execution checks the assessment while locking the response in the
 // policy repository's transaction; acquiring another transaction here would
@@ -107,12 +112,25 @@ func (s *PostgresDistributionStore) WriteResponseAssessment(ctx context.Context,
 	if !ok || !strings.EqualFold(strings.TrimSpace(actor.Kind), "PERSON") || actor.TenantID != tenant || actor.PrincipalID != principal || (actor.LegalEntityID != entity && actor.LegalEntityID != "*") || actor.ExpiresAt.IsZero() {
 		return assessmentMaterial{}, ErrAssessmentForbidden
 	}
+	ctx, cancel := context.WithTimeout(ctx, assessmentDecisionTimeout)
+	defer cancel()
 	tx, err := s.repo.pool.Begin(ctx)
 	if err != nil {
 		return assessmentMaterial{}, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		rollbackCtx, stop := context.WithTimeout(context.Background(), time.Second)
+		defer stop()
+		_ = tx.Rollback(rollbackCtx)
+	}()
 	ctx = authority.WithPostgresTransaction(ctx, tx)
+	session, err := federation.LockVerifiedOIDCSession(ctx, tx, actor)
+	if err != nil {
+		if errors.Is(err, federation.ErrOIDCSessionProofUnavailable) {
+			return assessmentMaterial{}, ErrAssessmentForbidden
+		}
+		return assessmentMaterial{}, err
+	}
 	canonical, err := responseReviewTenant(ctx, tx, tenant)
 	if err != nil {
 		return assessmentMaterial{}, err
@@ -244,11 +262,11 @@ func (s *PostgresDistributionStore) WriteResponseAssessment(ctx context.Context,
  SELECT DISTINCT r.tenant_id,r.legal_entity_id,r.id,$2::bigint,$3::text,$4::integer,$5::integer,$7::integer,jsonb_set($17::jsonb,'{calculated_at}',to_jsonb(statement_timestamp())),
  (SELECT jsonb_object_agg(k, CASE WHEN k=ANY($19::text[]) THEN v||jsonb_build_object('authority_source_type',CASE WHEN left(s.source_id,11)='assignment:' THEN 'ASSIGNMENT' ELSE 'POLICY' END,'authority_source_id',CASE WHEN left(s.source_id,11)='assignment:' THEN substring(s.source_id FROM 12) ELSE s.source_id END,'authority_rule_id',s.rule_id,'authority_policy_version',s.policy_version,'assessed_at',statement_timestamp()) ELSE v END) FROM jsonb_each($18::jsonb) AS x(k,v)),statement_timestamp(),$21::uuid,$22::uuid,$23::jsonb ` + responseReviewEligibilitySQL("") + `
  AND r.is_current AND r.state IN ('FINAL','PROVISIONAL') AND d.status NOT IN ('REVOKED','SUPERSEDED') AND r.revision=$15
- AND s.policy_version||':'||s.rule_id=$16 AND NOT EXISTS (SELECT 1 FROM unnest($20::text[]) required(role) WHERE NOT EXISTS (SELECT 1 FROM effective role_origin WHERE role_origin.request_index=0 AND role_origin.principal_id=actor.id AND (upper(role_origin.seed_role_code)=upper(required.role) OR (role_origin.principal_id=role_origin.origin_id AND role_origin.seed_role_code='' AND upper(role_origin.seed_role)=upper(required.role))))) AND COALESCE((SELECT max(version) FROM capture_response_assessments prior WHERE prior.tenant_id=r.tenant_id AND prior.legal_entity_id=r.legal_entity_id AND prior.response_revision_id=r.id),0)=$2::bigint-1 RETURNING created_at)
+ AND s.policy_version||':'||s.rule_id=$16 AND NOT EXISTS (SELECT 1 FROM unnest($20::text[]) required(role) WHERE NOT EXISTS (SELECT 1 FROM effective role_origin WHERE role_origin.request_index=0 AND role_origin.principal_id=actor.id AND (upper(role_origin.seed_role_code)=upper(required.role) OR (role_origin.principal_id=role_origin.origin_id AND role_origin.seed_role_code='' AND upper(role_origin.seed_role)=upper(required.role))))) AND EXISTS(SELECT 1 FROM web_sessions staff_session WHERE staff_session.token=$24 AND staff_session.data=$25::bytea AND staff_session.expiry>statement_timestamp() AND staff_session.expiry>clock_timestamp()) AND COALESCE((SELECT max(version) FROM capture_response_assessments prior WHERE prior.tenant_id=r.tenant_id AND prior.legal_entity_id=r.legal_entity_id AND prior.response_revision_id=r.id),0)=$2::bigint-1 RETURNING created_at)
  SELECT inserted.created_at, CASE WHEN left(s.source_id,11)='assignment:' THEN 'ASSIGNMENT' ELSE 'POLICY' END, CASE WHEN left(s.source_id,11)='assignment:' THEN substring(s.source_id FROM 12) ELSE s.source_id END,s.rule_id,s.policy_version FROM inserted CROSS JOIN selected s WHERE s.request_index=0 AND NOT s.ambiguous`
 	var now time.Time
 	var sourceType, sourceID, ruleID, policyVersion string
-	err = tx.QueryRow(ctx, statement, string(request), next.Version, next.Result.State, next.Result.RequiredCount, next.Result.ReviewedRequiredCount, principal, next.Result.ReviewedCount, response, m.Summary.TenantID, m.Summary.LegalEntityID, actor.TenantID, actor.LegalEntityID, actor.ExpiresAt, issuedAt, m.Revision.Revision, decisions[0].AuthorityRoute, string(score), string(decisionJSON), fieldIDs, roles, key, requestReviewer, requestPayload).Scan(&now, &sourceType, &sourceID, &ruleID, &policyVersion)
+	err = tx.QueryRow(ctx, statement, string(request), next.Version, next.Result.State, next.Result.RequiredCount, next.Result.ReviewedRequiredCount, principal, next.Result.ReviewedCount, response, m.Summary.TenantID, m.Summary.LegalEntityID, actor.TenantID, actor.LegalEntityID, actor.ExpiresAt, issuedAt, m.Revision.Revision, decisions[0].AuthorityRoute, string(score), string(decisionJSON), fieldIDs, roles, key, requestReviewer, requestPayload, session.TokenHash, session.Data).Scan(&now, &sourceType, &sourceID, &ruleID, &policyVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return assessmentMaterial{}, ErrAssessmentForbidden
 	}

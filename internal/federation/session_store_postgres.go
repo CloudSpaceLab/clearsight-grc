@@ -9,8 +9,10 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/alexedwards/scs/pgxstore"
 	"github.com/alexedwards/scs/v2"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -57,6 +59,36 @@ func unchangedSession(state *sessionRequestState, data []byte, expiry time.Time)
 	before, beforeValues, e1 := codec.Decode(baseline)
 	after, afterValues, e2 := codec.Decode(data)
 	return e1 == nil && e2 == nil && before.Equal(after) && !expiry.After(after) && reflect.DeepEqual(beforeValues, afterValues)
+}
+
+// LockVerifiedOIDCSession binds the existing SCS row to the verified actor for
+// a READ COMMITTED material transaction. Callers must recheck the returned row
+// and expiry in their decision statement and must never log or expose it.
+func LockVerifiedOIDCSession(ctx context.Context, tx pgx.Tx, actor identity.Actor) (OIDCSessionProof, error) {
+	if tx == nil {
+		return OIDCSessionProof{}, ErrOIDCSessionProofUnavailable
+	}
+	proof, err := VerifiedOIDCSession(ctx, actor)
+	if err != nil {
+		return OIDCSessionProof{}, ErrOIDCSessionProofUnavailable
+	}
+	var current []byte
+	err = tx.QueryRow(ctx, `SELECT data FROM web_sessions WHERE token=$1 AND expiry>clock_timestamp() AND current_setting('transaction_isolation')='read committed' FOR SHARE`, proof.TokenHash).Scan(&current)
+	if err != nil {
+		if ctx.Err() != nil {
+			return OIDCSessionProof{}, ctx.Err()
+		}
+		if errors.Is(err, pgx.ErrNoRows) {
+			return OIDCSessionProof{}, ErrOIDCSessionProofUnavailable
+		}
+		return OIDCSessionProof{}, err
+	}
+	state, ok := ctx.Value(originalSessionTokenKey{}).(*sessionRequestState)
+	if !ok || !unchangedSession(state, current, actor.ExpiresAt) {
+		return OIDCSessionProof{}, ErrOIDCSessionProofUnavailable
+	}
+	proof.Data = append([]byte(nil), current...)
+	return proof, nil
 }
 func (s *PostgresSessionStore) CommitCtx(ctx context.Context, token string, data []byte, expiry time.Time) error {
 	state, ok := ctx.Value(originalSessionTokenKey{}).(*sessionRequestState)

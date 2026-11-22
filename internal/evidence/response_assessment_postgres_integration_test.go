@@ -7,10 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/alexedwards/scs/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"sync"
@@ -73,6 +77,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	}
 	config := pool.Config()
 	config.MaxConns = 4
+	config.ConnConfig.RuntimeParams["application_name"] = "assessment-boundary-" + tenant
 	assessmentPool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		t.Fatal(err)
@@ -99,8 +104,8 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 		return route.PolicyVersion + ":" + route.RuleID, nil
 	})
 	service.assessmentDecisionsEnabled = true // Exercise the unexposed transaction in isolation.
-	ctx = identity.WithActor(ctx, identity.Actor{Kind: "PERSON", TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: now.Add(time.Hour)})
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctx = assessmentOIDCContext(t, pool, tenant, entity, reviewer, now.Add(time.Hour))
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	baseline, err := service.GetResponseAssessment(ctx, tenant, entity, reviewer, response)
 	if err != nil || !baseline.MayReview {
@@ -108,6 +113,98 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 		var details string
 		diag := pool.QueryRow(ctx, `SELECT (`+completedResponseVisibilitySQL(4, 5)+`), concat_ws('|',req.form_template_id::text,d.form_template_id::text,req.form_template_version::text,d.form_template_version::text,req.subject_type,d.subject_type,req.subject_id,d.subject_id::text) FROM capture_response_revisions r JOIN tenants t ON t.id=r.tenant_id JOIN capture_form_distributions d ON d.id=r.distribution_id AND d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id `+completedResponseRequestJoinsSQL()+` WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id=$2::uuid AND r.id=$3::uuid`, tenant, entity, response, reviewer, time.Now()).Scan(&visible, &details)
 		t.Fatalf("authorized assessment baseline: %+v %v; visibility=%v details=%s diagnostic=%v", baseline, err, visible, details, diag)
+	}
+	actorForWait, _ := identity.FromContext(ctx)
+	proofForWait, err := federation.VerifiedOIDCSession(ctx, actorForWait)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessionBlock, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sessionBlock.Rollback(context.Background())
+	if _, err = sessionBlock.Exec(ctx, `SELECT token FROM web_sessions WHERE token=$1 FOR UPDATE`, proofForWait.TokenHash); err != nil {
+		t.Fatal(err)
+	}
+	cancelled, stopCancelled := context.WithTimeout(ctx, 250*time.Millisecond)
+	_, cancelledErr := service.RecordResponseAssessment(cancelled, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: mustResponseWorkspaceID(t), Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Review cancelled."}}})
+	stopCancelled()
+	if err = sessionBlock.Rollback(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if !errors.Is(cancelledErr, context.DeadlineExceeded) {
+		t.Fatalf("blocked session cancellation was misreported: %v", cancelledErr)
+	}
+	// A blocked response lock must not keep the authenticated session locked
+	// indefinitely. The session lock is already held when this wait begins.
+	blocked, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer blocked.Rollback(context.Background())
+	if _, err = blocked.Exec(ctx, `SELECT id FROM capture_response_revisions WHERE id=$1::uuid FOR UPDATE`, response); err != nil {
+		t.Fatal(err)
+	}
+	blockedResult := make(chan error, 1)
+	blockedKey := mustResponseWorkspaceID(t)
+	go func() {
+		_, e := service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: blockedKey, Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Review timed out."}}})
+		blockedResult <- e
+	}()
+	waitUntil := time.Now().Add(3 * time.Second)
+	waiting := false
+	for time.Now().Before(waitUntil) {
+		var n int
+		if err = pool.QueryRow(ctx, `SELECT count(*) FROM pg_stat_activity WHERE application_name=$1 AND state='active' AND wait_event_type='Lock' AND query LIKE 'SELECT r.is_current%'`, "assessment-boundary-"+tenant).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n > 0 {
+			waiting = true
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !waiting {
+		_ = blocked.Rollback(context.Background())
+		t.Fatal("assessment did not wait on the response lock")
+	}
+	currentActor, _ := identity.FromContext(ctx)
+	sessionProof, err := federation.VerifiedOIDCSession(ctx, currentActor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	short, shortCancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+	_, sessionWaitErr := pool.Exec(short, `UPDATE web_sessions SET expiry=expiry WHERE token=$1`, sessionProof.TokenHash)
+	shortCancel()
+	if !errors.Is(sessionWaitErr, context.DeadlineExceeded) {
+		_ = blocked.Rollback(context.Background())
+		t.Fatalf("session was not locked while response blocked: %v", sessionWaitErr)
+	}
+	select {
+	case e := <-blockedResult:
+		if !errors.Is(e, context.DeadlineExceeded) {
+			_ = blocked.Rollback(context.Background())
+			t.Fatalf("blocked command error: %v", e)
+		}
+	case <-time.After(7 * time.Second):
+		_ = blocked.Rollback(context.Background())
+		<-blockedResult
+		t.Fatal("assessment transaction exceeded its time limit")
+	}
+	check, checkCancel := context.WithTimeout(context.Background(), time.Second)
+	_, sessionReleaseErr := pool.Exec(check, `UPDATE web_sessions SET expiry=expiry WHERE token=$1`, sessionProof.TokenHash)
+	checkCancel()
+	if sessionReleaseErr != nil {
+		_ = blocked.Rollback(context.Background())
+		t.Fatalf("session lock remained after cancellation: %v", sessionReleaseErr)
+	}
+	if err = blocked.Rollback(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var timeoutWrites int
+	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_assessments WHERE tenant_id=$1::uuid)+(SELECT count(*) FROM capture_field_assessments WHERE tenant_id=$1::uuid)+(SELECT count(*) FROM capture_distribution_events WHERE tenant_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_ASSESSED_%')+(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_ASSESSED')`, tenant).Scan(&timeoutWrites); err != nil || timeoutWrites != 0 {
+		t.Fatalf("timed-out assessment wrote %d records: %v", timeoutWrites, err)
 	}
 	lock, err := pool.Begin(ctx)
 	if err != nil {
@@ -121,7 +218,7 @@ func TestPostgresResponseAssessmentAtomicHistoryAndReplay(t *testing.T) {
 	var once sync.Once
 	service.now = func() time.Time { once.Do(func() { close(started) }); return time.Now() }
 	expires := time.Now().Add(600 * time.Millisecond)
-	expiring := identity.WithActor(ctx, identity.Actor{Kind: "PERSON", TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: expires})
+	expiring := assessmentOIDCContext(t, pool, tenant, entity, reviewer, expires)
 	expiryResult := make(chan error, 1)
 	go func() {
 		_, writeErr := service.RecordResponseAssessment(expiring, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "score", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
@@ -490,7 +587,7 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 		return route.PolicyVersion + ":" + route.RuleID, nil
 	})
 	service.assessmentDecisionsEnabled = true // Exercise the unexposed transaction in isolation.
-	ctx = identity.WithActor(ctx, identity.Actor{Kind: "PERSON", TenantID: tenant, LegalEntityID: entity, PrincipalID: reviewer, ExpiresAt: now.Add(time.Hour)})
+	ctx = assessmentOIDCContext(t, pool, tenant, entity, reviewer, now.Add(time.Hour))
 	assessment, err := service.GetResponseAssessment(ctx, tenant, entity, reviewer, response)
 	if err != nil || !assessment.MayReview {
 		t.Fatalf("reviewer assessment %+v %v", assessment, err)
@@ -536,9 +633,162 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 		t.Fatalf("unscoped reviewer inventory %+v %v", page, err)
 	}
 	q.ResponseRevisionID = response
-	updated, err := service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "Report omits tested systems."}}})
+	reviewerInput := RecordResponseAssessmentInput{RequestKey: "00000000-0000-4000-8000-000000000001", Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "Report omits tested systems."}}}
+	updated, err := service.RecordResponseAssessment(ctx, tenant, entity, response, reviewerInput)
 	if err != nil || updated.Version != 1 || !updated.MayReview {
 		t.Fatalf("non-owner reviewer cannot record: %+v %v", updated, err)
+	}
+	revokedCtx := assessmentOIDCContext(t, pool, tenant, entity, reviewer, time.Now().Add(time.Hour))
+	revokedActor, _ := identity.FromContext(revokedCtx)
+	sessionProof, proofErr := federation.VerifiedOIDCSession(revokedCtx, revokedActor)
+	if proofErr != nil {
+		t.Fatal(proofErr)
+	}
+	if _, err = pool.Exec(ctx, `DELETE FROM web_sessions WHERE token=$1`, sessionProof.TokenHash); err != nil {
+		t.Fatal(err)
+	}
+	if receipt, replayErr := service.RecordResponseAssessment(revokedCtx, tenant, entity, response, reviewerInput); replayErr == nil || receipt.Version != 0 {
+		t.Fatalf("revoked OIDC session received receipt: %+v %v", receipt, replayErr)
+	}
+	for _, action := range []string{"logout", "rotation"} {
+		fixture := newAssessmentOIDCFixture(t, pool, tenant, entity, reviewer, time.Now().Add(time.Hour))
+		fixtureActor, _ := identity.FromContext(fixture.ctx)
+		if action == "logout" {
+			w := httptest.NewRecorder()
+			fixture.service.Logout(w, httptest.NewRequest(http.MethodPost, "/logout", nil).WithContext(fixture.ctx))
+			if w.Code != http.StatusNoContent {
+				t.Fatalf("logout status: %d", w.Code)
+			}
+		} else {
+			if _, e := fixture.service.SwitchScope(fixture.ctx, fixtureActor, entity); e != nil {
+				t.Fatalf("rotate: %v", e)
+			}
+		}
+		for _, attempt := range []RecordResponseAssessmentInput{reviewerInput, {RequestKey: mustResponseWorkspaceID(t), ExpectedVersion: 1, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "New review."}}}} {
+			if receipt, e := service.RecordResponseAssessment(fixture.ctx, tenant, entity, response, attempt); e == nil || receipt.Version != 0 {
+				t.Fatalf("%s before decision exposed receipt: %+v %v", action, receipt, e)
+			}
+		}
+	}
+	refreshCtx := assessmentOIDCContext(t, pool, tenant, entity, reviewer, time.Now().Add(time.Hour))
+	refreshActor, _ := identity.FromContext(refreshCtx)
+	refreshProof, err := federation.VerifiedOIDCSession(refreshCtx, refreshActor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline, sessionValues, err := (scs.GobCodec{}).Decode(refreshProof.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reencoded, err := (scs.GobCodec{}).Encode(deadline, sessionValues)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = pool.Exec(ctx, `UPDATE web_sessions SET data=$2 WHERE token=$1`, refreshProof.TokenHash, reencoded); err != nil {
+		t.Fatal(err)
+	}
+	if receipt, e := service.RecordResponseAssessment(refreshCtx, tenant, entity, response, reviewerInput); e != nil || receipt.Version != 1 {
+		t.Fatalf("unchanged refreshed session: %+v %v", receipt, e)
+	}
+	sessionValues["auth.legal_entity_id"] = "another-entity"
+	changedSession, err := (scs.GobCodec{}).Encode(deadline, sessionValues)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = pool.Exec(ctx, `UPDATE web_sessions SET data=$2 WHERE token=$1`, refreshProof.TokenHash, changedSession); err != nil {
+		t.Fatal(err)
+	}
+	if receipt, e := service.RecordResponseAssessment(refreshCtx, tenant, entity, response, reviewerInput); e == nil || receipt.Version != 0 {
+		t.Fatalf("changed session data exposed receipt: %+v %v", receipt, e)
+	}
+	idleCtx := assessmentOIDCContext(t, pool, tenant, entity, reviewer, time.Now().Add(time.Hour))
+	idleActor, _ := identity.FromContext(idleCtx)
+	idleProof, err := federation.VerifiedOIDCSession(idleCtx, idleActor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = pool.Exec(ctx, `UPDATE web_sessions SET expiry=clock_timestamp()-interval '1 second' WHERE token=$1`, idleProof.TokenHash); err != nil {
+		t.Fatal(err)
+	}
+	if receipt, e := service.RecordResponseAssessment(idleCtx, tenant, entity, response, reviewerInput); e == nil || receipt.Version != 0 {
+		t.Fatalf("expired idle session exposed receipt: %+v %v", receipt, e)
+	}
+	for i, action := range []string{"logout", "rotation", "logout", "rotation"} {
+		attempt := reviewerInput
+		wantVersion := int64(1)
+		if i >= 2 {
+			attempt.RequestKey = mustResponseWorkspaceID(t)
+			attempt.ExpectedVersion = int64(i - 1)
+			wantVersion = attempt.ExpectedVersion + 1
+		}
+		fixture := newAssessmentOIDCFixture(t, pool, tenant, entity, reviewer, time.Now().Add(time.Hour))
+		fixtureActor, _ := identity.FromContext(fixture.ctx)
+		signed := fixtureActor
+		signed.AuthenticationMethod = "SSO"
+		if receipt, e := service.RecordResponseAssessment(identity.WithActor(fixture.ctx, signed), tenant, entity, response, reviewerInput); e == nil || receipt.Version != 0 {
+			t.Fatalf("signed mode accepted OIDC proof: %+v %v", receipt, e)
+		}
+		original := service.assessmentAuthorizer
+		checked, resume := make(chan struct{}), make(chan struct{})
+		var once sync.Once
+		service.WithAssessmentAuthorizer(func(c context.Context, a identity.Actor, r CompletedResponseSummary, f formcontract.Field) (string, error) {
+			route, e := original(c, a, r, f)
+			if e == nil {
+				once.Do(func() { close(checked); <-resume })
+			}
+			return route, e
+		})
+		type result struct {
+			value ResponseAssessment
+			err   error
+		}
+		done := make(chan result, 1)
+		go func() {
+			value, e := service.RecordResponseAssessment(fixture.ctx, tenant, entity, response, attempt)
+			done <- result{value, e}
+		}()
+		select {
+		case <-checked:
+		case got := <-done:
+			service.WithAssessmentAuthorizer(original)
+			t.Fatalf("%s replay before lock: %v", action, got.err)
+		case <-time.After(5 * time.Second):
+			close(resume)
+			service.WithAssessmentAuthorizer(original)
+			t.Fatalf("%s replay timed out", action)
+		}
+		actionDone := make(chan error, 1)
+		go func() {
+			if action == "logout" {
+				w := httptest.NewRecorder()
+				fixture.service.Logout(w, httptest.NewRequest(http.MethodPost, "/logout", nil).WithContext(fixture.ctx))
+				if w.Code != http.StatusNoContent {
+					actionDone <- fmt.Errorf("logout status %d", w.Code)
+				} else {
+					actionDone <- nil
+				}
+				return
+			}
+			_, e := fixture.service.SwitchScope(fixture.ctx, fixtureActor, entity)
+			actionDone <- e
+		}()
+		select {
+		case e := <-actionDone:
+			close(resume)
+			service.WithAssessmentAuthorizer(original)
+			t.Fatalf("%s passed session lock: %v", action, e)
+		case <-time.After(150 * time.Millisecond):
+		}
+		close(resume)
+		got := <-done
+		actionErr := <-actionDone
+		service.WithAssessmentAuthorizer(original)
+		if got.err != nil || got.value.Version != wantVersion || actionErr != nil {
+			t.Fatalf("%s ordered replay: %+v replay=%v action=%v", action, got.value, got.err, actionErr)
+		}
+		if receipt, e := service.RecordResponseAssessment(fixture.ctx, tenant, entity, response, attempt); e == nil || receipt.Version != 0 {
+			t.Fatalf("%s old session replay: %+v %v", action, receipt, e)
+		}
 	}
 	for _, status := range []string{"REVOKED", "SUPERSEDED"} {
 		if _, err = pool.Exec(ctx, `UPDATE capture_form_distributions SET status=$2 WHERE tenant_id=$1::uuid`, tenant, status); err != nil {
@@ -559,18 +809,18 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 	if _, err = pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$2::uuid,'PERSON','Delegated reviewer','ACTIVE',$3); UPDATE capture_form_distributions SET status='COMPLETED' WHERE tenant_id=$2::uuid; INSERT INTO delegations(tenant_id,legal_entity_id,from_principal_id,to_principal_id,responsibility,scope,starts_at,ends_at,status,created_by,approved_by,approved_at,version) VALUES($2::uuid,$4::uuid,$5::uuid,$1::uuid,'REVIEWER',jsonb_build_object('legal_entity_id',$4::text,'decision_type','forms.response.assess'),$3::timestamptz - interval '1 minute',$3::timestamptz + interval '1 hour','ACTIVE',$5::uuid,$6::uuid,$3,1)`, pgx.QueryExecModeSimpleProtocol, delegate, tenant, now, entity, reviewer, owner); err != nil {
 		t.Fatal(err)
 	}
-	delegateCtx := identity.WithActor(ctx, identity.Actor{Kind: "PERSON", TenantID: tenant, LegalEntityID: entity, PrincipalID: delegate, ExpiresAt: now.Add(time.Hour)})
+	delegateCtx := assessmentOIDCContext(t, pool, tenant, entity, delegate, now.Add(time.Hour))
 	resolution, err := router.Resolve(delegateCtx, authority.ResolveInput{TenantID: tenant, LegalEntityID: entity, ObjectType: "FORM_RESPONSE", ObjectID: response, Responsibility: authority.ResponsibilityReviewer, DecisionType: "forms.response.assess", Materiality: 3})
 	if err != nil || !resolution.AllowsPrincipalWithRole(delegate, "RISK") {
 		t.Fatalf("delegated route: %+v %v", resolution, err)
 	}
-	delegatedInput := RecordResponseAssessmentInput{RequestKey: mustResponseWorkspaceID(t), ExpectedVersion: 1, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "The report still omits tested systems."}}}
+	delegatedInput := RecordResponseAssessmentInput{RequestKey: mustResponseWorkspaceID(t), ExpectedVersion: 3, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "The report still omits tested systems."}}}
 	delegated, err := service.RecordResponseAssessment(delegateCtx, tenant, entity, response, delegatedInput)
-	if err != nil || delegated.Version != 2 || delegated.Fields[0].Decision == nil || delegated.Fields[0].Decision.ReviewerID != delegate {
+	if err != nil || delegated.Version != 4 || delegated.Fields[0].Decision == nil || delegated.Fields[0].Decision.ReviewerID != delegate {
 		t.Fatalf("delegated assessment: %+v %v", delegated, err)
 	}
 	replayed, err := service.RecordResponseAssessment(delegateCtx, tenant, entity, response, delegatedInput)
-	if err != nil || replayed.Version != 2 || replayed.Fields[0].Decision.ID != delegated.Fields[0].Decision.ID {
+	if err != nil || replayed.Version != 4 || replayed.Fields[0].Decision.ID != delegated.Fields[0].Decision.ID {
 		t.Fatalf("delegated receipt: %+v %v", replayed, err)
 	}
 	assertDelegateReplay := func(label string, allowed bool) {
@@ -578,7 +828,7 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 		current, routeErr := router.Resolve(delegateCtx, authority.ResolveInput{TenantID: tenant, LegalEntityID: entity, ObjectType: "FORM_RESPONSE", ObjectID: response, Responsibility: authority.ResponsibilityReviewer, DecisionType: "forms.response.assess", Materiality: 3})
 		routeAllows := routeErr == nil && current.AllowsPrincipalWithRole(delegate, "RISK")
 		receipt, retryErr := service.RecordResponseAssessment(delegateCtx, tenant, entity, response, delegatedInput)
-		if routeAllows != allowed || (retryErr == nil) != allowed || (allowed && (receipt.Version != 2 || receipt.Fields[0].Decision.ID != delegated.Fields[0].Decision.ID)) || (!allowed && receipt.Version != 0) {
+		if routeAllows != allowed || (retryErr == nil) != allowed || (allowed && (receipt.Version != 4 || receipt.Fields[0].Decision.ID != delegated.Fields[0].Decision.ID)) || (!allowed && receipt.Version != 0) {
 			t.Fatalf("%s: route=%v (%v) receipt=%+v (%v)", label, routeAllows, routeErr, receipt, retryErr)
 		}
 	}
@@ -596,7 +846,7 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 		})
 		key := mustResponseWorkspaceID(t)
 		go func() {
-			_, e := service.RecordResponseAssessment(delegateCtx, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: key, ExpectedVersion: 2, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "A fresh review."}}})
+			_, e := service.RecordResponseAssessment(delegateCtx, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: key, ExpectedVersion: 4, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "A fresh review."}}})
 			done <- e
 		}()
 		select {
@@ -662,7 +912,7 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 		t.Fatalf("revoked delegate received receipt: %+v %v", receipt, retryErr)
 	}
 	var assessmentCount, eventCount int
-	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_assessments WHERE tenant_id=$1::uuid),(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_ASSESSED')`, tenant).Scan(&assessmentCount, &eventCount); err != nil || assessmentCount != 2 || eventCount != 2 {
+	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_assessments WHERE tenant_id=$1::uuid),(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_ASSESSED')`, tenant).Scan(&assessmentCount, &eventCount); err != nil || assessmentCount != 4 || eventCount != 4 {
 		t.Fatalf("delegated write counts: %d/%d %v", assessmentCount, eventCount, err)
 	}
 	assessmentAuthorizer := service.assessmentAuthorizer
@@ -685,7 +935,7 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		expected := int64(2 + i)
+		expected := int64(4 + i)
 		subjectInput := RecordResponseAssessmentInput{RequestKey: mustResponseWorkspaceID(t), ExpectedVersion: expected, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "Review scope verified."}}}
 		recorded, recordErr := service.RecordResponseAssessment(ctx, tenant, entity, response, subjectInput)
 		if recordErr != nil || recorded.Version != expected+1 {
