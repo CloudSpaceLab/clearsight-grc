@@ -4,6 +4,9 @@ import { RiskWorkspace } from "./RiskWorkspace";
 import { ApiError } from "../http";
 const api = vi.hoisted(() => ({ listRisks: vi.fn(), getRisk: vi.fn() }));
 vi.mock("../riskApi", () => api);
+const monitoring = vi.hoisted(() => ({ loadMonitoringResults: vi.fn() }));
+vi.mock("../monitoringApi", () => monitoring);
+vi.mock("./FocusedSheet", () => ({ FocusedSheet: ({ children }: { children: React.ReactNode }) => <div role="dialog">{children}</div> }));
 const risk = { id: "risk/1", code: "R-01", name: "Service disruption", category: "Operational", statement: "Service may be unavailable", impact: "Delayed payments", status: "ACTIVE", version: 2 };
 beforeEach(() => { vi.resetAllMocks(); api.listRisks.mockResolvedValue({ items: [{ risk }] }); api.getRisk.mockResolvedValue({ risk, assessments: [], appetite: [] }); });
 it("clears the risk register if access is denied during pagination", async () => {
@@ -66,3 +69,53 @@ it("shows linked control and indicator details with their recorded states", asyn
   expect(screen.getByText("Privileged accounts reviewed")).toBeTruthy();
   expect(screen.getByText("Breach")).toBeTruthy();
 });
+
+
+it("opens the linked indicator's exact Program and check revision", async () => {
+  api.getRisk.mockResolvedValue({ risk, assessments: [], indicator_details_complete: true, indicator_details: [{ link: { id: "link-1", risk_id: "risk/1", risk_version: 2, program_id: "program-1", monitoring_check_id: "check-1", monitoring_check_version: 3 }, program_id: "program-1", check_id: "check-1", check_version: 3, check_name: "Failed backups", check_code: "KRI-1", state: "UNKNOWN", reason: "No current result." }] });
+  monitoring.loadMonitoringResults.mockResolvedValue([]);
+  render(<RiskWorkspace id="risk/1"/>);
+  fireEvent.click(await screen.findByRole("button", { name: "View Failed backups" }));
+  expect(await screen.findByText("No evaluations recorded for this version.")).toBeTruthy();
+  expect(monitoring.loadMonitoringResults).toHaveBeenCalledWith("check-1", 3);
+});
+
+it("does not offer an indicator drill for a mismatched linked risk", async () => {
+  api.getRisk.mockResolvedValue({ risk, assessments: [], indicator_details_complete: true, indicator_details: [{ link: { id: "link-1", risk_id: "other", risk_version: 2, program_id: "program-1", monitoring_check_id: "check-1", monitoring_check_version: 3 }, program_id: "program-1", check_id: "check-1", check_version: 3, check_name: "Failed backups", state: "UNKNOWN" }] });
+  render(<RiskWorkspace id="risk/1"/>);
+  await screen.findByText("Failed backups");
+  expect(screen.queryByRole("button", { name: "View Failed backups" })).toBeNull();
+});
+
+it("withholds indicator history when Program access is denied", async () => {
+  api.getRisk.mockResolvedValue({ risk, assessments: [], indicator_details_complete: true, indicator_details: [{ link: { id: "link-1", risk_id: "risk/1", program_id: "program-1", monitoring_check_id: "check-1", monitoring_check_version: 3 }, program_id: "program-1", check_id: "check-1", check_version: 3, check_name: "Failed backups", state: "UNKNOWN" }] });
+  monitoring.loadMonitoringResults.mockRejectedValue(new ApiError(403, "Denied"));
+  render(<RiskWorkspace id="risk/1"/>);
+  fireEvent.click(await screen.findByRole("button", { name: "View Failed backups" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("Indicator unavailable.");
+  expect(screen.queryByText("No evaluations recorded for this version.")).toBeNull();
+});
+
+
+it("closes the selected indicator when the risk changes", async () => {
+  api.getRisk.mockResolvedValueOnce({ risk, assessments: [], indicator_details_complete: true, indicator_details: [{ link: { id: "link-1", risk_id: "risk/1", program_id: "program-1", monitoring_check_id: "check-1", monitoring_check_version: 3 }, program_id: "program-1", check_id: "check-1", check_version: 3, check_name: "Failed backups", state: "UNKNOWN" }] }).mockResolvedValueOnce({ risk: { ...risk, id: "risk-2", name: "Other risk" }, assessments: [] });
+  monitoring.loadMonitoringResults.mockResolvedValue([]);
+  const view = render(<RiskWorkspace id="risk/1"/>);
+  fireEvent.click(await screen.findByRole("button", { name: "View Failed backups" }));
+  await screen.findByRole("dialog");
+  view.rerender(<RiskWorkspace id="risk-2"/>);
+  await screen.findByRole("heading", { name: "Other risk" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+it("ignores a prior risk's late response after navigation", async () => {
+  let resolveOld!: (value: unknown) => void;
+  api.getRisk.mockImplementationOnce(() => new Promise((resolve) => { resolveOld = resolve; })).mockResolvedValueOnce({ risk: { ...risk, id: "risk-2", name: "Other risk" }, assessments: [] });
+  const view = render(<RiskWorkspace id="risk/1"/>);
+  view.rerender(<RiskWorkspace id="risk-2"/>);
+  await screen.findByRole("heading", { name: "Other risk" });
+  resolveOld({ risk, assessments: [] });
+  await waitFor(() => expect(screen.queryByText("Service disruption")).toBeNull());
+  expect(screen.getByRole("heading", { name: "Other risk" })).toBeTruthy();
+});
+

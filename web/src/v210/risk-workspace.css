@@ -9,3 +9,4 @@
 .v-risk-indicator--breach { color: #a5242c; background: #fff0ef; }
 .v-risk-indicator--watch { color: #855500; background: #fff4d7; }
 .v-risk-indicator--normal { color: #186642; background: #e9f7ef; }
+.v-risk-detail .v-attention button { min-height: var(--v-button-height); margin-top: 8px; padding: 8px 12px; border: 1px solid var(--v-button-secondary-border); border-radius: var(--v-button-radius); background: var(--v-button-secondary-background); color: var(--v-button-secondary-text); }

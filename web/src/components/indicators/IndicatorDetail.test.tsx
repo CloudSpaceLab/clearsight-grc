@@ -137,11 +137,12 @@ it("shows a money indicator without converting its value to concern points", asy
   expect(within(await screen.findByRole("table", { name: "Monthly operational loss evaluation history" })).getByText("Outside limit")).toBeTruthy();
 });
 
-it("links the exact source Program and intervention", () => {
+it("links the source Program without exposing unverified issue metadata", () => {
   const withIntervention = { ...indicator, intervention: { matter_id: "matter-7", reference: "INT-7", status: "OPEN", priority: 1, created_at: "2026-10-05T10:05:00Z" } };
   render(<IndicatorDetail indicator={withIntervention} loadResults={vi.fn().mockResolvedValue(history)}/>);
   expect(screen.getByRole("link", { name: "View program" }).getAttribute("href")).toBe("#/programs/program-1");
-  expect(screen.getByRole("link", { name: "View issue" }).getAttribute("href")).toBe("#/work/issues/matter-7");
+  expect(screen.queryByRole("link", { name: "View issue" })).toBeNull();
+  expect(screen.queryByText("INT-7")).toBeNull();
 });
 
 it.each([{ monitoring_check_version: 5 }, { program_id: "other" }, { monitoring_check_id: "other" }])("withholds history returned for a different Program or check revision", async (mismatch) => {
