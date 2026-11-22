@@ -4,4 +4,4 @@ The Risk record lists linked indicators. A matching Risk, Program and indicator 
 
 Synthetic fixtures cover the drill and evaluation detail at 1440, 768 and 390 pixels. The evidence script checks dialog and page overflow and evaluation focus. Visual inspection found the initial action used browser-default styling; it was corrected using existing secondary-button tokens and evidence regenerated. These fixtures do not establish backend authorization, production data reconciliation or whole-screen design acceptance. Existing Risk indicator linking and intervention actions are not restored by this slice; their legacy tests remain outstanding.
 
-Intervention links are withheld until Matter visibility is enforced by the source read. Captures were regenerated after the link was removed.
+An issue link appears only when the scoped Matter lookup returns visible metadata. Absence does not establish that no issue exists.

@@ -19,7 +19,7 @@ try {
         const response = await original(input, init);
         if (url.pathname !== '/api/v1/risk-indicators') return response;
         const value = await response.json();
-        Object.assign(value.items[0].indicator, { check_version: 4, result_id: 'sample-result-2', evaluated_at: '2026-11-20T10:00:00Z', owner_display_name: 'Ada Okafor', reviewer_display_name: 'Amina Bello', denominator: 100, score: 80 });
+        Object.assign(value.items[0].indicator, { check_version: 4, result_id: 'sample-result-2', evaluated_at: '2026-11-20T10:00:00Z', owner_display_name: 'Ada Okafor', reviewer_display_name: 'Amina Bello', denominator: 100, score: 80, intervention: { matter_id: 'sample-issue', reference: 'ISS-001', status: 'ASSESSMENT', priority: 3, created_at: '2026-11-20T10:00:00Z' } });
         Object.assign(value.items[0].indicator.link, { program_id: 'sample-program', monitoring_check_id: 'sample-indicator', monitoring_check_version: 4 });
         return json(value);
       };
@@ -29,6 +29,7 @@ try {
     const dialog = page.getByRole('dialog', { name: 'Sample backup failures' });
     await dialog.getByRole('table', { name: 'Sample backup failures evaluation history' }).waitFor();
     assert.equal(await dialog.getByText('Range: 1–2').count(), 1);
+    assert.equal(await dialog.getByRole('link', { name: 'View issue ISS-001' }).getAttribute('href'), '#/work/issues/sample-issue');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.equal(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth), true);
     await page.screenshot({ path: path.join(output, `history-${width}.png`), fullPage: true });

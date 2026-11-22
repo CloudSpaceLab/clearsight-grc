@@ -137,12 +137,11 @@ it("shows a money indicator without converting its value to concern points", asy
   expect(within(await screen.findByRole("table", { name: "Monthly operational loss evaluation history" })).getByText("Outside limit")).toBeTruthy();
 });
 
-it("links the source Program without exposing unverified issue metadata", () => {
+it("links the source Program and the scoped issue", () => {
   const withIntervention = { ...indicator, intervention: { matter_id: "matter-7", reference: "INT-7", status: "OPEN", priority: 1, created_at: "2026-10-05T10:05:00Z" } };
   render(<IndicatorDetail indicator={withIntervention} loadResults={vi.fn().mockResolvedValue(history)}/>);
   expect(screen.getByRole("link", { name: "View program" }).getAttribute("href")).toBe("#/programs/program-1");
-  expect(screen.queryByRole("link", { name: "View issue" })).toBeNull();
-  expect(screen.queryByText("INT-7")).toBeNull();
+  expect(screen.getByRole("link", { name: "View issue INT-7" }).getAttribute("href")).toBe("#/work/issues/matter-7");
 });
 
 it.each([{ monitoring_check_version: 5 }, { program_id: "other" }, { monitoring_check_id: "other" }])("withholds history returned for a different Program or check revision", async (mismatch) => {
@@ -193,4 +192,11 @@ it("clears selected indicator details when access is revoked", async () => {
   expect(await screen.findByText("Indicator unavailable.")).toBeTruthy();
   expect(screen.queryByText("Mobile success rate")).toBeNull();
   expect(denied).toHaveBeenCalledOnce();
+});
+
+
+it("does not infer that no issue exists when scoped issue information is absent", () => {
+  render(<IndicatorDetail indicator={indicator} loadResults={vi.fn().mockResolvedValue([])}/>);
+  expect(screen.queryByRole("link", { name: /View issue/ })).toBeNull();
+  expect(screen.queryByText(/No open issue/)).toBeNull();
 });

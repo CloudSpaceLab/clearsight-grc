@@ -6,4 +6,4 @@ The legacy indicator-detail suite now targets the current component and retains 
 
 Synthetic history and evaluation-detail renders are in `docs/evidence/2026-11-22-v215-indicator-detail/{history,evaluation}-{1440,768,390}.png`, produced by `web/scripts/v215-indicator-detail-evidence.mjs`. On 22 November 2026 the reviewer inspected all widths, replaced default button styling and duplicate headings, and corrected focus/scroll to make opened details visible. These renders do not prove real backend authorization or source-to-result reconciliation. A before render, dark mode and full keyboard traversal were not captured.
 
-Intervention links are withheld until Matter visibility is enforced by the source read. Captures were regenerated after the link was removed.
+An issue link appears only when the scoped Matter lookup returns visible metadata. Absence does not establish that no issue exists.
