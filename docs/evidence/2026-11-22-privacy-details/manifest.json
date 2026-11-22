@@ -1,0 +1,21 @@
+{
+  "synthetic": true,
+  "scope": "isolated component; mocked API",
+  "results": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "errors": []
+    }
+  ]
+}
