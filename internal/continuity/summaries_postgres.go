@@ -105,6 +105,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 		) effective_state ON TRUE
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND (NOT $9 OR ((t.id::text=$11 OR t.slug=$11) AND p.legal_entity_id IS NOT NULL AND ($12='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$12 OR le.code=$12) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
+		  AND (NOT $19::boolean OR (btrim($10::text)<>'' AND `+visibleMatterScopeSQL("p.scope", "btrim($10::text)")+`))
 		  AND ($2='' OR p.status=$2)
 		  AND ($3='' OR p.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))
 		  AND ($13='' OR lower(btrim(p.jurisdiction))=lower(btrim($13)))
@@ -119,7 +120,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 		  )
 		ORDER BY CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END,
 			p.updated_at DESC,p.id DESC
-		LIMIT $8`, tenant, query.Status, query.Search, hasCursor, cursor.Rank, cursor.UpdatedAt, cursor.ID, limit+1, enforceEntity, principalID, actorTenant, actorEntity, query.Jurisdiction, query.OverallState, query.AssignedToMe, query.principalID, query.OrganizationScopeID != "", query.OrganizationScopeIDs)
+		LIMIT $8`, tenant, query.Status, query.Search, hasCursor, cursor.Rank, cursor.UpdatedAt, cursor.ID, limit+1, enforceEntity, principalID, actorTenant, actorEntity, query.Jurisdiction, query.OverallState, query.AssignedToMe, query.principalID, query.OrganizationScopeID != "", query.OrganizationScopeIDs, !hasTrustedSystemScope(ctx))
 	if err != nil {
 		return ProgramSummaryPage{}, err
 	}
@@ -221,7 +222,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 		actorTenant = actor.TenantID
 	}
 	enforceEntity, actorEntityTenant, actorEntity := postgresActorScope(ctx)
-	rows, err := r.pool.Query(ctx, matterSummarySQL, tenant, query.Status, query.Search, enforceVisibility, principalID, actorTenant, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1, query.ProgramID, enforceEntity, actorEntityTenant, actorEntity, query.MatterType, query.Priority, query.DueCondition, query.asOf, query.AssignedToMe, query.principalID, query.Unassigned)
+	rows, err := r.pool.Query(ctx, matterSummarySQL, tenant, query.Status, query.Search, enforceVisibility, principalID, actorTenant, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1, query.ProgramID, enforceEntity, actorEntityTenant, actorEntity, query.MatterType, query.Priority, query.DueCondition, query.asOf, query.AssignedToMe, query.principalID, query.Unassigned, !hasTrustedSystemScope(ctx))
 	if err != nil {
 		return MatterSummaryPage{}, err
 	}
@@ -277,13 +278,13 @@ func normalizedSummaryStatus(value string) string {
 	return strings.ToUpper(strings.TrimSpace(value))
 }
 
-const matterSummarySQL = `
+var matterSummarySQL = `
 		SELECT
 			m.id::text,t.id::text,COALESCE(m.legal_entity_id::text,''),m.reference,m.matter_type,m.status,m.priority,m.title,m.summary,m.scope,
 			m.source_type,COALESCE(m.source_id::text,''),m.trigger_type,COALESCE(m.trigger_id::text,''),m.trigger_key,m.known_facts,m.missing_facts,m.contradictions,
 			COALESCE(m.owner_principal_id::text,''),m.required_authority,m.due_at,m.closed_at,m.closure_reason,m.reopen_count,
 			m.created_at,m.updated_at,m.version,
-			(SELECT count(DISTINCT ml.program_id) FROM matter_links ml WHERE ml.tenant_id=m.tenant_id AND ml.matter_id=m.id AND ml.program_id IS NOT NULL AND ml.retired_at IS NULL),
+			(SELECT count(DISTINCT ml.program_id) FROM matter_links ml JOIN programs linked_program ON linked_program.tenant_id=ml.tenant_id AND linked_program.id=ml.program_id AND linked_program.legal_entity_id=m.legal_entity_id WHERE ml.tenant_id=m.tenant_id AND ml.matter_id=m.id AND ml.retired_at IS NULL AND (NOT $23::boolean OR (btrim($5::text)<>'' AND ` + visibleMatterScopeSQL("linked_program.scope", "btrim($5::text)") + `))),
 			(SELECT count(*) FROM matter_actions ma WHERE ma.tenant_id=m.tenant_id AND ma.matter_id=m.id AND ma.status NOT IN ('IMPLEMENTED','CANCELLED')),
 			(SELECT count(*) FROM verification_contracts vc WHERE vc.tenant_id=m.tenant_id AND vc.matter_id=m.id AND vc.status='ACTIVE'),
 			latest.result,latest.observed_at
@@ -304,7 +305,7 @@ const matterSummarySQL = `
 		  AND ($12='' OR EXISTS (
 			SELECT 1 FROM matter_links program_link
             JOIN programs linked_program ON linked_program.tenant_id=program_link.tenant_id AND linked_program.id=program_link.program_id AND linked_program.legal_entity_id=m.legal_entity_id
-			WHERE program_link.tenant_id=m.tenant_id AND program_link.matter_id=m.id AND program_link.program_id=NULLIF($12,'')::uuid AND program_link.retired_at IS NULL
+			WHERE program_link.tenant_id=m.tenant_id AND program_link.matter_id=m.id AND program_link.program_id=NULLIF($12,'')::uuid AND program_link.retired_at IS NULL AND (NOT $23::boolean OR (btrim($5::text)<>'' AND ` + visibleMatterScopeSQL("linked_program.scope", "btrim($5::text)") + `))
 		  ))
 		  AND ($16='' OR m.matter_type=$16)
 		  AND ($17=0 OR m.priority=$17)

@@ -390,6 +390,15 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 	if accepted.Checkpoint.AcceptedAt.Before(beforeRelease) {
 		t.Fatalf("checkpoint predates write boundary: %s < %s", accepted.Checkpoint.AcceptedAt, beforeRelease)
 	}
+	for _, stage := range []string{"baseline", "events"} {
+		scoped := NewService(&revokePostgresDuringDigest{CurrentPostgresRepository: NewCurrentPostgresRepository(pool), pool: pool, stage: stage})
+		if result, e := scoped.ProgramReviewDigest(ctx, "program-review-a", program.Program.ID, principalA); e == nil {
+			t.Fatalf("scope revoked before %s disclosed digest: %+v", stage, result)
+		}
+		if _, err = pool.Exec(ctx, `UPDATE programs SET scope='{}'::jsonb WHERE id=$1::uuid`, program.Program.ID); err != nil {
+			t.Fatal(err)
+		}
+	}
 	for _, action := range []string{"logout", "rotation"} {
 		replayed := orderedSessionAction(t, principalA, accepted.CurrentProjectionVersion, action)
 		if replayed.Checkpoint == nil || replayed.Checkpoint.ID != accepted.Checkpoint.ID {
@@ -515,7 +524,7 @@ func TestProgramReviewPostgresKeepsActorTenantAndVersionTruth(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = service.AcceptProgramReview(ctx, AcceptProgramReviewInput{TenantID: "program-review-a", ProgramID: program.Program.ID, PrincipalID: principalA, ExpectedProgramVersion: program.Program.Version, ExpectedProjectionVersion: accepted.CurrentProjectionVersion})
-	if !errors.Is(err, ErrVersionConflict) {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("restricted program replayed receipt: %v", err)
 	}
 	if _, err = pool.Exec(ctx, `UPDATE programs SET scope='{}'::jsonb WHERE id=$1::uuid`, program.Program.ID); err != nil {

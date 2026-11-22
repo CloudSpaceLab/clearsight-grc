@@ -93,7 +93,7 @@ func TestPostgresVisibleProgramIssueCountMatchesOpenScopedList(t *testing.T) {
 	if _, err = tx.Exec(ctx, `INSERT INTO matter_links(tenant_id,matter_id,program_id) VALUES($1::uuid,$2::uuid,$3::uuid)`, tenant, foreign, program); err != nil {
 		t.Fatal(err)
 	}
-	rows, err := tx.Query(ctx, matterSummarySQL, tenant, "OPEN", "", true, principal, tenant, false, 0, time.Time{}, "", 21, program, true, tenant, "*", "", 0, "", time.Now(), false, "", false)
+	rows, err := tx.Query(ctx, matterSummarySQL, tenant, "OPEN", "", true, principal, tenant, false, 0, time.Time{}, "", 21, program, true, tenant, "*", "", 0, "", time.Now(), false, "", false, true)
 	if err != nil {
 		t.Fatal(err)
 	}

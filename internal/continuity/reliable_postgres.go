@@ -9,62 +9,25 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// ReliablePostgresRepository keeps only a short-lived copy of a create result
+// ReliablePostgresRepository keeps only a short-lived copy of a Matter create result
 // that PostgreSQL has already committed. It is never authoritative state: a
 // successful normalized current read removes the fallback. Its sole purpose is
 // to keep an immediate post-commit read failure from turning a successful
 // create into a false command failure.
 type ReliablePostgresRepository struct {
 	*CurrentPostgresRepository
-	mu              sync.Mutex
-	createdPrograms map[string]Program
-	createdMatters  map[string]MatterAggregate
+	mu             sync.Mutex
+	createdMatters map[string]MatterAggregate
 }
 
 func NewReliablePostgresRepository(pool *pgxpool.Pool) *ReliablePostgresRepository {
 	return &ReliablePostgresRepository{
 		CurrentPostgresRepository: NewCurrentPostgresRepository(pool),
-		createdPrograms:           map[string]Program{},
 		createdMatters:            map[string]MatterAggregate{},
 	}
 }
 
 func reliableKey(tenant, id string) string { return tenant + "\x00" + id }
-
-func (r *ReliablePostgresRepository) CreateProgram(ctx context.Context, program Program, event Event) (Program, error) {
-	created, err := r.CurrentPostgresRepository.CreateProgram(ctx, program, event)
-	if err != nil {
-		return Program{}, err
-	}
-	r.mu.Lock()
-	r.createdPrograms[reliableKey(program.TenantID, program.ID)] = created
-	r.mu.Unlock()
-	return created, nil
-}
-
-func (r *ReliablePostgresRepository) GetProgram(ctx context.Context, tenant, id string) (ProgramAggregate, error) {
-	value, err := r.CurrentPostgresRepository.GetProgram(ctx, tenant, id)
-	key := reliableKey(tenant, id)
-	if err == nil {
-		r.mu.Lock()
-		delete(r.createdPrograms, key)
-		r.mu.Unlock()
-		return value, nil
-	}
-	r.mu.Lock()
-	created, ok := r.createdPrograms[key]
-	if ok {
-		delete(r.createdPrograms, key)
-	}
-	r.mu.Unlock()
-	if ok {
-		if !visibleToActorLegalEntity(ctx, created.TenantID, created.LegalEntityID) {
-			return ProgramAggregate{}, ErrNotFound
-		}
-		return decorateProgram(ProgramAggregate{Program: created}), nil
-	}
-	return ProgramAggregate{}, err
-}
 
 func (r *ReliablePostgresRepository) CreateMatter(ctx context.Context, matter Matter, event Event) (Matter, error) {
 	created, err := r.CurrentPostgresRepository.CreateMatter(ctx, matter, event)

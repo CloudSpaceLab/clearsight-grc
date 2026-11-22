@@ -26,7 +26,11 @@ func NewCurrentPostgresRepository(pool *pgxpool.Pool) *CurrentPostgresRepository
 func (r *CurrentPostgresRepository) GetProgram(ctx context.Context, tenant, id string) (ProgramAggregate, error) {
 	var raw []byte
 	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
-	if err := r.pool.QueryRow(ctx, currentProgramSQL, tenant, id, enforce, actorTenant, actorEntity).Scan(&raw); err != nil {
+	principal := ""
+	if actor, ok := identity.FromContext(ctx); ok {
+		principal = actor.PrincipalID
+	}
+	if err := r.pool.QueryRow(ctx, currentProgramSQL, tenant, id, enforce, actorTenant, actorEntity, !hasTrustedSystemScope(ctx), principal).Scan(&raw); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ProgramAggregate{}, ErrNotFound
 		}
@@ -66,7 +70,11 @@ func (r *CurrentPostgresRepository) ListMatters(ctx context.Context, tenant, sta
 
 func (r *PostgresRepository) listCurrentPrograms(ctx context.Context, tenant string, limit int) ([]ProgramAggregate, error) {
 	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
-	rows, err := r.pool.Query(ctx, currentProgramListSQL, tenant, enforce, actorTenant, actorEntity, boundedLimit(limit))
+	principal := ""
+	if actor, ok := identity.FromContext(ctx); ok {
+		principal = actor.PrincipalID
+	}
+	rows, err := r.pool.Query(ctx, currentProgramListSQL, tenant, enforce, actorTenant, actorEntity, boundedLimit(limit), !hasTrustedSystemScope(ctx), principal)
 	if err != nil {
 		return nil, fmt.Errorf("list current programs: %w", err)
 	}
@@ -134,14 +142,15 @@ const currentProgramJSON = `jsonb_build_object(
   'current_state', (SELECT (to_jsonb(v)-'tenant_id'-'overall_state') || jsonb_build_object('tenant_id',t.id::text,'overall',v.overall_state) FROM program_state_snapshots v WHERE v.tenant_id=p.tenant_id AND v.program_id=p.id ORDER BY v.generated_at DESC,v.projection_version DESC LIMIT 1)
 )`
 
-const currentProgramSQL = `
+var currentProgramSQL = `
 SELECT ` + currentProgramJSON + `
 FROM programs p
 JOIN tenants t ON t.id=p.tenant_id
 WHERE (t.id::text=$1 OR t.slug=$1) AND p.id=$2::uuid
-  AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND p.legal_entity_id IS NOT NULL AND ($5='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))`
+  AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND p.legal_entity_id IS NOT NULL AND ($5='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
+  AND (NOT $6::boolean OR (btrim($7::text)<>'' AND ` + visibleMatterScopeSQL("p.scope", "btrim($7::text)") + `))`
 
-const currentProgramListSQL = `
+var currentProgramListSQL = `
 WITH selected AS MATERIALIZED (
   SELECT p.id,p.tenant_id,
     CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END AS rank,
@@ -150,6 +159,7 @@ WITH selected AS MATERIALIZED (
   JOIN tenants requested_t ON requested_t.id=p.tenant_id
   WHERE (requested_t.id::text=$1 OR requested_t.slug=$1)
     AND (NOT $2 OR ((requested_t.id::text=$3 OR requested_t.slug=$3) AND p.legal_entity_id IS NOT NULL AND ($4='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$4 OR le.code=$4) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
+    AND (NOT $6::boolean OR (btrim($7::text)<>'' AND ` + visibleMatterScopeSQL("p.scope", "btrim($7::text)") + `))
   ORDER BY rank,p.updated_at DESC,p.id
   LIMIT $5
 )

@@ -16,24 +16,50 @@ import (
 )
 
 func (r *PostgresRepository) LatestProgramReview(ctx context.Context, tenant, programID, principalID string) (*ProgramReviewCheckpoint, error) {
-	row := r.pool.QueryRow(ctx, `
-		SELECT prc.id::text,t.slug,prc.program_id::text,prc.principal_id::text,
-		       prc.program_version,prc.projection_version,prc.accepted_at,prc.visible_open_matter_count,prc.visible_projection_version,prc.authority_source_type,prc.authority_source_id::text,prc.authority_rule_id,prc.authority_policy_version
-		FROM program_review_checkpoints prc
-		JOIN tenants t ON t.id=prc.tenant_id
-		WHERE (t.id::text=$1 OR t.slug=$1)
-		  AND prc.program_id=$2::uuid
-		  AND prc.principal_id=$3::uuid
-		ORDER BY prc.accepted_at DESC,prc.id DESC
-		LIMIT 1`, tenant, programID, principalID)
-	value, err := scanProgramReviewCheckpoint(row)
+	actor, hasActor := identity.FromContext(ctx)
+	if !hasTrustedSystemScope(ctx) && (!hasActor || actor.TenantID != tenant || actor.PrincipalID != principalID || strings.TrimSpace(principalID) == "") {
+		return nil, ErrNotFound
+	}
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	var raw []byte
+	err := r.pool.QueryRow(ctx, `
+		SELECT CASE WHEN prc.id IS NULL THEN NULL ELSE jsonb_build_object(
+		 'id',prc.id::text,'tenant_id',t.slug,'program_id',prc.program_id::text,'principal_id',prc.principal_id::text,
+		 'program_version',prc.program_version,'projection_version',prc.projection_version,'accepted_at',prc.accepted_at,
+		 'visible_open_matter_count',prc.visible_open_matter_count,'visible_projection_version',prc.visible_projection_version,
+		 'authority_source_type',prc.authority_source_type,'authority_source_id',prc.authority_source_id::text,
+		 'authority_rule_id',prc.authority_rule_id,'authority_policy_version',prc.authority_policy_version) END
+		FROM programs p JOIN tenants t ON t.id=p.tenant_id
+		LEFT JOIN LATERAL (SELECT * FROM program_review_checkpoints WHERE tenant_id=p.tenant_id AND program_id=p.id AND principal_id=$3::uuid ORDER BY accepted_at DESC,id DESC LIMIT 1) prc ON TRUE
+		WHERE (t.id::text=$1 OR t.slug=$1) AND p.id=$2::uuid
+		AND (NOT $4 OR ((t.id::text=$5 OR t.slug=$5) AND p.legal_entity_id IS NOT NULL AND ($6='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$6 OR le.code=$6) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
+		AND (NOT $7::boolean OR (btrim($8::text)<>'' AND `+visibleMatterScopeSQL("p.scope", "btrim($8::text)")+`))`, tenant, programID, principalID, enforce, actorTenant, actorEntity, !hasTrustedSystemScope(ctx), actor.PrincipalID).Scan(&raw)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &value, nil
+	if len(raw) == 0 {
+		return nil, nil
+	}
+	var value struct {
+		ProgramReviewCheckpoint
+		Count         *int    `json:"visible_open_matter_count"`
+		Fingerprint   *int64  `json:"visible_projection_version"`
+		SourceType    *string `json:"authority_source_type"`
+		SourceID      *string `json:"authority_source_id"`
+		RuleID        *string `json:"authority_rule_id"`
+		PolicyVersion *string `json:"authority_policy_version"`
+	}
+	if err = json.Unmarshal(raw, &value); err != nil {
+		return nil, err
+	}
+	if value.Count != nil && value.Fingerprint != nil && value.SourceType != nil && value.SourceID != nil && value.RuleID != nil && value.PolicyVersion != nil {
+		value.visibleOpenMatterCount, value.visibleProjectionVersion, value.visibleReceiptPresent = *value.Count, *value.Fingerprint, true
+		value.authoritySourceType, value.authoritySourceID, value.authorityRuleID, value.authorityPolicyVersion = *value.SourceType, *value.SourceID, *value.RuleID, *value.PolicyVersion
+	}
+	return &value.ProgramReviewCheckpoint, nil
 }
 
 func (r *PostgresRepository) RecordProgramReview(ctx context.Context, checkpoint ProgramReviewCheckpoint, event Event) (ProgramReviewCheckpoint, error) {
@@ -180,17 +206,25 @@ func (r *PostgresRepository) RecordProgramReview(ctx context.Context, checkpoint
 
 func (r *PostgresRepository) ProgramStateVersion(ctx context.Context, tenant, programID string, projectionVersion int64) (*ProgramStateSnapshot, error) {
 	var state ProgramStateSnapshot
-	var dimensions, reasons json.RawMessage
+	var dimensions, reasons, calculation json.RawMessage
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	principal := ""
+	if actor, ok := identity.FromContext(ctx); ok {
+		principal = actor.PrincipalID
+	}
 	err := r.pool.QueryRow(ctx, `
 		SELECT pss.id::text,t.slug,pss.program_id::text,pss.overall_state,pss.dimensions,pss.reasons,
-		       pss.open_matter_count,pss.trigger_type,pss.trigger_id,pss.generated_at,pss.program_version,pss.projection_version
+		       pss.open_matter_count,pss.trigger_type,pss.trigger_id,pss.generated_at,pss.program_version,pss.projection_version,pss.calculation
 		FROM program_state_snapshots pss
 		JOIN tenants t ON t.id=pss.tenant_id
+		JOIN programs p ON p.tenant_id=pss.tenant_id AND p.id=pss.program_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND pss.program_id=$2::uuid
-		  AND pss.projection_version=$3`, tenant, programID, projectionVersion).Scan(
+		  AND pss.projection_version=$3
+		  AND (NOT $4 OR ((t.id::text=$5 OR t.slug=$5) AND p.legal_entity_id IS NOT NULL AND ($6='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$6 OR le.code=$6) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
+		  AND (NOT $7::boolean OR (btrim($8::text)<>'' AND `+visibleMatterScopeSQL("p.scope", "btrim($8::text)")+`))`, tenant, programID, projectionVersion, enforce, actorTenant, actorEntity, !hasTrustedSystemScope(ctx), principal).Scan(
 		&state.ID, &state.TenantID, &state.ProgramID, &state.Overall, &dimensions, &reasons,
-		&state.OpenMatterCount, &state.TriggerType, &state.TriggerID, &state.GeneratedAt, &state.ProgramVersion, &state.ProjectionVersion,
+		&state.OpenMatterCount, &state.TriggerType, &state.TriggerID, &state.GeneratedAt, &state.ProgramVersion, &state.ProjectionVersion, &calculation,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -203,6 +237,13 @@ func (r *PostgresRepository) ProgramStateVersion(ctx context.Context, tenant, pr
 	}
 	if err := json.Unmarshal(reasons, &state.Reasons); err != nil {
 		return nil, err
+	}
+	if len(calculation) != 0 && string(calculation) != "null" {
+		var value ProgramComplianceCalculation
+		if err := json.Unmarshal(calculation, &value); err != nil {
+			return nil, err
+		}
+		state.Calculation = &value
 	}
 	return &state, nil
 }

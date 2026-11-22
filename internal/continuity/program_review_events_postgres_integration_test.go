@@ -37,6 +37,11 @@ func TestProgramReviewEventReadIsStrictlyBoundedAndNewestFirst(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now().UTC().Truncate(time.Second)
+	entity := seedPostgresTestLegalEntity(t, ctx, pool, tenantID, "EVENT-ENTITY")
+	if _, err := pool.Exec(ctx, `INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,scope,effective_from) VALUES($1::uuid,$2::uuid,$3::uuid,'EVENT-REVIEW','Event review','COMPLIANCE','ACTIVE','Risk','{}',$4)`, programID, tenantID, entity, now); err != nil {
+		t.Fatal(err)
+	}
+	ctx = WithTrustedSystemScope(ctx)
 	for version := int64(1); version <= 70; version++ {
 		if _, err := pool.Exec(ctx, `
 			INSERT INTO continuity_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,event_type,payload,actor_type,occurred_at)

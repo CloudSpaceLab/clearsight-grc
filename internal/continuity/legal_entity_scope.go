@@ -31,6 +31,14 @@ func hasTrustedSystemScope(ctx context.Context) bool {
 	return ok
 }
 
+func visibleProgramScope(ctx context.Context, program Program) bool {
+	if hasTrustedSystemScope(ctx) {
+		return true
+	}
+	actor, ok := identity.FromContext(ctx)
+	return ok && strings.TrimSpace(actor.PrincipalID) != "" && MatterVisibleTo(Matter{Scope: program.Scope}, actor.PrincipalID)
+}
+
 func visibleToActorLegalEntity(ctx context.Context, tenant, legalEntityID string) bool {
 	if scope, ok := ctx.Value(trustedSystemScopeKey{}).(trustedSystemScope); ok {
 		return scope.global || (scope.tenant == strings.TrimSpace(tenant) && scope.legalEntity != "" && scope.legalEntity == strings.TrimSpace(legalEntityID))

@@ -3,9 +3,87 @@ package continuity
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
+
+type revokeBeforeCheckpointRepository struct{ *MemoryRepository }
+
+type revokeDuringDigestRepository struct {
+	*MemoryRepository
+	stage string
+}
+
+func (r *revokeDuringDigestRepository) revoke(tenant, programID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	program := r.programs[tenant][programID]
+	program.Program.Scope = json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["another-person"]}`)
+	r.programs[tenant][programID] = program
+}
+func (r *revokeDuringDigestRepository) ProgramStateVersion(ctx context.Context, tenant, programID string, version int64) (*ProgramStateSnapshot, error) {
+	if r.stage == "baseline" {
+		r.revoke(tenant, programID)
+	}
+	return r.MemoryRepository.ProgramStateVersion(ctx, tenant, programID, version)
+}
+func (r *revokeDuringDigestRepository) ProgramEventsAfterVersion(ctx context.Context, tenant, programID string, version int64, limit int) ([]Event, bool, error) {
+	if r.stage == "events" {
+		r.revoke(tenant, programID)
+	}
+	return r.MemoryRepository.ProgramEventsAfterVersion(ctx, tenant, programID, version, limit)
+}
+
+func (r *revokeBeforeCheckpointRepository) LatestProgramReview(ctx context.Context, tenant, programID, principalID string) (*ProgramReviewCheckpoint, error) {
+	r.mu.Lock()
+	program := r.programs[tenant][programID]
+	program.Program.Scope = json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["another-person"]}`)
+	r.programs[tenant][programID] = program
+	r.mu.Unlock()
+	return r.MemoryRepository.LatestProgramReview(ctx, tenant, programID, principalID)
+}
+
+func TestProgramReviewDigestDeniesScopeRevokedBeforeCheckpointRead(t *testing.T) {
+	repo := &revokeBeforeCheckpointRepository{MemoryRepository: NewMemoryRepository()}
+	service := NewService(repo)
+	program, err := service.CreateProgram(WithTrustedSystemScope(context.Background()), CreateProgramInput{TenantID: "bank", LegalEntityID: "entity", Code: "REVOKED", Name: "Restricted review", Type: "REGULATORY", OwningFunction: "Risk", Scope: json.RawMessage(`{}`), EffectiveFrom: time.Now().UTC()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	actor := identity.WithActor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "reviewer"})
+	if digest, e := service.ProgramReviewDigest(actor, "bank", program.Program.ID, "reviewer"); !errors.Is(e, ErrNotFound) {
+		t.Fatalf("scope change disclosed digest: %+v %v", digest, e)
+	}
+}
+
+func TestProgramReviewDigestDeniesScopeRevokedBeforeBaselineOrEvents(t *testing.T) {
+	for _, stage := range []string{"baseline", "events"} {
+		t.Run(stage, func(t *testing.T) {
+			base := NewMemoryRepository()
+			trusted := WithTrustedSystemScope(context.Background())
+			service := NewService(base)
+			program, err := service.CreateProgram(trusted, CreateProgramInput{TenantID: "bank", LegalEntityID: "entity", Code: "REVIEW", Name: "Review", Type: "REGULATORY", OwningFunction: "Risk", Scope: json.RawMessage(`{}`), EffectiveFrom: time.Now().UTC()})
+			if err != nil {
+				t.Fatal(err)
+			}
+			digest, err := service.ProgramReviewDigest(trusted, "bank", program.Program.ID, "reviewer")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = service.AcceptProgramReview(trusted, AcceptProgramReviewInput{TenantID: "bank", ProgramID: program.Program.ID, PrincipalID: "reviewer", ExpectedProgramVersion: program.Program.Version, ExpectedProjectionVersion: digest.CurrentProjectionVersion}); err != nil {
+				t.Fatal(err)
+			}
+			actor := identity.WithActor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "reviewer"})
+			service = NewService(&revokeDuringDigestRepository{MemoryRepository: base, stage: stage})
+			if result, e := service.ProgramReviewDigest(actor, "bank", program.Program.ID, "reviewer"); !errors.Is(e, ErrNotFound) {
+				t.Fatalf("scope change disclosed digest: %+v %v", result, e)
+			}
+		})
+	}
+}
 
 func TestProgramReviewDigestIgnoresHiddenMatterOnlyProjectionChange(t *testing.T) {
 	ctx := WithTrustedSystemEntityScope(context.Background(), "bank", "entity-a")

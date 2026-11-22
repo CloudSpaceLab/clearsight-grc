@@ -3,6 +3,8 @@ package continuity
 import (
 	"context"
 	"sync"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 type memoryProgramReviewData struct {
@@ -18,7 +20,19 @@ func programReviewData(repo *MemoryRepository) *memoryProgramReviewData {
 	return value.(*memoryProgramReviewData)
 }
 
-func (r *MemoryRepository) LatestProgramReview(_ context.Context, tenant, programID, principalID string) (*ProgramReviewCheckpoint, error) {
+func (r *MemoryRepository) LatestProgramReview(ctx context.Context, tenant, programID, principalID string) (*ProgramReviewCheckpoint, error) {
+	if !hasTrustedSystemScope(ctx) {
+		actor, ok := identity.FromContext(ctx)
+		if !ok || actor.TenantID != tenant || actor.PrincipalID != principalID {
+			return nil, ErrNotFound
+		}
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	program, exists := r.programs[tenant][programID]
+	if !exists || !r.visibleLegalEntity(ctx, program.Program.TenantID, program.Program.LegalEntityID) || !visibleProgramScope(ctx, program.Program) {
+		return nil, ErrNotFound
+	}
 	data := programReviewData(r)
 	data.mu.RLock()
 	defer data.mu.RUnlock()
@@ -70,7 +84,13 @@ func (r *MemoryRepository) RecordProgramReview(_ context.Context, checkpoint Pro
 	return checkpoint, nil
 }
 
-func (r *MemoryRepository) ProgramStateVersion(_ context.Context, tenant, programID string, projectionVersion int64) (*ProgramStateSnapshot, error) {
+func (r *MemoryRepository) ProgramStateVersion(ctx context.Context, tenant, programID string, projectionVersion int64) (*ProgramStateSnapshot, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	program, exists := r.programs[tenant][programID]
+	if !exists || !r.visibleLegalEntity(ctx, program.Program.TenantID, program.Program.LegalEntityID) || !visibleProgramScope(ctx, program.Program) {
+		return nil, ErrNotFound
+	}
 	data := projectionData(r)
 	data.mu.Lock()
 	defer data.mu.Unlock()

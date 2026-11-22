@@ -150,6 +150,9 @@ func (r *MemoryRepository) ListPrograms(ctx context.Context, tenant string, limi
 		if !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
 			continue
 		}
+		if !visibleProgramScope(ctx, aggregate.Program) {
+			continue
+		}
 		values = append(values, decorateProgram(cloneProgramAggregate(aggregate)))
 	}
 	sort.Slice(values, func(i, j int) bool {
@@ -169,6 +172,9 @@ func (r *MemoryRepository) GetProgram(ctx context.Context, tenant, id string) (P
 	defer r.mu.RUnlock()
 	aggregate, ok := r.programs[tenant][id]
 	if !ok || !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
+		return ProgramAggregate{}, ErrNotFound
+	}
+	if !visibleProgramScope(ctx, aggregate.Program) {
 		return ProgramAggregate{}, ErrNotFound
 	}
 	return decorateProgram(cloneProgramAggregate(aggregate)), nil
@@ -259,7 +265,7 @@ func (r *MemoryRepository) ProgramEvents(ctx context.Context, tenant, id string,
 	defer r.mu.RUnlock()
 	values, ok := r.programEvents[tenant][id]
 	aggregate, exists := r.programs[tenant][id]
-	if !ok || !exists || !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
+	if !ok || !exists || !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) || !visibleProgramScope(ctx, aggregate.Program) {
 		return nil, ErrNotFound
 	}
 	return filterEvents(values, until), nil

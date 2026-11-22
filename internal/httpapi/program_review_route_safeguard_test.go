@@ -87,3 +87,24 @@ func TestRoutedProgramReviewAcceptanceNeverWritesAndPreservesHistory(t *testing.
 		})
 	}
 }
+
+func TestRoutedProgramReviewDigestRespectsRestrictedProgram(t *testing.T) {
+	ctx := continuity.WithTrustedSystemScope(context.Background())
+	repo := continuity.NewMemoryRepository()
+	service := continuity.NewService(repo)
+	program, err := service.CreateProgram(ctx, continuity.CreateProgramInput{TenantID: "bank", LegalEntityID: "entity", Code: "PRIVATE", Name: "Restricted review", Type: "REGULATORY", OwningFunction: "Risk", Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["reviewer"]}`), EffectiveFrom: time.Now().UTC()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		principal string
+		status    int
+	}{{"reviewer", http.StatusOK}, {"other", http.StatusNotFound}} {
+		handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory", Identity: identity.NewDevelopmentAuthenticator("bank", tc.principal, "entity"), Continuity: service})
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/programs/"+program.Program.ID+"/review-digest", nil))
+		if response.Code != tc.status {
+			t.Fatalf("principal=%s status=%d body=%s", tc.principal, response.Code, response.Body.String())
+		}
+	}
+}

@@ -26,6 +26,9 @@ func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant stri
 		if !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
 			continue
 		}
+		if !visibleProgramScope(ctx, aggregate.Program) {
+			continue
+		}
 		if query.OrganizationScopeID != "" {
 			if _, ok := organizationScopes[aggregate.Program.OrganizationScopeID]; !ok {
 				continue
@@ -128,7 +131,7 @@ func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant strin
 	programEntity := ""
 	if query.ProgramID != "" {
 		target, ok := r.programs[tenant][query.ProgramID]
-		if !ok || !r.visibleLegalEntity(ctx, target.Program.TenantID, target.Program.LegalEntityID) {
+		if !ok || !r.visibleLegalEntity(ctx, target.Program.TenantID, target.Program.LegalEntityID) || !visibleProgramScope(ctx, target.Program) {
 			r.mu.RUnlock()
 			return MatterSummaryPage{GeneratedAt: time.Now().UTC()}, nil
 		}
@@ -138,6 +141,14 @@ func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant strin
 	for _, aggregate := range r.matters[tenant] {
 		if !r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) || (enforceVisibility && (aggregate.Matter.TenantID != actor.TenantID || !MatterVisibleTo(aggregate.Matter, actor.PrincipalID))) {
 			continue
+		}
+		visibleLinks := make([]MatterLink, 0, len(aggregate.Links))
+		for _, link := range aggregate.Links {
+			program, exists := r.programs[tenant][link.ProgramID]
+			if !exists || link.RetiredAt != nil || program.Program.LegalEntityID != aggregate.Matter.LegalEntityID || !visibleProgramScope(ctx, program.Program) {
+				continue
+			}
+			visibleLinks = append(visibleLinks, link)
 		}
 		if query.Status == "OPEN" && (aggregate.Matter.Status == MatterClosed || aggregate.Matter.Status == MatterCancelled) {
 			continue
@@ -150,7 +161,7 @@ func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant strin
 				continue
 			}
 			linked := false
-			for _, link := range aggregate.Links {
+			for _, link := range visibleLinks {
 				if link.ProgramID == query.ProgramID && link.RetiredAt == nil {
 					linked = true
 					break
@@ -175,7 +186,9 @@ func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant strin
 		if !matterMatchesDueCondition(aggregate.Matter, query.DueCondition, query.asOf) {
 			continue
 		}
-		value := summarizeMatter(cloneMatterAggregate(aggregate))
+		visibleAggregate := cloneMatterAggregate(aggregate)
+		visibleAggregate.Links = visibleLinks
+		value := summarizeMatter(visibleAggregate)
 		if search != "" && !strings.Contains(strings.ToLower(value.Matter.Reference+" "+value.Matter.Title+" "+value.Matter.Summary+" "+value.TypeLabel), search) {
 			continue
 		}

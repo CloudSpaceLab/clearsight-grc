@@ -13,6 +13,7 @@ import (
 // The arguments are SQL expressions supplied only by repository code.
 func visibleMatterScopeSQL(scope, principal string) string {
 	return `CASE
+ WHEN jsonb_typeof(` + scope + `) IS DISTINCT FROM 'object' THEN false
  WHEN NOT (` + scope + ` ? 'access') THEN true
  WHEN jsonb_typeof(` + scope + `->'access')<>'string' THEN false
  WHEN upper(btrim(` + scope + `->>'access')) IN ('PUBLIC','INTERNAL') THEN true

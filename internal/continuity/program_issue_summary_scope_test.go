@@ -14,7 +14,7 @@ func TestProgramVisibleOpenIssueCountMatchesScopedListWithoutSnapshot(t *testing
 	repo := NewMemoryRepository()
 	now := time.Now().UTC()
 	retired := now.Add(-time.Minute)
-	program := Program{ID: "p1", TenantID: "bank", LegalEntityID: "entity", Name: "Assurance", Code: "P1", Status: ProgramActive, Version: 1, UpdatedAt: now}
+	program := Program{ID: "p1", TenantID: "bank", LegalEntityID: "entity", Name: "Assurance", Code: "P1", Status: ProgramActive, Scope: json.RawMessage(`{}`), Version: 1, UpdatedAt: now}
 	repo.programs["bank"] = map[string]ProgramAggregate{"p1": {Program: program}}
 	mk := func(id, entity string, scope string, retiredAt *time.Time, status MatterStatus) MatterAggregate {
 		return MatterAggregate{Matter: Matter{ID: id, TenantID: "bank", LegalEntityID: entity, Reference: id, Title: id, Status: status, Scope: json.RawMessage(scope), Version: 1, UpdatedAt: now}, Links: []MatterLink{{MatterID: id, ProgramID: "p1", RetiredAt: retiredAt}}}
@@ -56,7 +56,7 @@ func TestProgramIssueSummaryFailsClosedWithoutScopedRepository(t *testing.T) {
 func TestProgramIssueSummariesNeverCrossProgramEntityForTenantWideActor(t *testing.T) {
 	repo := NewMemoryRepository()
 	now := time.Now().UTC()
-	repo.programs["bank"] = map[string]ProgramAggregate{"p1": {Program: Program{ID: "p1", TenantID: "bank", LegalEntityID: "entity-a", Name: "Program", Status: ProgramActive, Version: 1, UpdatedAt: now}}}
+	repo.programs["bank"] = map[string]ProgramAggregate{"p1": {Program: Program{ID: "p1", TenantID: "bank", LegalEntityID: "entity-a", Name: "Program", Status: ProgramActive, Scope: json.RawMessage(`{}`), Version: 1, UpdatedAt: now}}}
 	repo.matters["bank"] = map[string]MatterAggregate{"same": {Matter: Matter{ID: "same", TenantID: "bank", LegalEntityID: "entity-a", Status: MatterAssessment, Title: "Same", Scope: json.RawMessage(`{}`), UpdatedAt: now}, Links: []MatterLink{{ProgramID: "p1"}}}, "other": {Matter: Matter{ID: "other", TenantID: "bank", LegalEntityID: "entity-b", Status: MatterAssessment, Title: "Other", Scope: json.RawMessage(`{}`), UpdatedAt: now}, Links: []MatterLink{{ProgramID: "p1"}}}}
 	ctx := identity.WithActor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "*", PrincipalID: "reader"})
 	svc := NewService(repo)

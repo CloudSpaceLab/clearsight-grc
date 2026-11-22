@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -176,13 +177,18 @@ func (r *PostgresRepository) RecordProgramTrigger(ctx context.Context, trigger T
 
 func (r *PostgresRepository) ProgramEvents(ctx context.Context, tenant, id string, until *time.Time) ([]Event, error) {
 	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	principal := ""
+	if actor, ok := identity.FromContext(ctx); ok {
+		principal = actor.PrincipalID
+	}
 	query := `SELECT ce.id::text,t.slug,ce.aggregate_type,ce.aggregate_id::text,ce.aggregate_version,ce.event_type,ce.payload,ce.actor_type,COALESCE(ce.actor_id::text,''),ce.occurred_at
 		FROM continuity_events ce JOIN tenants t ON t.id=ce.tenant_id JOIN programs p ON p.tenant_id=ce.tenant_id AND p.id=ce.aggregate_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND ce.aggregate_type='PROGRAM' AND ce.aggregate_id=$2::uuid
-		  AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND p.legal_entity_id IS NOT NULL AND ($5='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))`
-	args := []any{tenant, id, enforce, actorTenant, actorEntity}
+		  AND (NOT $3 OR ((t.id::text=$4 OR t.slug=$4) AND p.legal_entity_id IS NOT NULL AND ($5='*' OR p.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=p.tenant_id AND (le.id::text=$5 OR le.code=$5) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
+		  AND (NOT $6::boolean OR (btrim($7::text)<>'' AND ` + visibleMatterScopeSQL("p.scope", "btrim($7::text)") + `))`
+	args := []any{tenant, id, enforce, actorTenant, actorEntity, !hasTrustedSystemScope(ctx), principal}
 	if until != nil {
-		query += ` AND ce.occurred_at<=$6`
+		query += ` AND ce.occurred_at<=$8`
 		args = append(args, *until)
 	}
 	query += ` ORDER BY ce.aggregate_version`
