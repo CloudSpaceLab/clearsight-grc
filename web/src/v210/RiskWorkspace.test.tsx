@@ -2,13 +2,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { RiskWorkspace } from "./RiskWorkspace";
 import { ApiError } from "../http";
-const api = vi.hoisted(() => ({ listRisks: vi.fn(), getRisk: vi.fn() }));
+const api = vi.hoisted(() => ({ listRisks: vi.fn(), getRisk: vi.fn(), loadRiskIndicatorOperation: vi.fn() }));
 vi.mock("../riskApi", () => api);
 const monitoring = vi.hoisted(() => ({ loadMonitoringResults: vi.fn() }));
 vi.mock("../monitoringApi", () => monitoring);
 vi.mock("./FocusedSheet", () => ({ FocusedSheet: ({ children }: { children: React.ReactNode }) => <div role="dialog">{children}</div> }));
 const risk = { id: "risk/1", code: "R-01", name: "Service disruption", category: "Operational", statement: "Service may be unavailable", impact: "Delayed payments", status: "ACTIVE", version: 2 };
-beforeEach(() => { vi.resetAllMocks(); api.listRisks.mockResolvedValue({ items: [{ risk }] }); api.getRisk.mockResolvedValue({ risk, assessments: [], appetite: [] }); });
+beforeEach(() => { vi.resetAllMocks(); api.loadRiskIndicatorOperation.mockResolvedValue({ can_act: false }); api.listRisks.mockResolvedValue({ items: [{ risk }] }); api.getRisk.mockResolvedValue({ risk, assessments: [], appetite: [] }); });
 it("clears the risk register if access is denied during pagination", async () => {
   api.listRisks.mockResolvedValueOnce({ items: [{ risk }], next_cursor: "next" }).mockRejectedValueOnce(new ApiError(403, "Denied"));
   render(<RiskWorkspace/>);

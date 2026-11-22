@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 )
 
 func (a *API) getRiskIndicatorOperations(w http.ResponseWriter, r *http.Request) {
@@ -23,6 +25,12 @@ func (a *API) getRiskIndicatorOperations(w http.ResponseWriter, r *http.Request)
 		writeRiskError(w, err)
 		return
 	}
+	actor, err = a.exactRecordActor(r.Context(), actor, actor.TenantID, aggregate.Risk.TenantID, aggregate.Risk.LegalEntityID)
+	if err != nil {
+		writeRiskError(w, risk.ErrNotFound)
+		return
+	}
+	r = r.WithContext(identity.WithActor(r.Context(), actor))
 	result := struct {
 		RiskID             string `json:"risk_id"`
 		RiskVersion        int64  `json:"risk_version"`

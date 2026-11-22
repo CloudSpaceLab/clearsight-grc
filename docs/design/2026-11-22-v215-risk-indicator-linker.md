@@ -1,0 +1,7 @@
+# Risk indicator linking — 22 November 2026
+
+Reference: `clearsight-v2.15/risk-workspace.html`, SHA-256 `5b91bcc234ba84513c43faea9ab5bdaed244269f6ca1c1c505b8c9393dfac0ab`. The reference has no complete governed indicator-link flow; the Risk page retains its existing v2.15 workspace composition and adds the action to its indicator section.
+
+The action appears only after the server resolves the current Risk owner or a delegate of that owner for the exact Risk and material command. Programs and current active indicator revisions are scoped to the tenant/entity and source Program. Lists disclose their 20/100 limits. The command sends the current Risk version and chosen indicator revision; the client verifies the returned Risk and link fields. Ambiguous outcomes remain locked, with an exact Risk re-read that can establish the link exists; a missing result is not treated as proof of failure. A synchronous refresh error is distinguished from an uncertain command outcome.
+
+Synthetic renders at 1440, 768 and 390 were inspected. The first render lacked a visually dominant action; the confirm button was changed to the existing primary token and captures regenerated. Browser evidence checks basic interaction and horizontal overflow; it does not prove live authority, actual bank data, keyboard completion or whole-screen design acceptance. Intervention links remain unavailable until their source is safely scoped. The legacy indicator suite still includes unsupported intervention behavior and is not removed.

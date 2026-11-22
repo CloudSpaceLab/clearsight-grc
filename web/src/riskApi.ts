@@ -83,3 +83,7 @@ export function linkRiskIndicator(
     },
   );
 }
+export type RiskIndicatorOperation = { risk_id: string; risk_version: number; can_act: boolean; authority_available: boolean };
+export function loadRiskIndicatorOperation(riskID: string): Promise<RiskIndicatorOperation> {
+  return requestJSON<RiskIndicatorOperation>(apiBase, `/api/v1/risks/${encodeURIComponent(riskID)}/operations`);
+}
