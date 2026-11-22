@@ -1,0 +1,30 @@
+.v-forms-overview { margin: 30px 0 28px; }
+.v-forms-overview h2, .v-forms-list-title h2 { margin: 0; color: var(--v-color-text); font-size: 16px; }
+.v-forms-overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.v-form-summary { display: flex; flex-direction: column; min-height: 150px; gap: 12px; }
+.v-form-summary-icon { display: grid; place-items: center; width: 36px; height: 36px; color: #416fae; background: #f2f6fc; border-radius: 9px; }
+.v-form-summary-icon svg { width: 18px; height: 18px; }
+.v-form-summary h3 { margin: 0; font-size: 14px; }
+.v-form-summary p { margin: auto 0 0; padding-top: 10px; border-top: 1px solid var(--v-color-border); color: #627998; font-size: 12px; }
+.v-forms-list-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 0 16px; }
+.v-forms-list-title span { color: #627998; font-size: 12px; }
+.v-forms-register .v-form-filters { padding: 16px 20px; background: var(--v-panel-background); border: 1px solid var(--v-panel-border); border-radius: var(--v-panel-radius); }
+.v-forms-register .v-form-statuses { margin: 0 0 18px; }
+.v-forms-register-table th { background: #f5f8fc; }
+.v-forms-register-table td { vertical-align: middle; }
+.v-forms-register-table small { max-width: 520px; line-height: 1.5; }
+.v-form-status { display: inline-flex; padding: 5px 9px; border-radius: 6px; background: #edf2fa; color: #506889; font-size: 11px; font-weight: 700; text-transform: capitalize; }
+.v-form-status.is-active { background: #e5f4ee; color: #087d5e; }
+.v-form-status.is-rejected { background: #fff0ee; color: #a03535; }
+.v-program-table a.v-form-open { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 52px; padding: 0 10px; border: 1px solid var(--v-button-secondary-border); border-radius: var(--v-button-radius); color: var(--v-button-secondary-text); font-size: 12px; font-weight: 600; }
+.v-forms-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 900px) {
+  .v-forms-register-table table, .v-forms-register-table tbody, .v-forms-register-table td { display: block; }
+  .v-forms-register-table thead { display: none; }
+  .v-forms-register-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--v-color-border); }
+  .v-program-table.v-forms-register-table td { padding: 0; border: 0; }
+  .v-forms-register-table td:first-child { grid-column: 1 / -1; }
+  .v-forms-register-table .v-mobile-label { display: block; margin-bottom: 3px; color: #7389a9; font-size: 11px; }
+}
+@media (max-width: 800px) { .v-forms-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 500px) { .v-forms-overview-grid { grid-template-columns: 1fr; } .v-form-summary { min-height: 120px; } }

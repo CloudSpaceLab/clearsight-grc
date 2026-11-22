@@ -1,0 +1,7 @@
+# V2.15 shell and Home alignment
+
+The shared shell uses line icons, the reference's desktop rail and header proportions, and a compact icon rail at tablet widths. The mobile rail remains an accessible drawer. Home places recorded attention items beside the current risk indicators and, for administrative roles, the actor's assignments. The content and numbers continue to come from the existing scoped APIs; reference controls with no supported action are not shown.
+
+Reference: `clearsight-v2.15/assets/app.js` SHA-256 `3994fefcd0532ec6a13f4d2f0282ed918fe28dd4236524e30b9e7713c2d5324f`, `assets/styles.css` SHA-256 `dccaaf6f14596e63eeb9937655af40e235d66fd8072bca469cc970d2833358a5`, and `assets/scoped-analytics.js` SHA-256 `2035ea855021d07a86f59f0e43e5636271ea2c2a9f92b0fdc6eb4193ffc63154`.
+
+The before-state and synthetic after-renders at 1440, 768 and 390 pixels are in `docs/evidence/2026-11-22-v215-shell-home-alignment/`. The mobile render was inspected after correcting an oversized menu icon. These are fixture renders, not proof of live authorization, complete dashboard parity, dark-theme coverage or production acceptance. Branch/department/unit scope and reference search are not represented as controls because their authorized query contracts are not yet available in this shell.

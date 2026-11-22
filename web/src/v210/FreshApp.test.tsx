@@ -123,6 +123,17 @@ beforeEach(() => {
   documents.documentEligibility.mockReturnValue("available");
 });
 
+it("keeps named navigation destinations with decorative line icons", async () => {
+  render(<FreshApp/>);
+  const navigation = await screen.findByRole("navigation", { name: "Primary navigation" });
+  const links = within(navigation).getAllByRole("link");
+  for (const name of ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Documents", "Work & Approvals"]) {
+    const link = links.find((item) => item.getAttribute("aria-label") === name);
+    expect(link?.querySelector('svg[aria-hidden="true"]')).toBeTruthy();
+  }
+  expect(screen.getByText("Ada Okafor")).toBeTruthy();
+});
+
 it("shows stale program status and unknown counts without claiming current assurance", async () => {
   window.location.hash = "#/programs";
   api.loadProgramSummaries.mockResolvedValue({ items: [{ program: { id: "stale", name: "Access program", code: "P-1", version: 5 }, state_label: "Up to date", overall_state: "CURRENT", program_version: 5, assessed_program_version: 4, projection_version: 2, projection_stale: false, state_generated_at: "2026-11-20T10:00:00Z" }] });

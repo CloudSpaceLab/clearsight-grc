@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { Documents } from "./Documents";
 
@@ -8,6 +8,15 @@ vi.mock("../submittedDocumentApi", () => documents);
 vi.mock("../http", () => http);
 
 beforeEach(() => { vi.clearAllMocks(); window.history.replaceState(null, "", "#/documents"); documents.documentContentURL.mockReturnValue("/protected/document"); });
+
+it("browses file types in the document explorer using the scoped server filter", async () => {
+  documents.loadDocuments.mockResolvedValue({ items: [] });
+  render(<Documents/>);
+  const navigation = await screen.findByRole("navigation", { name: "File types" });
+  fireEvent.click(within(navigation).getByRole("button", { name: "PDF" }));
+  await vi.waitFor(() => expect(documents.loadDocuments).toHaveBeenLastCalledWith(expect.objectContaining({ file_kind: "PDF" }), expect.any(AbortSignal)));
+  expect(window.location.hash).toContain("kind=PDF");
+});
 
 it.each([
   ["relationship_id", "relationship-1", "Vendor"],

@@ -6,6 +6,7 @@ import type { CreateVendorRelationshipInput, VendorRelationshipAggregate } from 
 import { VendorReview } from "./VendorReview";
 import { documentReturnDestination } from "./documentReturn";
 import "./vendor-intake.css";
+import "./vendor-register.css";
 
 type PendingRelationship = Pick<CreateVendorRelationshipInput, "legal_name" | "service_name" | "criticality" | "privacy_role">;
 
@@ -28,6 +29,7 @@ function VendorWorkspace({ context, relationshipId, assessmentId }: { context: R
   const [listScope, setListScope] = useState("");
   const [draft, setDraft] = useState("");
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"all" | "onboarding" | "active" | "inactive">("all");
   const [attempt, setAttempt] = useState(0);
   const [moreBusy, setMoreBusy] = useState(false);
   const [moreError, setMoreError] = useState(false);
@@ -72,13 +74,25 @@ function VendorWorkspace({ context, relationshipId, assessmentId }: { context: R
   if (mode === "create" && canCreate) return <VendorIntake context={context} scopeKey={scopeKey} currentScope={currentScope} onCancel={() => setMode("list")} onCreated={(value) => { setCreated(value); setMode("created"); }} onUncertain={(value) => { setUncertain({ scope: scopeKey, value }); setMode("uncertain"); }}/>;
   if (mode === "uncertain" && uncertain) return <section><h1>Relationship status unknown</h1><p role="alert">Check vendors before trying again.</p><RelationshipDetails value={uncertain}/><button className="v-primary" onClick={() => { setDraft(uncertain.legal_name); setSearch(uncertain.legal_name); setMode("list"); }}>View vendors</button></section>;
   if (mode === "created" && created) return <section><h1>Relationship created</h1><div className="v-panel v-result"><h2>{created.vendor.legal_name}</h2><p>{created.relationship.service_name}</p><span className="v-status">{statusLabel(created.relationship.status)}</span></div><p>Due diligence and approval are required before activation.</p>{created.relationship.id && <p><a className="v-primary" href={`#/vendors/${encodeURIComponent(created.relationship.id)}`}>View relationship</a></p>}<button onClick={() => setMode("list")}>View vendors</button></section>;
-  return <section><header className="v-page-heading"><div><p className="v-eyebrow">Vendors</p><h1>Vendor relationships</h1></div>{canCreate && !uncertain && <button className="v-primary" onClick={() => setMode("create")}>Add vendor</button>}</header>
+  const loaded = listScope === scopeKey && state === "ready";
+  const visible = items.filter(({ relationship }) => view === "all" || (view === "onboarding" && ["PROPOSED", "UNDER_REVIEW"].includes(relationship.status)) || (view === "active" && relationship.status === "ACTIVE") || (view === "inactive" && ["RESTRICTED", "SUSPENDED", "EXITING", "TERMINATED"].includes(relationship.status)));
+  const metrics = [
+    { label: "Loaded suppliers", value: new Set(items.map(({ vendor }) => vendor.id)).size, detail: loaded ? `${items.length} relationships` : "" },
+    { label: "Onboarding", value: items.filter(({ relationship }) => ["PROPOSED", "UNDER_REVIEW"].includes(relationship.status)).length, detail: "Proposed or under review" },
+    { label: "Critical services", value: items.filter(({ relationship }) => relationship.criticality === "CRITICAL").length, detail: "" },
+    { label: "Restricted or exited", value: items.filter(({ relationship }) => ["RESTRICTED", "SUSPENDED", "EXITING", "TERMINATED"].includes(relationship.status)).length, detail: "Restricted, suspended, exiting or terminated" },
+  ];
+  const views = [{ id: "all", label: "Engagements" }, { id: "onboarding", label: "Onboarding" }, { id: "active", label: "Active" }, { id: "inactive", label: "Restricted & exited" }] as const;
+  return <section className="v-vendors"><header className="v-page-heading"><div><p className="v-eyebrow">Third-party risk</p><h1>Vendor relationships</h1></div>{canCreate && !uncertain && <button className="v-primary" onClick={() => setMode("create")}>Add vendor</button>}</header>
     {uncertain && <section className="v-panel"><h2>Relationship status unknown</h2><p>Check vendors before trying again.</p><RelationshipDetails value={uncertain}/><button type="button" onClick={() => setUncertain(undefined)}>Dismiss details</button></section>}
     {authority === "checking" && <p role="status">Checking vendor creation access…</p>}{authority === "unavailable" && <p>Vendor creation unavailable.</p>}
-    <form className="v-program-search" onSubmit={(event) => { event.preventDefault(); setSearch(draft.trim()); }}><label htmlFor="v-vendor-search">Find a vendor</label><div><input id="v-vendor-search" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Vendor or service"/><button>Search</button></div></form>
+    <div className="v-vendor-metrics" aria-label="Loaded vendor relationships">{metrics.map((metric) => <article className="v-panel v-vendor-metric" key={metric.label}><span>{metric.label}</span><strong>{loaded ? metric.value : "—"}</strong>{metric.detail && <small>{metric.detail}</small>}</article>)}</div>
+    <p className="v-vendor-coverage">Counts cover loaded relationships.</p>
+    <nav className="v-vendor-tabs" aria-label="Vendor relationship filters">{views.map((item) => <button key={item.id} type="button" aria-pressed={view === item.id} onClick={() => setView(item.id)}>{item.label}</button>)}</nav>
+    <form className="v-program-search v-vendor-search" onSubmit={(event) => { event.preventDefault(); setSearch(draft.trim()); }}><label htmlFor="v-vendor-search">Find a vendor</label><div><input id="v-vendor-search" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Vendor or service"/><button>Search</button></div>{cursor && <p>Filters apply to loaded relationships.</p>}</form>
     {(listScope !== scopeKey || state === "loading") && <p role="status">Loading vendors…</p>}
     {listScope === scopeKey && state === "error" && <div className="v-panel"><p role="alert">Vendors unavailable.</p><button onClick={() => setAttempt(attempt + 1)}>Try again</button></div>}
-    {listScope === scopeKey && state === "ready" && <div className="v-panel v-program-table">{items.length === 0 ? <p>No vendors match this search.</p> : <table><thead><tr><th>Vendor</th><th>Service</th><th>Criticality</th><th>Status</th></tr></thead><tbody>{items.map(({ vendor, relationship }) => <tr key={relationship.id}><td><a href={`#/vendors/${encodeURIComponent(relationship.id)}`}>{vendor.legal_name}</a></td><td><span className="v-mobile-label">Service</span>{relationship.service_name}</td><td><span className="v-mobile-label">Criticality</span>{statusLabel(relationship.criticality)}</td><td><span className="v-mobile-label">Status</span>{statusLabel(relationship.status)}</td></tr>)}</tbody></table>}{moreError && <p role="alert">More vendors unavailable.</p>}{cursor && <button disabled={moreBusy} onClick={() => void more()}>{moreBusy ? "Loading…" : "Load more"}</button>}</div>}
+    {loaded && <section className="v-panel v-vendor-register"><div className="v-vendor-register-head"><h2>Service engagements</h2><span>{visible.length} loaded</span></div><div className="v-program-table">{items.length === 0 ? <p>No vendors match this search.</p> : visible.length === 0 ? <p>No loaded relationships match this filter.</p> : <table><thead><tr><th>Supplier / service</th><th>Criticality</th><th>Lifecycle</th><th>Renewal</th><th><span className="v-sr-only">Action</span></th></tr></thead><tbody>{visible.map(({ vendor, relationship }) => <tr key={relationship.id}><td><a href={`#/vendors/${encodeURIComponent(relationship.id)}`}>{vendor.legal_name}</a><small>{relationship.service_name}</small></td><td><span className="v-mobile-label">Criticality</span>{statusLabel(relationship.criticality)}</td><td><span className="v-mobile-label">Lifecycle</span><span className={`v-vendor-state ${vendorStateClass(relationship.status)}`}>{statusLabel(relationship.status)}</span></td><td><span className="v-mobile-label">Renewal</span>{relationship.renewal_at ? vendorDate(relationship.renewal_at) : "Not recorded"}</td><td><a className="v-vendor-open" href={`#/vendors/${encodeURIComponent(relationship.id)}`} aria-label={`Open ${vendor.legal_name} ${relationship.service_name}`}>Open</a></td></tr>)}</tbody></table>}{moreError && <p role="alert">More vendors unavailable.</p>}{cursor && <button disabled={moreBusy} onClick={() => void more()}>{moreBusy ? "Loading…" : "Load more"}</button>}</div></section>}
   </section>;
 }
 
@@ -139,3 +153,5 @@ function VendorIntake({ context, scopeKey, currentScope, onCancel, onCreated, on
 function RelationshipDetails({ value }: { value: PendingRelationship }) { return <dl className="v-intake-review"><div><dt>Legal name</dt><dd>{value.legal_name}</dd></div><div><dt>Service</dt><dd>{value.service_name}</dd></div><div><dt>Criticality</dt><dd>{statusLabel(value.criticality)}</dd></div><div><dt>Privacy role</dt><dd>{statusLabel(value.privacy_role)}</dd></div></dl>; }
 
 function statusLabel(value: string) { const text = value.toLowerCase().replaceAll("_", " "); return text.charAt(0).toUpperCase() + text.slice(1); }
+function vendorStateClass(value: string) { return value === "ACTIVE" ? "is-active" : ["RESTRICTED", "SUSPENDED", "TERMINATED"].includes(value) ? "is-attention" : "is-pending"; }
+function vendorDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Date unavailable" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeZone: "UTC" }).format(date); }

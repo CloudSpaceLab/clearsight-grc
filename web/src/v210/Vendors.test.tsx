@@ -10,6 +10,43 @@ const context = { tenant: { id: "bank", name: "Bank" }, legal_entity: { id: "ent
 
 beforeEach(() => { vi.clearAllMocks(); vendors.loadVendorRelationships.mockResolvedValue({ items: [] }); authority.requestJSON.mockResolvedValue({ principal: { id: "actor" } }); });
 
+it("shows loaded vendor posture and filters real relationships by lifecycle", async () => {
+  const relationship = { tenant_id: "bank", legal_entity_id: "entity", criticality: "CRITICAL", service_name: "Hosting" };
+  vendors.loadVendorRelationships.mockResolvedValue({ items: [
+    { vendor: { id: "v1", tenant_id: "bank", legal_name: "Atlas" }, relationship: { ...relationship, id: "r1", vendor_id: "v1", status: "PROPOSED" } },
+    { vendor: { id: "v2", tenant_id: "bank", legal_name: "Delta" }, relationship: { ...relationship, id: "r2", vendor_id: "v2", status: "ACTIVE", criticality: "STANDARD" } },
+  ], next_cursor: "next" });
+  render(<Vendors context={context}/>);
+  expect(await screen.findByRole("link", { name: "Atlas" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Service engagements" })).toBeTruthy();
+  expect(screen.getByText("Loaded suppliers")).toBeTruthy();
+  expect(screen.getByText("Counts cover loaded relationships.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Onboarding" }));
+  expect(screen.getByRole("link", { name: "Atlas" })).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Delta" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Load more" })).toBeTruthy();
+});
+
+it("does not show a zero relationship count while the register is unavailable", async () => {
+  vendors.loadVendorRelationships.mockRejectedValue(new Error("offline"));
+  render(<Vendors context={context}/>);
+  expect(await screen.findByRole("alert")).toBeTruthy();
+  expect(screen.queryByText("0 relationships")).toBeNull();
+  expect(screen.getByText("Loaded suppliers").parentElement?.textContent).toContain("—");
+});
+
+it("resets the lifecycle filter when the entity changes", async () => {
+  const first = { vendor: { id: "v1", tenant_id: "bank", legal_name: "Atlas" }, relationship: { id: "r1", vendor_id: "v1", tenant_id: "bank", legal_entity_id: "entity", criticality: "STANDARD", service_name: "Hosting", status: "PROPOSED" } };
+  const second = { vendor: { id: "v2", tenant_id: "bank", legal_name: "Delta" }, relationship: { id: "r2", vendor_id: "v2", tenant_id: "bank", legal_entity_id: "other", criticality: "STANDARD", service_name: "Payments", status: "ACTIVE" } };
+  vendors.loadVendorRelationships.mockResolvedValueOnce({ items: [first] }).mockResolvedValueOnce({ items: [second] });
+  const tree = render(<Vendors context={context}/>);
+  await screen.findByRole("link", { name: "Atlas" });
+  fireEvent.click(screen.getByRole("button", { name: "Onboarding" }));
+  tree.rerender(<Vendors context={{ ...context, legal_entity: { id: "other", name: "Other bank" } }}/>);
+  expect(await screen.findByRole("link", { name: "Delta" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Engagements" }).getAttribute("aria-pressed")).toBe("true");
+});
+
 async function enterVendorDetails() {
   fireEvent.click(await screen.findByRole("button", { name: "Add vendor" }));
   fireEvent.change(screen.getByLabelText("Legal name"), { target: { value: "Atlas Ltd" } });
