@@ -656,9 +656,70 @@ func TestPostgresResponseAssessmentVendorReviewerDocuments(t *testing.T) {
 	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_assessments WHERE tenant_id=$1::uuid),(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_ASSESSED')`, tenant).Scan(&assessmentCount, &eventCount); err != nil || assessmentCount != 2 || eventCount != 2 {
 		t.Fatalf("delegated write counts: %d/%d %v", assessmentCount, eventCount, err)
 	}
+	assessmentAuthorizer := service.assessmentAuthorizer
 	service.WithAssessmentAuthorizer(nil)
 	page, err = service.ListDocuments(ctx, q)
 	if err != nil || len(page.Items) != 0 {
 		t.Fatalf("revoked reviewer inventory %+v %v", page, err)
+	}
+	service.WithAssessmentAuthorizer(assessmentAuthorizer)
+	program, matter := mustResponseWorkspaceID(t), mustResponseWorkspaceID(t)
+	_, err = pool.Exec(ctx, `INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from) VALUES($1::uuid,$3::uuid,$4::uuid,'ASSESS','Assessment program','COMPLIANCE','ACTIVE','Risk','NG',jsonb_build_object('access','RESTRICTED','allowed_principal_ids',jsonb_build_array($5::text)),$6); INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at) VALUES($2::uuid,$3::uuid,$4::uuid,'MAT-ASSESS','CONTROL_GAP','TRIAGE',3,'Assessment issue','Scope test',jsonb_build_object('access','RESTRICTED','allowed_principal_ids',jsonb_build_array($5::text)),'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$6,$6)`, pgx.QueryExecModeSimpleProtocol, program, matter, tenant, entity, reviewer, now.Add(-time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM programs WHERE id=$1::uuid; DELETE FROM matters WHERE id=$2::uuid`, pgx.QueryExecModeSimpleProtocol, program, matter)
+	})
+	for i, subject := range []struct{ kind, id, table string }{{"PROGRAM", program, "programs"}, {"MATTER", matter, "matters"}} {
+		_, err = pool.Exec(ctx, `UPDATE capture_form_distributions SET subject_type=$2,subject_id=$3::uuid WHERE tenant_id=$1::uuid; UPDATE capture_requests SET subject_type=$2,subject_id=$3 WHERE tenant_id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, tenant, subject.kind, subject.id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		expected := int64(2 + i)
+		subjectInput := RecordResponseAssessmentInput{RequestKey: mustResponseWorkspaceID(t), ExpectedVersion: expected, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "Review scope verified."}}}
+		recorded, recordErr := service.RecordResponseAssessment(ctx, tenant, entity, response, subjectInput)
+		if recordErr != nil || recorded.Version != expected+1 {
+			t.Fatalf("%s permitted assessment: %+v %v", subject.kind, recorded, recordErr)
+		}
+		checked, resume, done := make(chan struct{}), make(chan struct{}), make(chan error, 1)
+		var once sync.Once
+		service.WithAssessmentAuthorizer(func(c context.Context, a identity.Actor, r CompletedResponseSummary, f formcontract.Field) (string, error) {
+			route, e := assessmentAuthorizer(c, a, r, f)
+			if e == nil {
+				once.Do(func() { close(checked); <-resume })
+			}
+			return route, e
+		})
+		attemptKey := mustResponseWorkspaceID(t)
+		go func() {
+			_, e := service.RecordResponseAssessment(ctx, tenant, entity, response, RecordResponseAssessmentInput{RequestKey: attemptKey, ExpectedVersion: expected + 1, Decisions: []FieldAssessmentInput{{FieldID: "file", OutcomeID: "poor", Rationale: "Review scope changed."}}})
+			done <- e
+		}()
+		select {
+		case <-checked:
+		case e := <-done:
+			service.WithAssessmentAuthorizer(assessmentAuthorizer)
+			t.Fatalf("%s authority check: %v", subject.kind, e)
+		case <-time.After(5 * time.Second):
+			close(resume)
+			service.WithAssessmentAuthorizer(assessmentAuthorizer)
+			t.Fatalf("%s authority timeout", subject.kind)
+		}
+		// table is selected from the closed list above.
+		_, scopeErr := pool.Exec(ctx, `UPDATE `+subject.table+` SET scope=jsonb_build_object('access','RESTRICTED','allowed_principal_ids',jsonb_build_array($2::text)) WHERE id=$1::uuid`, subject.id, owner)
+		close(resume)
+		raceErr := <-done
+		service.WithAssessmentAuthorizer(assessmentAuthorizer)
+		if scopeErr != nil || !errors.Is(raceErr, ErrAssessmentForbidden) {
+			t.Fatalf("%s scope revoked at insert: scope=%v write=%v", subject.kind, scopeErr, raceErr)
+		}
+		if receipt, replayErr := service.RecordResponseAssessment(ctx, tenant, entity, response, subjectInput); replayErr == nil || receipt.Version != 0 {
+			t.Fatalf("%s revoked scope receipt: %+v %v", subject.kind, receipt, replayErr)
+		}
+		var scopeVersions, scopeEvents int
+		if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM capture_response_assessments WHERE tenant_id=$1::uuid),(SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND event_type='FORM_RESPONSE_ASSESSED')`, tenant).Scan(&scopeVersions, &scopeEvents); err != nil || scopeVersions != int(expected+1) || scopeEvents != int(expected+1) {
+			t.Fatalf("%s denied scope wrote records: %d/%d %v", subject.kind, scopeVersions, scopeEvents, err)
+		}
 	}
 }
